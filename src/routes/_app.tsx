@@ -8,6 +8,7 @@ import {
   Calculator,
   LogOut,
   Loader2,
+  LayoutDashboard,
 } from "lucide-react";
 import { logout, useAppState, useUser } from "@/lib/store";
 
@@ -49,6 +50,7 @@ function AppLayout() {
   }
 
   const tabs = [
+    { to: "/dashboard", Icon: LayoutDashboard, label: "Início", desc: "Visão geral" },
     { to: "/scan", Icon: LineChart, label: "Scan", desc: "Análise" },
     { to: "/mind", Icon: Sparkles, label: "Mind", desc: "Mentor" },
     { to: "/gestao", Icon: ClipboardList, label: "Gestão", desc: "Trades" },
