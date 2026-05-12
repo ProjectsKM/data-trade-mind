@@ -17,6 +17,7 @@ import { Route as ApiAiScanRouteImport } from './routes/api/ai-scan'
 import { Route as ApiAiMindRouteImport } from './routes/api/ai-mind'
 import { Route as AppUpgradeRouteImport } from './routes/_app/upgrade'
 import { Route as AppScanRouteImport } from './routes/_app/scan'
+import { Route as AppMindRouteImport } from './routes/_app/mind'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -57,11 +58,17 @@ const AppScanRoute = AppScanRouteImport.update({
   path: '/scan',
   getParentRoute: () => AppRoute,
 } as any)
+const AppMindRoute = AppMindRouteImport.update({
+  id: '/mind',
+  path: '/mind',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
+  '/mind': typeof AppMindRoute
   '/scan': typeof AppScanRoute
   '/upgrade': typeof AppUpgradeRoute
   '/api/ai-mind': typeof ApiAiMindRoute
@@ -71,6 +78,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
+  '/mind': typeof AppMindRoute
   '/scan': typeof AppScanRoute
   '/upgrade': typeof AppUpgradeRoute
   '/api/ai-mind': typeof ApiAiMindRoute
@@ -82,6 +90,7 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
+  '/_app/mind': typeof AppMindRoute
   '/_app/scan': typeof AppScanRoute
   '/_app/upgrade': typeof AppUpgradeRoute
   '/api/ai-mind': typeof ApiAiMindRoute
@@ -93,6 +102,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/signup'
+    | '/mind'
     | '/scan'
     | '/upgrade'
     | '/api/ai-mind'
@@ -102,6 +112,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/signup'
+    | '/mind'
     | '/scan'
     | '/upgrade'
     | '/api/ai-mind'
@@ -112,6 +123,7 @@ export interface FileRouteTypes {
     | '/_app'
     | '/login'
     | '/signup'
+    | '/_app/mind'
     | '/_app/scan'
     | '/_app/upgrade'
     | '/api/ai-mind'
@@ -185,15 +197,24 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppScanRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/mind': {
+      id: '/_app/mind'
+      path: '/mind'
+      fullPath: '/mind'
+      preLoaderRoute: typeof AppMindRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
 interface AppRouteChildren {
+  AppMindRoute: typeof AppMindRoute
   AppScanRoute: typeof AppScanRoute
   AppUpgradeRoute: typeof AppUpgradeRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppMindRoute: AppMindRoute,
   AppScanRoute: AppScanRoute,
   AppUpgradeRoute: AppUpgradeRoute,
 }
