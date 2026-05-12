@@ -14,7 +14,7 @@ const STARTER: ChatMsg = {
 };
 
 function MindPage() {
-  const { state, update } = useAppState();
+  const { state, addMindMessages, clearMind } = useAppState();
   const { user } = useUser();
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -30,20 +30,21 @@ function MindPage() {
     const t = (text ?? input).trim();
     if (!t || busy) return;
     setInput("");
-    const next: ChatMsg[] = [...(state.mindMessages.length ? state.mindMessages : [STARTER]), { role: "user", content: t, ts: new Date().toISOString() }];
-    update({ mindMessages: next });
+    const userMsg: ChatMsg = { role: "user", content: t, ts: new Date().toISOString() };
+    await addMindMessages([userMsg]);
+    const history: ChatMsg[] = [...(state.mindMessages.length ? state.mindMessages : [STARTER]), userMsg];
     setBusy(true);
     try {
-      const payload = next.filter((m) => m.role === "user" || m.role === "assistant").map((m) => ({ role: m.role, content: m.content }));
+      const payload = history.map((m) => ({ role: m.role, content: m.content }));
       const r = await fetch("/api/ai-mind", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messages: payload }) });
       const data = (await r.json()) as { ok: boolean; reply?: string; error?: string };
       const reply: ChatMsg = { role: "assistant", content: data.ok ? data.reply || "Sem resposta." : `⚠️ ${data.error || "Erro de conexão."}`, ts: new Date().toISOString() };
-      update({ mindMessages: [...next, reply] });
-    } catch { update({ mindMessages: [...next, { role: "assistant", content: "⚠️ Erro de conexão. Tente novamente.", ts: new Date().toISOString() }] }); }
+      await addMindMessages([reply]);
+    } catch { await addMindMessages([{ role: "assistant", content: "⚠️ Erro de conexão. Tente novamente.", ts: new Date().toISOString() }]); }
     finally { setBusy(false); }
   }
 
-  function clear() { update({ mindMessages: [] }); }
+  function clear() { void clearMind(); }
   const initials = user?.email.slice(0, 2).toUpperCase() ?? "EU";
 
   return (

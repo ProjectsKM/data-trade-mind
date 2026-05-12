@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Navigate, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { getCurrentUser, signup } from "@/lib/store";
+import { useState } from "react";
+import { signup, useUser } from "@/lib/store";
 
 export const Route = createFileRoute("/signup")({
   head: () => ({ meta: [{ title: "Criar conta — OrionHub" }, { name: "description", content: "Crie sua conta OrionHub. 7 dias grátis." }] }),
@@ -9,6 +9,7 @@ export const Route = createFileRoute("/signup")({
 
 function SignupPage() {
   const nav = useNavigate();
+  const { user, ready } = useUser();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [pw, setPw] = useState("");
@@ -16,17 +17,15 @@ function SignupPage() {
   const [err, setErr] = useState("");
   const [shake, setShake] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [logged, setLogged] = useState<boolean | null>(null);
 
-  useEffect(() => { setLogged(!!getCurrentUser()); }, []);
-  if (logged) return <Navigate to="/scan" />;
+  if (ready && user) return <Navigate to="/scan" />;
 
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
     setErr("");
     setLoading(true);
     try {
-      signup({ name, email, password: pw, country });
+      await signup({ name, email, password: pw, country });
       nav({ to: "/scan" });
     } catch (ex: unknown) {
       setErr(ex instanceof Error ? ex.message : "Erro ao criar conta.");

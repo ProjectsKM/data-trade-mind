@@ -17,7 +17,7 @@ function calcLucro(valor: number, payout: number, res: Trade["res"]) {
 }
 
 function GestaoPage() {
-  const { state, update } = useAppState();
+  const { state, addTrade, updateTrade, deleteTrade } = useAppState();
   const [form, setForm] = useState<Form>(emptyForm);
   const fileRef = useRef<HTMLInputElement>(null);
   const trades = state.tradeList;
@@ -30,16 +30,19 @@ function GestaoPage() {
     return { total: trades.length, winrate: closed.length ? Math.round((wins / closed.length) * 100) : 0, lucro, best, worst };
   }, [trades]);
 
-  function addTrade(e: React.FormEvent) {
+  async function submitTrade(e: React.FormEvent) {
     e.preventDefault();
     const valor = parseFloat(form.valor); const payout = parseFloat(form.payout);
     if (!form.ativo.trim() || isNaN(valor) || isNaN(payout)) return;
-    const t: Trade = { id: Date.now(), ativo: form.ativo.trim().toUpperCase(), data: new Date().toISOString(), dir: form.dir, valor, payout, res: form.res, lucro: calcLucro(valor, payout, form.res), obs: form.obs.trim() || undefined };
-    update({ tradeList: [t, ...trades] });
+    await addTrade({ ativo: form.ativo.trim().toUpperCase(), data: new Date().toISOString(), dir: form.dir, valor, payout, res: form.res, lucro: calcLucro(valor, payout, form.res), obs: form.obs.trim() || undefined });
     setForm(emptyForm);
   }
-  function setRes(id: number, res: Trade["res"]) { update({ tradeList: trades.map((t) => (t.id === id ? { ...t, res, lucro: calcLucro(t.valor, t.payout, res) } : t)) }); }
-  function del(id: number) { update({ tradeList: trades.filter((t) => t.id !== id) }); }
+  function setRes(id: string, res: Trade["res"]) {
+    const t = trades.find((x) => x.id === id);
+    if (!t) return;
+    void updateTrade(id, { res, lucro: calcLucro(t.valor, t.payout, res) });
+  }
+  function del(id: string) { void deleteTrade(id); }
   function exportCSV() {
     const head = "id,ativo,data,dir,valor,payout,res,lucro,obs";
     const lines = trades.map((t) => [t.id, t.ativo, t.data, t.dir, t.valor, t.payout, t.res, t.lucro, (t.obs || "").replace(/[\n,]/g, " ")].join(","));
@@ -52,12 +55,16 @@ function GestaoPage() {
     r.onload = () => {
       const text = String(r.result);
       const rows = text.split(/\r?\n/).slice(1).filter(Boolean);
-      const imported: Trade[] = rows.map((row, i) => {
-        const [id, ativo, data, dir, valor, payout, res, lucro, obs] = row.split(",");
-        return { id: Number(id) || Date.now() + i, ativo: ativo || "?", data: data || new Date().toISOString(), dir: (dir as Trade["dir"]) || "COMPRA", valor: Number(valor) || 0, payout: Number(payout) || 0, res: (res as Trade["res"]) || "OPEN", lucro: Number(lucro) || 0, obs: obs || undefined };
-      });
-      const ids = new Set(trades.map((t) => t.id));
-      update({ tradeList: [...imported.filter((t) => !ids.has(t.id)), ...trades] });
+      for (const row of rows) {
+        const [, ativo, data, dir, valor, payout, res, lucro, obs] = row.split(",");
+        void addTrade({
+          ativo: ativo || "?", data: data || new Date().toISOString(),
+          dir: (dir as Trade["dir"]) || "COMPRA",
+          valor: Number(valor) || 0, payout: Number(payout) || 0,
+          res: (res as Trade["res"]) || "OPEN",
+          lucro: Number(lucro) || 0, obs: obs || undefined,
+        });
+      }
     };
     r.readAsText(file);
   }
@@ -85,7 +92,7 @@ function GestaoPage() {
           </div>
         ))}
       </div>
-      <form onSubmit={addTrade} className="mb-5 grid grid-cols-2 gap-3 rounded-2xl border p-4 md:grid-cols-7" style={{ background: "var(--surface)", borderColor: "var(--border)" }}>
+      <form onSubmit={submitTrade} className="mb-5 grid grid-cols-2 gap-3 rounded-2xl border p-4 md:grid-cols-7" style={{ background: "var(--surface)", borderColor: "var(--border)" }}>
         <input className="col-span-2 rounded-lg border bg-transparent px-3 py-2 text-sm md:col-span-1" placeholder="Ativo" style={{ borderColor: "var(--border-strong)" }} value={form.ativo} onChange={(e) => setForm({ ...form, ativo: e.target.value })} />
         <input className="rounded-lg border bg-transparent px-3 py-2 text-sm" type="number" step="0.01" placeholder="Valor" style={{ borderColor: "var(--border-strong)" }} value={form.valor} onChange={(e) => setForm({ ...form, valor: e.target.value })} />
         <input className="rounded-lg border bg-transparent px-3 py-2 text-sm" type="number" placeholder="Payout %" style={{ borderColor: "var(--border-strong)" }} value={form.payout} onChange={(e) => setForm({ ...form, payout: e.target.value })} />

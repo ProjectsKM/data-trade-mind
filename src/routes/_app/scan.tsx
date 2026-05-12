@@ -11,7 +11,7 @@ type Stage = "upload" | "duration" | "analyzing" | "result" | "error";
 const DURATIONS = [1, 5, 15, 30, 60] as const;
 
 function ScanPage() {
-  const { state, update } = useAppState();
+  const { state, update, addScan } = useAppState();
   const [stage, setStage] = useState<Stage>("upload");
   const [imgData, setImgData] = useState<string>("");
   const [result, setResult] = useState<ScanResult | null>(null);
@@ -72,7 +72,8 @@ function ScanPage() {
       if (!data.ok || !data.result) { setErr(data.error || "Não foi possível analisar a imagem."); setStage("error"); return; }
       const res: ScanResult = { ...data.result, createdAt: new Date().toISOString() };
       setResult(res);
-      update((s) => ({ ...s, analysesLeft: s.isPro ? s.analysesLeft : Math.max(0, s.analysesLeft - 1), history: [res, ...s.history].slice(0, 50) }));
+      await addScan(res);
+      if (!state.isPro) update({ analysesLeft: Math.max(0, state.analysesLeft - 1) });
       setStage("result");
     } catch { setErr("Erro de conexão. Tente novamente."); setStage("error"); }
   }
