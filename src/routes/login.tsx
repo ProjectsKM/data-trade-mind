@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Navigate, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { getCurrentUser, login } from "@/lib/store";
+import { useState } from "react";
+import { login, useUser } from "@/lib/store";
 
 export const Route = createFileRoute("/login")({
   head: () => ({ meta: [{ title: "Entrar — OrionHub" }, { name: "description", content: "Acesse sua conta OrionHub." }] }),
@@ -9,22 +9,21 @@ export const Route = createFileRoute("/login")({
 
 function LoginPage() {
   const nav = useNavigate();
+  const { user, ready } = useUser();
   const [email, setEmail] = useState("");
   const [pw, setPw] = useState("");
   const [err, setErr] = useState("");
   const [shake, setShake] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [logged, setLogged] = useState<boolean | null>(null);
 
-  useEffect(() => { setLogged(!!getCurrentUser()); }, []);
-  if (logged) return <Navigate to="/scan" />;
+  if (ready && user) return <Navigate to="/scan" />;
 
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
     setErr("");
     setLoading(true);
     try {
-      login(email, pw);
+      await login(email, pw);
       nav({ to: "/scan" });
     } catch (ex: unknown) {
       setErr(ex instanceof Error ? ex.message : "Erro ao entrar.");
