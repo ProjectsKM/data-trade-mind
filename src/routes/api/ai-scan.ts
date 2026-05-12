@@ -3,8 +3,8 @@ import "@tanstack/react-start";
 import { z } from "zod";
 import { CORS_HEADERS, jsonResponse } from "@/lib/cors";
 
-const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
-const MODEL = "claude-sonnet-4-20250514";
+const OPENAI_URL = "https://api.openai.com/v1/chat/completions";
+const MODEL = "gpt-4o-mini";
 
 const Body = z.object({
   imageBase64: z.string().min(100),
@@ -35,22 +35,24 @@ export const Route = createFileRoute("/api/ai-scan")({
       POST: async ({ request }: { request: Request }) => {
         let body: z.infer<typeof Body>;
         try { body = Body.parse(await request.json()); } catch { return jsonResponse({ ok: false, error: "Dados inválidos." }, 400); }
-        const apiKey = process.env.ANTHROPIC_API_KEY;
+        const apiKey = process.env.OPENAI_API_KEY;
         if (!apiKey) return jsonResponse({ ok: false, error: "API key não configurada no servidor." }, 500);
         if (body.imageBase64.length > 7_000_000) return jsonResponse({ ok: false, error: "Imagem muito grande (máx ~5 MB)." }, 413);
 
         const prompt = buildPrompt(body.durationMin, new Date());
         try {
-          const r = await fetch(ANTHROPIC_URL, {
+          const dataUrl = `data:${body.mediaType};base64,${body.imageBase64}`;
+          const r = await fetch(OPENAI_URL, {
             method: "POST",
-            headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
             body: JSON.stringify({
               model: MODEL,
               max_tokens: 1000,
+              response_format: { type: "json_object" },
               messages: [{
                 role: "user",
                 content: [
-                  { type: "image", source: { type: "base64", media_type: body.mediaType, data: body.imageBase64 } },
+                  { type: "image_url", image_url: { url: dataUrl, detail: "high" } },
                   { type: "text", text: prompt.text },
                 ],
               }],
@@ -58,13 +60,13 @@ export const Route = createFileRoute("/api/ai-scan")({
           });
           if (!r.ok) {
             const txt = await r.text();
-            console.error("Anthropic error", r.status, txt);
+            console.error("OpenAI error", r.status, txt);
             if (r.status === 429) return jsonResponse({ ok: false, error: "Limite de requisições. Aguarde um momento." }, 429);
             if (r.status === 401) return jsonResponse({ ok: false, error: "API key inválida." }, 500);
             return jsonResponse({ ok: false, error: "Falha ao consultar a IA." }, 502);
           }
-          const data = (await r.json()) as { content?: Array<{ type: string; text?: string }> };
-          const txt = data.content?.find((b) => b.type === "text")?.text ?? "";
+          const data = (await r.json()) as { choices?: Array<{ message?: { content?: string } }> };
+          const txt = data.choices?.[0]?.message?.content ?? "";
           let parsed: Record<string, unknown> | null = null;
           try { parsed = JSON.parse(txt.replace(/```json|```/g, "").trim()); } catch { parsed = null; }
           if (!parsed) return jsonResponse({ ok: false, error: "Não foi possível interpretar a resposta. Tente uma imagem mais nítida." }, 200);
