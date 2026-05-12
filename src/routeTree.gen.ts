@@ -9,12 +9,27 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SignupRouteImport } from './routes/signup'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppScanRouteImport } from './routes/_app/scan'
+import { Route as AppMindRouteImport } from './routes/_app/mind'
+import { Route as AppGestaoRouteImport } from './routes/_app/gestao'
+import { Route as AppCalculadoraRouteImport } from './routes/_app/calculadora'
 
+const SignupRoute = SignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppRoute = AppRouteImport.update({
+  id: '/_app',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -22,40 +37,115 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppScanRoute = AppScanRouteImport.update({
+  id: '/scan',
+  path: '/scan',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMindRoute = AppMindRouteImport.update({
+  id: '/mind',
+  path: '/mind',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppGestaoRoute = AppGestaoRouteImport.update({
+  id: '/gestao',
+  path: '/gestao',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCalculadoraRoute = AppCalculadoraRouteImport.update({
+  id: '/calculadora',
+  path: '/calculadora',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/signup': typeof SignupRoute
+  '/calculadora': typeof AppCalculadoraRoute
+  '/gestao': typeof AppGestaoRoute
+  '/mind': typeof AppMindRoute
+  '/scan': typeof AppScanRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/signup': typeof SignupRoute
+  '/calculadora': typeof AppCalculadoraRoute
+  '/gestao': typeof AppGestaoRoute
+  '/mind': typeof AppMindRoute
+  '/scan': typeof AppScanRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
+  '/signup': typeof SignupRoute
+  '/_app/calculadora': typeof AppCalculadoraRoute
+  '/_app/gestao': typeof AppGestaoRoute
+  '/_app/mind': typeof AppMindRoute
+  '/_app/scan': typeof AppScanRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login'
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/signup'
+    | '/calculadora'
+    | '/gestao'
+    | '/mind'
+    | '/scan'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login'
-  id: '__root__' | '/' | '/login'
+  to:
+    | '/'
+    | '/login'
+    | '/signup'
+    | '/calculadora'
+    | '/gestao'
+    | '/mind'
+    | '/scan'
+  id:
+    | '__root__'
+    | '/'
+    | '/_app'
+    | '/login'
+    | '/signup'
+    | '/_app/calculadora'
+    | '/_app/gestao'
+    | '/_app/mind'
+    | '/_app/scan'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AppRoute: typeof AppRouteWithChildren
   LoginRoute: typeof LoginRoute
+  SignupRoute: typeof SignupRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_app': {
+      id: '/_app'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AppRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -65,12 +155,58 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/scan': {
+      id: '/_app/scan'
+      path: '/scan'
+      fullPath: '/scan'
+      preLoaderRoute: typeof AppScanRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/mind': {
+      id: '/_app/mind'
+      path: '/mind'
+      fullPath: '/mind'
+      preLoaderRoute: typeof AppMindRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/gestao': {
+      id: '/_app/gestao'
+      path: '/gestao'
+      fullPath: '/gestao'
+      preLoaderRoute: typeof AppGestaoRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/calculadora': {
+      id: '/_app/calculadora'
+      path: '/calculadora'
+      fullPath: '/calculadora'
+      preLoaderRoute: typeof AppCalculadoraRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
+interface AppRouteChildren {
+  AppCalculadoraRoute: typeof AppCalculadoraRoute
+  AppGestaoRoute: typeof AppGestaoRoute
+  AppMindRoute: typeof AppMindRoute
+  AppScanRoute: typeof AppScanRoute
+}
+
+const AppRouteChildren: AppRouteChildren = {
+  AppCalculadoraRoute: AppCalculadoraRoute,
+  AppGestaoRoute: AppGestaoRoute,
+  AppMindRoute: AppMindRoute,
+  AppScanRoute: AppScanRoute,
+}
+
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AppRoute: AppRouteWithChildren,
   LoginRoute: LoginRoute,
+  SignupRoute: SignupRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
