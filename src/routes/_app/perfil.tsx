@@ -57,7 +57,7 @@ function PerfilPage() {
         className="mt-6 flex flex-col items-center gap-5 rounded-2xl border p-7 sm:flex-row sm:items-center sm:gap-6 fade-up"
         style={{ background: "color-mix(in oklab, var(--surface) 92%, transparent)", borderColor: "var(--border)", boxShadow: "var(--shadow-elevated)" }}
       >
-        <div className="ring-gradient flex h-20 w-20 items-center justify-center rounded-full font-display text-2xl font-semibold" style={{ background: "var(--surface-2)" }}>
+        <div className="flex h-20 w-20 items-center justify-center rounded-2xl border font-display text-2xl font-semibold" style={{ background: "var(--surface-2)", borderColor: "var(--border-strong)", color: "var(--accent)" }}>
           {initials}
         </div>
         <div className="flex-1 text-center sm:text-left">
@@ -68,11 +68,11 @@ function PerfilPage() {
           </div>
         </div>
         <span
-          className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider"
+          className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider"
           style={
             state.isPro
-              ? { background: "var(--gradient-primary)", color: "var(--accent-foreground)", boxShadow: "var(--shadow-glow)" }
-              : { background: "var(--surface-2)", color: "var(--text-muted)", border: "1px solid var(--border-strong)" }
+              ? { background: "color-mix(in oklab, var(--accent) 12%, transparent)", color: "var(--accent)", borderColor: "color-mix(in oklab, var(--accent) 35%, transparent)" }
+              : { background: "var(--surface-2)", color: "var(--text-muted)", borderColor: "var(--border-strong)" }
           }
         >
           <Crown className="h-3.5 w-3.5" />
@@ -102,7 +102,8 @@ function PerfilPage() {
           {!state.isPro && (
             <button
               onClick={() => nav({ to: "/upgrade" })}
-              className="btn-gradient mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold press hover:-translate-y-0.5 smooth"
+              className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold text-white press hover:-translate-y-0.5 smooth"
+              style={{ background: "var(--accent)" }}
             >
               <Crown className="h-4 w-4" />
               Fazer upgrade para PRO
@@ -132,7 +133,8 @@ function PerfilPage() {
             <button
               onClick={save}
               disabled={saving || name === (profile?.name ?? "")}
-              className="btn-gradient inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold press disabled:opacity-50 smooth"
+              className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white press disabled:opacity-50 smooth"
+              style={{ background: "var(--accent)" }}
             >
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
               {savedFlash ? "Salvo!" : "Salvar"}
