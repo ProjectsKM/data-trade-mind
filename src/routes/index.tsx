@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState } from "react";
 import { useUser, type User } from "@/lib/store";
 import { useReveal } from "@/lib/useReveal";
 
