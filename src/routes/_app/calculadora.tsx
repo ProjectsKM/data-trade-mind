@@ -1,5 +1,22 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Tooltip,
+  Legend,
+  Filler,
+} from "chart.js";
+import { Line } from "react-chartjs-2";
+import { Calculator, DollarSign, TrendingUp, TrendingDown, Target, AlertTriangle } from "lucide-react";
+import { PageHeader } from "@/components/app/PageHeader";
+import { StatCard } from "@/components/app/StatCard";
+import { Input } from "@/components/ui/input";
+
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend, Filler);
 
 export const Route = createFileRoute("/_app/calculadora")({
   head: () => ({ meta: [{ title: "Calculadora — OrionHub" }] }),
@@ -31,12 +48,58 @@ function CalcPage() {
     return { valor, lucroWin, prejLoss, martingale, martTotal, metaValor, progressao };
   }, [banca, risco, payout, meta, ops, winrate]);
 
+  const accentRgb = "98, 142, 230";
+  const lineData = {
+    labels: calc.progressao.map((p) => `Op ${p.op}`),
+    datasets: [
+      {
+        label: "Banca",
+        data: calc.progressao.map((p) => p.banca),
+        borderColor: `rgb(${accentRgb})`,
+        backgroundColor: `rgba(${accentRgb}, 0.12)`,
+        fill: true,
+        tension: 0.3,
+        borderWidth: 2,
+        pointRadius: 0,
+        pointHoverRadius: 4,
+      },
+    ],
+  };
+  const lineOpts = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: {
+        ticks: { color: "rgb(140, 150, 170)", font: { size: 9 } },
+        grid: { color: "rgba(255,255,255,0.04)" },
+        border: { display: false },
+      },
+      y: {
+        ticks: { color: "rgb(140, 150, 170)", font: { size: 10 } },
+        grid: { color: "rgba(255,255,255,0.04)" },
+        border: { display: false },
+      },
+    },
+  };
+
+  const martPct = (calc.martTotal / banca) * 100;
+
   return (
-    <div className="mx-auto w-full max-w-4xl px-5 py-7">
-      <h1 className="mb-5 text-xl font-extrabold tracking-tight">Calculadora de Banca</h1>
-      <div className="grid gap-3 md:grid-cols-2">
-        <div className="space-y-3 rounded-2xl border p-5" style={{ background: "var(--surface)", borderColor: "var(--border)" }}>
-          <div className="mb-1 font-mono text-[10px] tracking-wider text-muted-foreground">PARÂMETROS</div>
+    <div className="mx-auto w-full max-w-6xl px-5 py-8">
+      <PageHeader
+        title="Calculadora de Banca"
+        description="Dimensione risco, defina metas e simule cenários antes de operar."
+        icon={<Calculator className="h-5 w-5" strokeWidth={1.75} />}
+      />
+
+      <div className="grid gap-4 lg:grid-cols-[340px_1fr]">
+        {/* Parâmetros */}
+        <div
+          className="space-y-3 rounded-xl border p-5"
+          style={{ background: "var(--surface)", borderColor: "var(--border)" }}
+        >
+          <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Parâmetros</div>
           <Field label="Banca inicial ($)" value={banca} onChange={setBanca} />
           <Field label="Risco por operação (%)" value={risco} onChange={setRisco} step={0.5} />
           <Field label="Payout (%)" value={payout} onChange={setPayout} />
@@ -44,63 +107,121 @@ function CalcPage() {
           <Field label="Nº de operações (simulação)" value={ops} onChange={setOps} />
           <Field label="Win rate estimado (%)" value={winrate} onChange={setWinrate} />
         </div>
-        <div className="space-y-3">
-          <Card label="VALOR POR ENTRADA" value={`$${calc.valor.toFixed(2)}`} />
-          <div className="grid grid-cols-2 gap-3">
-            <Card label="LUCRO POR WIN" value={`+$${calc.lucroWin.toFixed(2)}`} color="var(--green)" />
-            <Card label="PREJUÍZO POR LOSS" value={`$${calc.prejLoss.toFixed(2)}`} color="var(--red)" />
+
+        {/* Resultados */}
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            <StatCard
+              label="Valor por entrada"
+              value={`$${calc.valor.toFixed(2)}`}
+              icon={<DollarSign className="h-4 w-4" strokeWidth={1.75} />}
+              tone="accent"
+            />
+            <StatCard
+              label="Lucro por win"
+              value={`+$${calc.lucroWin.toFixed(2)}`}
+              icon={<TrendingUp className="h-4 w-4" strokeWidth={1.75} />}
+              tone="success"
+            />
+            <StatCard
+              label="Prejuízo por loss"
+              value={`$${calc.prejLoss.toFixed(2)}`}
+              icon={<TrendingDown className="h-4 w-4" strokeWidth={1.75} />}
+              tone="danger"
+            />
+            <StatCard
+              label="Meta diária"
+              value={`$${calc.metaValor.toFixed(2)}`}
+              hint={`${Math.ceil(calc.metaValor / Math.max(calc.lucroWin, 0.01))} wins necessários`}
+              icon={<Target className="h-4 w-4" strokeWidth={1.75} />}
+            />
           </div>
-          <Card label="META DIÁRIA" value={`$${calc.metaValor.toFixed(2)}`} sub={`${Math.ceil(calc.metaValor / calc.lucroWin)} wins necessários`} />
-          <div className="rounded-2xl border p-4" style={{ background: "var(--surface)", borderColor: "var(--border)" }}>
-            <div className="mb-2 font-mono text-[10px] tracking-wider text-muted-foreground">MARTINGALE (3 NÍVEIS)</div>
-            <div className="flex items-center gap-2 text-sm">
+
+          <div
+            className="rounded-xl border p-5"
+            style={{ background: "var(--surface)", borderColor: "var(--border)" }}
+          >
+            <div className="mb-3 flex items-center justify-between">
+              <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                Martingale (3 níveis)
+              </div>
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <AlertTriangle className="h-3 w-3" strokeWidth={1.75} style={{ color: "var(--gold)" }} />
+                Risco total{" "}
+                <span className="font-mono font-semibold tabular" style={{ color: "var(--red)" }}>
+                  ${calc.martTotal.toFixed(2)} ({martPct.toFixed(1)}%)
+                </span>
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
               {calc.martingale.map((m, i) => (
-                <span key={i} className="rounded-lg px-2.5 py-1 font-bold" style={{ background: "color-mix(in oklab, var(--gold) 14%, transparent)", color: "var(--gold)" }}>${m.toFixed(2)}</span>
+                <div
+                  key={i}
+                  className="rounded-md border p-3 text-center"
+                  style={{ background: "var(--surface-2)", borderColor: "var(--border)" }}
+                >
+                  <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Nível {i + 1}</div>
+                  <div className="mt-1 font-mono text-lg font-semibold tabular" style={{ color: "var(--gold)" }}>
+                    ${m.toFixed(2)}
+                  </div>
+                </div>
               ))}
-            </div>
-            <div className="mt-2 text-xs text-muted-foreground">
-              Risco total: <span className="font-bold" style={{ color: "var(--red)" }}>${calc.martTotal.toFixed(2)}</span> ({((calc.martTotal / banca) * 100).toFixed(1)}% da banca)
             </div>
           </div>
-        </div>
-      </div>
-      <div className="mt-5 rounded-2xl border p-4" style={{ background: "var(--surface)", borderColor: "var(--border)" }}>
-        <div className="mb-3 font-mono text-[10px] tracking-wider text-muted-foreground">SIMULAÇÃO ({ops} OPERAÇÕES @ {winrate}% WR)</div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead><tr className="text-left font-mono text-[9px] tracking-wider text-muted-foreground"><th className="px-2 py-1.5">OP</th><th className="px-2 py-1.5">RES</th><th className="px-2 py-1.5">BANCA</th></tr></thead>
-            <tbody>
-              {calc.progressao.map((p) => (
-                <tr key={p.op} className="border-t" style={{ borderColor: "var(--border)" }}>
-                  <td className="px-2 py-1">{p.op}</td>
-                  <td className="px-2 py-1"><span className="text-xs font-bold" style={{ color: p.win ? "var(--green)" : "var(--red)" }}>{p.win ? "WIN" : "LOSS"}</span></td>
-                  <td className="px-2 py-1 font-bold" style={{ color: p.banca >= banca ? "var(--green)" : "var(--red)" }}>${p.banca.toFixed(2)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+
+          <div
+            className="rounded-xl border p-5"
+            style={{ background: "var(--surface)", borderColor: "var(--border)" }}
+          >
+            <div className="mb-3 flex items-center justify-between">
+              <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                Simulação · {ops} operações @ {winrate}% WR
+              </div>
+              <div className="font-mono text-sm font-semibold tabular">
+                Final:{" "}
+                <span
+                  style={{
+                    color:
+                      calc.progressao[calc.progressao.length - 1]?.banca >= banca
+                        ? "var(--green)"
+                        : "var(--red)",
+                  }}
+                >
+                  ${calc.progressao[calc.progressao.length - 1]?.banca.toFixed(2) ?? banca.toFixed(2)}
+                </span>
+              </div>
+            </div>
+            <div style={{ height: 220 }}>
+              <Line data={lineData} options={lineOpts} />
+            </div>
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-function Field({ label, value, onChange, step = 1 }: { label: string; value: number; onChange: (v: number) => void; step?: number }) {
+function Field({
+  label,
+  value,
+  onChange,
+  step = 1,
+}: {
+  label: string;
+  value: number;
+  onChange: (v: number) => void;
+  step?: number;
+}) {
   return (
     <label className="block">
-      <span className="mb-1 block text-xs text-muted-foreground">{label}</span>
-      <input type="number" step={step} value={value} onChange={(e) => onChange(Number(e.target.value) || 0)}
-        className="w-full rounded-lg border bg-transparent px-3 py-2 text-sm" style={{ borderColor: "var(--border-strong)" }} />
+      <span className="mb-1.5 block text-xs font-medium text-muted-foreground">{label}</span>
+      <Input
+        type="number"
+        step={step}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value) || 0)}
+        className="font-mono tabular"
+      />
     </label>
-  );
-}
-
-function Card({ label, value, sub, color }: { label: string; value: string; sub?: string; color?: string }) {
-  return (
-    <div className="rounded-2xl border p-4" style={{ background: "var(--surface)", borderColor: "var(--border)" }}>
-      <div className="font-mono text-[10px] tracking-wider text-muted-foreground">{label}</div>
-      <div className="mt-1 text-2xl font-extrabold" style={{ color: color || "var(--foreground)" }}>{value}</div>
-      {sub && <div className="mt-0.5 text-xs text-muted-foreground">{sub}</div>}
-    </div>
   );
 }
