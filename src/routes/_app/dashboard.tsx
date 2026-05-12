@@ -70,7 +70,7 @@ function DashboardPage() {
             <QuickLink to="/scan" Icon={LineChart} label="Scan" desc="Analisar gráfico com IA" />
             <QuickLink to="/mind" Icon={Sparkles} label="OrionMind" desc="Mentor de trade" />
             <QuickLink to="/gestao" Icon={ClipboardList} label="Gestão" desc="Registrar trades" />
-            <QuickLink to="/relatorio" Icon={BarChart3} label="Relatório" desc="Métricas e histórico" />
+            <QuickLink to="/gestao" Icon={BarChart3} label="Relatório" desc="Métricas e histórico" />
             <QuickLink to="/calculadora" Icon={Calculator} label="Calculadora" desc="Gestão de banca" />
             {!state.isPro && <QuickLink to="/upgrade" Icon={Crown} label="Upgrade PRO" desc="Análises ilimitadas" highlight />}
           </div>

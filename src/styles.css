@@ -184,11 +184,12 @@
   opacity: 1;
 }
 .bg-fx .orb {
-  position: absolute; border-radius: 9999px; filter: blur(70px); opacity: 0.10;
-  animation: orbFloat 26s ease-in-out infinite;
+  position: absolute; border-radius: 9999px; filter: blur(50px); opacity: 0.08;
+  animation: orbFloat 32s ease-in-out infinite;
+  will-change: transform;
 }
-.bg-fx .orb.a { width: 320px; height: 320px; left: 10%; top: 14%; background: color-mix(in oklab, var(--accent) 45%, transparent); }
-.bg-fx .orb.b { width: 260px; height: 260px; right: 8%; bottom: 12%; background: color-mix(in oklab, var(--electric) 40%, transparent); animation-delay: -10s; }
+.bg-fx .orb.a { width: 260px; height: 260px; left: 10%; top: 14%; background: color-mix(in oklab, var(--accent) 40%, transparent); }
+.bg-fx .orb.b { width: 220px; height: 220px; right: 8%; bottom: 12%; background: color-mix(in oklab, var(--electric) 35%, transparent); animation-delay: -10s; }
 .bg-fx .grid {
   position: absolute; inset: 0;
   background-image:
@@ -218,7 +219,7 @@
 .hover-glow:hover { box-shadow: 0 0 18px color-mix(in oklab, var(--accent) 18%, transparent); border-color: color-mix(in oklab, var(--accent) 28%, transparent); }
 .press:active { transform: scale(.97); }
 
-.route-anim { animation: fadeUp .35s cubic-bezier(.2,.7,.2,1) both; }
+.route-anim { animation: fadeIn .14s ease both; }
 
 @keyframes faqOpen { from { opacity: 0; transform: translateY(-4px); max-height: 0; } to { opacity: 1; transform: translateY(0); max-height: 400px; } }
 .faq-open { animation: faqOpen .35s cubic-bezier(.2,.7,.2,1) both; overflow: hidden; }

@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
-import { Sparkles, Send, Trash2, Loader2, Plus, MessageSquare, Menu, X } from "lucide-react";
+import { Sparkles, Send, Trash2, Loader2, Plus, MessageSquare, Menu, X, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { toast } from "sonner";
 import { useUser, type ChatMsg } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -33,6 +34,7 @@ function MindPage() {
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [openSidebar, setOpenSidebar] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
 
@@ -88,9 +90,11 @@ function MindPage() {
 
   async function deleteThread(id: string) {
     if (!user) return;
-    await supabase.from("mind_threads").delete().eq("id", id);
+    const { error } = await supabase.from("mind_threads").delete().eq("id", id);
+    if (error) { toast.error("Não foi possível excluir a conversa."); return; }
     setThreads((t) => t.filter((x) => x.id !== id));
     if (activeId === id) newChat();
+    toast.success("Conversa excluída.");
   }
 
   async function send(text?: string) {
@@ -109,11 +113,12 @@ function MindPage() {
         .insert({ user_id: user.id, title })
         .select("id,title,updated_at")
         .single();
-      if (error || !data) { console.error(error); return; }
+      if (error || !data) { toast.error("Erro ao criar conversa."); return; }
       threadId = data.id;
       setActiveId(threadId);
       threadsList = [data, ...threads];
       setThreads(threadsList);
+      toast.success("Nova conversa criada.");
     }
 
     const userMsg: ChatMsg = { role: "user", content: t, ts: new Date().toISOString() };
@@ -129,6 +134,7 @@ function MindPage() {
         body: JSON.stringify({ messages: history }),
       });
       const data = (await r.json()) as { ok: boolean; reply?: string; error?: string };
+      if (!data.ok) toast.error(data.error || "Erro na resposta da IA.");
       const replyText = data.ok ? data.reply || "Sem resposta." : `⚠️ ${data.error || "Erro."}`;
       const reply: ChatMsg = { role: "assistant", content: replyText, ts: new Date().toISOString() };
       setMessages((m) => [...m, reply]);
@@ -136,6 +142,7 @@ function MindPage() {
       await supabase.from("mind_threads").update({ updated_at: new Date().toISOString() }).eq("id", threadId);
       void refreshThreads();
     } catch {
+      toast.error("Erro de conexão. Tente novamente.");
       const reply: ChatMsg = { role: "assistant", content: "⚠️ Erro de conexão. Tente novamente.", ts: new Date().toISOString() };
       setMessages((m) => [...m, reply]);
     } finally {
@@ -150,12 +157,21 @@ function MindPage() {
     <div className="flex h-full">
       {/* Sidebar */}
       <aside
-        className={`absolute inset-y-0 left-0 z-30 flex w-72 flex-col border-r p-3 transition-transform sm:relative sm:translate-x-0 ${openSidebar ? "translate-x-0" : "-translate-x-full"}`}
+        className={`absolute inset-y-0 left-0 z-30 flex flex-col border-r p-3 transition-all sm:relative sm:translate-x-0 ${openSidebar ? "translate-x-0" : "-translate-x-full"} ${collapsed ? "sm:hidden" : "w-72"}`}
         style={{ background: "color-mix(in oklab, var(--surface) 92%, transparent)", borderColor: "var(--border)", backdropFilter: "blur(14px)" }}
       >
         <div className="flex items-center justify-between gap-2 pb-2">
           <div className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Conversas</div>
-          <button onClick={() => setOpenSidebar(false)} className="sm:hidden text-muted-foreground"><X className="h-4 w-4" /></button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setCollapsed(true)}
+              title="Recolher"
+              className="hidden sm:inline-flex text-muted-foreground hover:text-[color:var(--accent)]"
+            >
+              <PanelLeftClose className="h-4 w-4" />
+            </button>
+            <button onClick={() => setOpenSidebar(false)} className="sm:hidden text-muted-foreground"><X className="h-4 w-4" /></button>
+          </div>
         </div>
         <button
           onClick={newChat}
@@ -208,6 +224,16 @@ function MindPage() {
       <div className="flex flex-1 flex-col">
         <header className="flex items-center gap-3 border-b px-5 py-3" style={{ borderColor: "var(--border)" }}>
           <button onClick={() => setOpenSidebar(true)} className="sm:hidden text-muted-foreground"><Menu className="h-5 w-5" /></button>
+          {collapsed && (
+            <button
+              onClick={() => setCollapsed(false)}
+              title="Mostrar conversas"
+              className="hidden sm:inline-flex h-8 w-8 items-center justify-center rounded-md border text-muted-foreground hover:text-[color:var(--accent)] hover:border-[color:var(--accent)]"
+              style={{ borderColor: "var(--border)" }}
+            >
+              <PanelLeftOpen className="h-4 w-4" />
+            </button>
+          )}
           <div className="flex h-9 w-9 items-center justify-center rounded-lg border"
             style={{ background: "color-mix(in oklab, var(--accent) 10%, transparent)", borderColor: "color-mix(in oklab, var(--accent) 28%, transparent)", color: "var(--accent)" }}>
             <Sparkles className="h-4 w-4" strokeWidth={1.75} />
