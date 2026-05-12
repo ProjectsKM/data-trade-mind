@@ -18,6 +18,7 @@ import { Route as ApiAiMindRouteImport } from './routes/api/ai-mind'
 import { Route as AppUpgradeRouteImport } from './routes/_app/upgrade'
 import { Route as AppScanRouteImport } from './routes/_app/scan'
 import { Route as AppMindRouteImport } from './routes/_app/mind'
+import { Route as AppGestaoRouteImport } from './routes/_app/gestao'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -63,11 +64,17 @@ const AppMindRoute = AppMindRouteImport.update({
   path: '/mind',
   getParentRoute: () => AppRoute,
 } as any)
+const AppGestaoRoute = AppGestaoRouteImport.update({
+  id: '/gestao',
+  path: '/gestao',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
+  '/gestao': typeof AppGestaoRoute
   '/mind': typeof AppMindRoute
   '/scan': typeof AppScanRoute
   '/upgrade': typeof AppUpgradeRoute
@@ -78,6 +85,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
+  '/gestao': typeof AppGestaoRoute
   '/mind': typeof AppMindRoute
   '/scan': typeof AppScanRoute
   '/upgrade': typeof AppUpgradeRoute
@@ -90,6 +98,7 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
+  '/_app/gestao': typeof AppGestaoRoute
   '/_app/mind': typeof AppMindRoute
   '/_app/scan': typeof AppScanRoute
   '/_app/upgrade': typeof AppUpgradeRoute
@@ -102,6 +111,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/signup'
+    | '/gestao'
     | '/mind'
     | '/scan'
     | '/upgrade'
@@ -112,6 +122,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/signup'
+    | '/gestao'
     | '/mind'
     | '/scan'
     | '/upgrade'
@@ -123,6 +134,7 @@ export interface FileRouteTypes {
     | '/_app'
     | '/login'
     | '/signup'
+    | '/_app/gestao'
     | '/_app/mind'
     | '/_app/scan'
     | '/_app/upgrade'
@@ -204,16 +216,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppMindRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/gestao': {
+      id: '/_app/gestao'
+      path: '/gestao'
+      fullPath: '/gestao'
+      preLoaderRoute: typeof AppGestaoRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
 interface AppRouteChildren {
+  AppGestaoRoute: typeof AppGestaoRoute
   AppMindRoute: typeof AppMindRoute
   AppScanRoute: typeof AppScanRoute
   AppUpgradeRoute: typeof AppUpgradeRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppGestaoRoute: AppGestaoRoute,
   AppMindRoute: AppMindRoute,
   AppScanRoute: AppScanRoute,
   AppUpgradeRoute: AppUpgradeRoute,
