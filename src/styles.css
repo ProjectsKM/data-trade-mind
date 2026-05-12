@@ -47,22 +47,28 @@
 
 :root {
   --radius: 0.625rem;
-  --background: oklch(0.145 0.012 250);
-  --surface:    oklch(0.180 0.012 250);
-  --surface-2:  oklch(0.215 0.012 250);
-  --surface-3:  oklch(0.250 0.012 250);
-  --border:        oklch(0.255 0.010 250);
-  --border-strong: oklch(0.330 0.012 250);
-  --foreground: oklch(0.96 0.005 250);
-  --text-muted: oklch(0.66 0.012 250);
-  --text-dim:   oklch(0.48 0.012 250);
-  --accent: oklch(0.62 0.15 245);
+  --background: oklch(0.135 0.025 265);
+  --surface:    oklch(0.180 0.022 265);
+  --surface-2:  oklch(0.220 0.022 265);
+  --surface-3:  oklch(0.260 0.022 265);
+  --border:        oklch(0.270 0.020 265);
+  --border-strong: oklch(0.360 0.030 265);
+  --foreground: oklch(0.97 0.008 250);
+  --text-muted: oklch(0.70 0.020 250);
+  --text-dim:   oklch(0.52 0.020 250);
+  --accent: oklch(0.66 0.22 255);
   --accent-foreground: oklch(0.99 0 0);
-  --electric: oklch(0.74 0.13 220);
-  --green:  oklch(0.72 0.15 155);
-  --red:    oklch(0.66 0.18 22);
-  --gold:   oklch(0.78 0.13 80);
-  --purple: oklch(0.70 0.13 290);
+  --electric: oklch(0.78 0.18 215);
+  --neon:     oklch(0.74 0.22 305);
+  --green:  oklch(0.76 0.20 155);
+  --red:    oklch(0.68 0.22 22);
+  --gold:   oklch(0.82 0.17 80);
+  --purple: oklch(0.74 0.20 295);
+  --gradient-primary: linear-gradient(135deg, oklch(0.66 0.22 255), oklch(0.74 0.22 305));
+  --gradient-accent:  linear-gradient(135deg, oklch(0.78 0.18 215), oklch(0.66 0.22 255));
+  --gradient-aurora:  conic-gradient(from 180deg at 50% 50%, oklch(0.66 0.22 255 / 0.18), oklch(0.74 0.22 305 / 0.14), oklch(0.78 0.18 215 / 0.16), oklch(0.66 0.22 255 / 0.18));
+  --shadow-glow:     0 0 40px color-mix(in oklab, var(--accent) 35%, transparent);
+  --shadow-elevated: 0 20px 60px -20px color-mix(in oklab, var(--accent) 40%, transparent);
 }
 
 .dark { --background: oklch(0.13 0.03 265); }
@@ -107,6 +113,21 @@
   50%     { box-shadow: 0 0 55px color-mix(in oklab, var(--accent) 50%, transparent); }
 }
 @keyframes shimmer { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }
+@keyframes auroraShift {
+  0%   { transform: translate(-10%, -10%) rotate(0deg);   }
+  50%  { transform: translate(10%, 10%)   rotate(180deg); }
+  100% { transform: translate(-10%, -10%) rotate(360deg); }
+}
+@keyframes orbFloat {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%      { transform: translate(40px, -30px) scale(1.08); }
+  66%      { transform: translate(-30px, 40px) scale(0.95); }
+}
+@keyframes gradientShift {
+  0%, 100% { background-position: 0% 50%; }
+  50%      { background-position: 100% 50%; }
+}
+@keyframes ringSpin { to { transform: rotate(360deg); } }
 
 .fade-up        { animation: fadeUp .45s cubic-bezier(.2,.7,.2,1) both; }
 .fade-down      { animation: fadeDown .45s cubic-bezier(.2,.7,.2,1) both; }
@@ -117,6 +138,69 @@
 .shake          { animation: shake .35s ease both; }
 .float-y        { animation: float 5s ease-in-out infinite; }
 .pulse-glow     { animation: pulseGlow 2.6s ease-in-out infinite; }
+
+/* ---- Vivid effects ---- */
+.gradient-text {
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.glow-primary { box-shadow: var(--shadow-glow); }
+.btn-gradient {
+  background: var(--gradient-primary);
+  background-size: 200% 200%;
+  animation: gradientShift 6s ease infinite;
+  color: var(--accent-foreground);
+  box-shadow: 0 8px 30px -8px color-mix(in oklab, var(--accent) 55%, transparent);
+}
+.ring-gradient {
+  position: relative;
+}
+.ring-gradient::before {
+  content: "";
+  position: absolute; inset: -2px;
+  border-radius: inherit;
+  background: conic-gradient(from 0deg, var(--accent), var(--neon), var(--electric), var(--accent));
+  animation: ringSpin 6s linear infinite;
+  z-index: -1;
+}
+.card-glow {
+  position: relative;
+  transition: transform .25s, box-shadow .25s, border-color .25s;
+}
+.card-glow:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-elevated);
+  border-color: color-mix(in oklab, var(--accent) 45%, var(--border));
+}
+
+/* ---- Animated background ---- */
+.bg-fx {
+  position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden;
+}
+.bg-fx .aurora {
+  position: absolute; inset: -20%;
+  background: var(--gradient-aurora);
+  filter: blur(80px);
+  opacity: 0.55;
+  animation: auroraShift 28s ease-in-out infinite;
+}
+.bg-fx .orb {
+  position: absolute; border-radius: 9999px; filter: blur(60px); opacity: 0.45;
+  animation: orbFloat 18s ease-in-out infinite;
+}
+.bg-fx .orb.a { width: 380px; height: 380px; left: 8%;  top: 12%; background: color-mix(in oklab, var(--accent) 60%, transparent); }
+.bg-fx .orb.b { width: 320px; height: 320px; right: 6%; top: 50%; background: color-mix(in oklab, var(--neon) 55%, transparent); animation-delay: -6s; }
+.bg-fx .orb.c { width: 260px; height: 260px; left: 38%; bottom: 6%; background: color-mix(in oklab, var(--electric) 55%, transparent); animation-delay: -12s; }
+.bg-fx .grid {
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(color-mix(in oklab, var(--foreground) 4%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in oklab, var(--foreground) 4%, transparent) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+}
 
 .stagger > *           { animation: fadeUp .5s cubic-bezier(.2,.7,.2,1) both; opacity: 0; }
 .stagger > *:nth-child(1) { animation-delay: .05s; }

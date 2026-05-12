@@ -18,6 +18,7 @@ import { Route as ApiAiMindRouteImport } from './routes/api/ai-mind'
 import { Route as AppUpgradeRouteImport } from './routes/_app/upgrade'
 import { Route as AppScanRouteImport } from './routes/_app/scan'
 import { Route as AppRelatorioRouteImport } from './routes/_app/relatorio'
+import { Route as AppPerfilRouteImport } from './routes/_app/perfil'
 import { Route as AppMindRouteImport } from './routes/_app/mind'
 import { Route as AppGestaoRouteImport } from './routes/_app/gestao'
 import { Route as AppCalculadoraRouteImport } from './routes/_app/calculadora'
@@ -66,6 +67,11 @@ const AppRelatorioRoute = AppRelatorioRouteImport.update({
   path: '/relatorio',
   getParentRoute: () => AppRoute,
 } as any)
+const AppPerfilRoute = AppPerfilRouteImport.update({
+  id: '/perfil',
+  path: '/perfil',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppMindRoute = AppMindRouteImport.update({
   id: '/mind',
   path: '/mind',
@@ -89,6 +95,7 @@ export interface FileRoutesByFullPath {
   '/calculadora': typeof AppCalculadoraRoute
   '/gestao': typeof AppGestaoRoute
   '/mind': typeof AppMindRoute
+  '/perfil': typeof AppPerfilRoute
   '/relatorio': typeof AppRelatorioRoute
   '/scan': typeof AppScanRoute
   '/upgrade': typeof AppUpgradeRoute
@@ -102,6 +109,7 @@ export interface FileRoutesByTo {
   '/calculadora': typeof AppCalculadoraRoute
   '/gestao': typeof AppGestaoRoute
   '/mind': typeof AppMindRoute
+  '/perfil': typeof AppPerfilRoute
   '/relatorio': typeof AppRelatorioRoute
   '/scan': typeof AppScanRoute
   '/upgrade': typeof AppUpgradeRoute
@@ -117,6 +125,7 @@ export interface FileRoutesById {
   '/_app/calculadora': typeof AppCalculadoraRoute
   '/_app/gestao': typeof AppGestaoRoute
   '/_app/mind': typeof AppMindRoute
+  '/_app/perfil': typeof AppPerfilRoute
   '/_app/relatorio': typeof AppRelatorioRoute
   '/_app/scan': typeof AppScanRoute
   '/_app/upgrade': typeof AppUpgradeRoute
@@ -132,6 +141,7 @@ export interface FileRouteTypes {
     | '/calculadora'
     | '/gestao'
     | '/mind'
+    | '/perfil'
     | '/relatorio'
     | '/scan'
     | '/upgrade'
@@ -145,6 +155,7 @@ export interface FileRouteTypes {
     | '/calculadora'
     | '/gestao'
     | '/mind'
+    | '/perfil'
     | '/relatorio'
     | '/scan'
     | '/upgrade'
@@ -159,6 +170,7 @@ export interface FileRouteTypes {
     | '/_app/calculadora'
     | '/_app/gestao'
     | '/_app/mind'
+    | '/_app/perfil'
     | '/_app/relatorio'
     | '/_app/scan'
     | '/_app/upgrade'
@@ -240,6 +252,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRelatorioRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/perfil': {
+      id: '/_app/perfil'
+      path: '/perfil'
+      fullPath: '/perfil'
+      preLoaderRoute: typeof AppPerfilRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/mind': {
       id: '/_app/mind'
       path: '/mind'
@@ -268,6 +287,7 @@ interface AppRouteChildren {
   AppCalculadoraRoute: typeof AppCalculadoraRoute
   AppGestaoRoute: typeof AppGestaoRoute
   AppMindRoute: typeof AppMindRoute
+  AppPerfilRoute: typeof AppPerfilRoute
   AppRelatorioRoute: typeof AppRelatorioRoute
   AppScanRoute: typeof AppScanRoute
   AppUpgradeRoute: typeof AppUpgradeRoute
@@ -277,6 +297,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppCalculadoraRoute: AppCalculadoraRoute,
   AppGestaoRoute: AppGestaoRoute,
   AppMindRoute: AppMindRoute,
+  AppPerfilRoute: AppPerfilRoute,
   AppRelatorioRoute: AppRelatorioRoute,
   AppScanRoute: AppScanRoute,
   AppUpgradeRoute: AppUpgradeRoute,

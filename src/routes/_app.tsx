@@ -6,6 +6,7 @@ import {
   ClipboardList,
   BarChart3,
   Calculator,
+  User as UserIcon,
   LogOut,
   Loader2,
 } from "lucide-react";
@@ -14,6 +15,18 @@ import { logout, useAppState, useUser } from "@/lib/store";
 export const Route = createFileRoute("/_app")({
   component: AppLayout,
 });
+
+function BgFx() {
+  return (
+    <div className="bg-fx" aria-hidden>
+      <div className="aurora" />
+      <div className="orb a" />
+      <div className="orb b" />
+      <div className="orb c" />
+      <div className="grid" />
+    </div>
+  );
+}
 
 function AppLayout() {
   const nav = useNavigate();
@@ -27,9 +40,14 @@ function AppLayout() {
 
   if (!ready || !user) {
     return (
-      <div className="flex min-h-screen items-center justify-center gap-2.5 text-sm text-muted-foreground fade-in">
-        <Loader2 className="h-4 w-4 animate-spin" style={{ color: "var(--accent)" }} />
-        Carregando…
+      <div className="relative flex min-h-screen items-center justify-center fade-in" style={{ background: "var(--background)" }}>
+        <BgFx />
+        <div className="relative z-10 flex flex-col items-center gap-3">
+          <div className="ring-gradient flex h-12 w-12 items-center justify-center rounded-full" style={{ background: "var(--surface)" }}>
+            <Loader2 className="h-5 w-5 animate-spin" style={{ color: "var(--accent)" }} />
+          </div>
+          <span className="font-display text-[10px] uppercase tracking-[0.3em] text-muted-foreground">Carregando</span>
+        </div>
       </div>
     );
   }
@@ -40,14 +58,19 @@ function AppLayout() {
     { to: "/gestao", Icon: ClipboardList, label: "Gestão", desc: "Trades" },
     { to: "/relatorio", Icon: BarChart3, label: "Relatório", desc: "Métricas" },
     { to: "/calculadora", Icon: Calculator, label: "Calc", desc: "Banca" },
+    { to: "/perfil", Icon: UserIcon, label: "Perfil", desc: "Conta" },
   ] as const;
 
   return (
-    <div className="flex min-h-screen flex-col" style={{ background: "var(--background)" }}>
-      <header className="sticky top-0 z-50 flex h-14 items-center justify-between border-b px-5 backdrop-blur-xl fade-down"
-        style={{ background: "color-mix(in oklab, var(--background) 92%, transparent)", borderColor: "var(--border-strong)" }}>
-        <Link to="/scan" className="font-display text-lg font-semibold tracking-tight smooth hover:opacity-80">
-          Orion<span style={{ color: "var(--accent)" }}>Hub</span>
+    <div className="relative flex min-h-screen flex-col" style={{ background: "var(--background)" }}>
+      <BgFx />
+
+      <header
+        className="sticky top-0 z-50 flex h-14 items-center justify-between border-b px-5 backdrop-blur-xl fade-down"
+        style={{ background: "color-mix(in oklab, var(--background) 78%, transparent)", borderColor: "var(--border-strong)" }}
+      >
+        <Link to="/scan" className="font-display text-lg font-semibold tracking-tight smooth hover:opacity-90">
+          Orion<span className="gradient-text">Hub</span>
         </Link>
         <div className="flex items-center gap-3">
           <Link
@@ -55,7 +78,12 @@ function AppLayout() {
             className="rounded-md border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider smooth press hover:-translate-y-px"
             style={
               state.isPro
-                ? { background: "color-mix(in oklab, var(--accent) 10%, transparent)", color: "var(--accent)", borderColor: "color-mix(in oklab, var(--accent) 28%, transparent)" }
+                ? {
+                    background: "color-mix(in oklab, var(--accent) 14%, transparent)",
+                    color: "var(--accent)",
+                    borderColor: "color-mix(in oklab, var(--accent) 40%, transparent)",
+                    boxShadow: "0 0 18px color-mix(in oklab, var(--accent) 30%, transparent)",
+                  }
                 : { background: "var(--surface)", color: "var(--text-muted)", borderColor: "var(--border-strong)" }
             }
           >
@@ -69,46 +97,53 @@ function AppLayout() {
           >
             <LogOut className="h-3.5 w-3.5" strokeWidth={1.75} />
           </button>
-          <div
-            className="flex h-8 w-8 items-center justify-center rounded-md border text-[11px] font-semibold"
-            style={{ background: "var(--surface-2)", borderColor: "var(--border-strong)", color: "var(--foreground)" }}
+          <Link
+            to="/perfil"
+            aria-label="Perfil"
+            className="ring-gradient flex h-8 w-8 items-center justify-center rounded-full text-[11px] font-semibold smooth"
+            style={{ background: "var(--surface-2)", color: "var(--foreground)" }}
           >
             {user.email.slice(0, 2).toUpperCase()}
-          </div>
+          </Link>
         </div>
       </header>
 
-      <div className="flex flex-1 overflow-hidden" style={{ height: "calc(100vh - 56px)" }}>
+      <div className="relative z-10 flex flex-1 overflow-hidden" style={{ height: "calc(100vh - 56px)" }}>
         <nav
           className="hidden w-56 flex-none flex-col gap-0.5 border-r p-3 sm:flex slide-in-left"
-          style={{ background: "var(--surface)", borderColor: "var(--border)" }}
+          style={{ background: "color-mix(in oklab, var(--surface) 78%, transparent)", borderColor: "var(--border)", backdropFilter: "blur(14px)" }}
         >
-          <div className="px-2 pb-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-            Workspace
-          </div>
+          <div className="px-2 pb-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Workspace</div>
           {tabs.map(({ to, Icon, label, desc }) => {
             const active = loc.pathname.startsWith(to);
             return (
               <Link
                 key={to}
                 to={to}
-                className="group relative flex items-center gap-3 rounded-md px-3 py-2 text-sm smooth press"
+                className="group relative flex items-center gap-3 overflow-hidden rounded-md px-3 py-2 text-sm smooth press hover:translate-x-0.5"
                 style={
                   active
-                    ? { background: "var(--surface-2)", color: "var(--foreground)" }
+                    ? {
+                        background: "color-mix(in oklab, var(--accent) 14%, var(--surface-2))",
+                        color: "var(--foreground)",
+                        boxShadow: "0 0 24px -10px color-mix(in oklab, var(--accent) 70%, transparent)",
+                      }
                     : { color: "var(--text-muted)" }
                 }
               >
                 {active && (
                   <span
                     className="absolute inset-y-1 left-0 w-0.5 rounded-r"
-                    style={{ background: "var(--accent)" }}
+                    style={{ background: "var(--gradient-primary)", boxShadow: "0 0 10px var(--accent)" }}
                   />
                 )}
                 <Icon
                   className="h-4 w-4 flex-none"
                   strokeWidth={1.75}
-                  style={{ color: active ? "var(--accent)" : "var(--text-dim)" }}
+                  style={{
+                    color: active ? "var(--accent)" : "var(--text-dim)",
+                    filter: active ? "drop-shadow(0 0 6px color-mix(in oklab, var(--accent) 70%, transparent))" : "none",
+                  }}
                 />
                 <div className="flex flex-col leading-tight">
                   <span className="font-medium">{label}</span>
@@ -121,7 +156,7 @@ function AppLayout() {
 
         <nav
           className="fixed inset-x-0 bottom-0 z-40 flex justify-around border-t py-2 backdrop-blur-xl sm:hidden fade-up"
-          style={{ background: "color-mix(in oklab, var(--surface) 94%, transparent)", borderColor: "var(--border)" }}
+          style={{ background: "color-mix(in oklab, var(--surface) 88%, transparent)", borderColor: "var(--border)" }}
         >
           {tabs.map(({ to, Icon, label }) => {
             const active = loc.pathname.startsWith(to);
@@ -130,7 +165,10 @@ function AppLayout() {
                 key={to}
                 to={to}
                 className="flex flex-col items-center gap-1 px-3 py-1 text-[10px] font-medium smooth press"
-                style={{ color: active ? "var(--accent)" : "var(--text-dim)" }}
+                style={{
+                  color: active ? "var(--accent)" : "var(--text-dim)",
+                  filter: active ? "drop-shadow(0 0 6px color-mix(in oklab, var(--accent) 60%, transparent))" : "none",
+                }}
               >
                 <Icon className="h-4 w-4" strokeWidth={1.75} />
                 <span>{label}</span>
@@ -139,7 +177,7 @@ function AppLayout() {
           })}
         </nav>
 
-        <main key={loc.pathname} className="flex-1 overflow-y-auto pb-16 route-anim sm:pb-0">
+        <main key={loc.pathname} className="relative flex-1 overflow-y-auto pb-16 route-anim sm:pb-0">
           <Outlet />
         </main>
       </div>
