@@ -56,19 +56,19 @@
   --foreground: oklch(0.97 0.008 250);
   --text-muted: oklch(0.70 0.020 250);
   --text-dim:   oklch(0.52 0.020 250);
-  --accent: oklch(0.66 0.22 255);
+  --accent: oklch(0.64 0.16 245);
   --accent-foreground: oklch(0.99 0 0);
-  --electric: oklch(0.78 0.18 215);
-  --neon:     oklch(0.74 0.22 305);
-  --green:  oklch(0.76 0.20 155);
-  --red:    oklch(0.68 0.22 22);
-  --gold:   oklch(0.82 0.17 80);
-  --purple: oklch(0.74 0.20 295);
-  --gradient-primary: linear-gradient(135deg, oklch(0.66 0.22 255), oklch(0.74 0.22 305));
-  --gradient-accent:  linear-gradient(135deg, oklch(0.78 0.18 215), oklch(0.66 0.22 255));
-  --gradient-aurora:  conic-gradient(from 180deg at 50% 50%, oklch(0.66 0.22 255 / 0.18), oklch(0.74 0.22 305 / 0.14), oklch(0.78 0.18 215 / 0.16), oklch(0.66 0.22 255 / 0.18));
-  --shadow-glow:     0 0 40px color-mix(in oklab, var(--accent) 35%, transparent);
-  --shadow-elevated: 0 20px 60px -20px color-mix(in oklab, var(--accent) 40%, transparent);
+  --electric: oklch(0.72 0.13 230);
+  --neon: var(--accent);
+  --green:  oklch(0.72 0.15 155);
+  --red:    oklch(0.66 0.18 22);
+  --gold:   oklch(0.78 0.13 80);
+  --purple: oklch(0.70 0.13 260);
+  --gradient-primary: linear-gradient(135deg, var(--accent), var(--electric));
+  --gradient-accent:  linear-gradient(135deg, var(--electric), var(--accent));
+  --gradient-aurora:  radial-gradient(ellipse at 30% 20%, color-mix(in oklab, var(--accent) 18%, transparent), transparent 60%), radial-gradient(ellipse at 70% 80%, color-mix(in oklab, var(--electric) 14%, transparent), transparent 60%);
+  --shadow-glow:     0 0 24px color-mix(in oklab, var(--accent) 22%, transparent);
+  --shadow-elevated: 0 16px 40px -20px color-mix(in oklab, var(--accent) 28%, transparent);
 }
 
 .dark { --background: oklch(0.13 0.03 265); }
@@ -180,24 +180,21 @@
   position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden;
 }
 .bg-fx .aurora {
-  position: absolute; inset: -20%;
+  position: absolute; inset: 0;
   background: var(--gradient-aurora);
-  filter: blur(80px);
-  opacity: 0.55;
-  animation: auroraShift 28s ease-in-out infinite;
+  opacity: 1;
 }
 .bg-fx .orb {
-  position: absolute; border-radius: 9999px; filter: blur(60px); opacity: 0.45;
-  animation: orbFloat 18s ease-in-out infinite;
+  position: absolute; border-radius: 9999px; filter: blur(80px); opacity: 0.18;
+  animation: orbFloat 26s ease-in-out infinite;
 }
-.bg-fx .orb.a { width: 380px; height: 380px; left: 8%;  top: 12%; background: color-mix(in oklab, var(--accent) 60%, transparent); }
-.bg-fx .orb.b { width: 320px; height: 320px; right: 6%; top: 50%; background: color-mix(in oklab, var(--neon) 55%, transparent); animation-delay: -6s; }
-.bg-fx .orb.c { width: 260px; height: 260px; left: 38%; bottom: 6%; background: color-mix(in oklab, var(--electric) 55%, transparent); animation-delay: -12s; }
+.bg-fx .orb.a { width: 360px; height: 360px; left: 10%; top: 14%; background: color-mix(in oklab, var(--accent) 55%, transparent); }
+.bg-fx .orb.b { width: 300px; height: 300px; right: 8%; bottom: 12%; background: color-mix(in oklab, var(--electric) 50%, transparent); animation-delay: -10s; }
 .bg-fx .grid {
   position: absolute; inset: 0;
   background-image:
-    linear-gradient(color-mix(in oklab, var(--foreground) 4%, transparent) 1px, transparent 1px),
-    linear-gradient(90deg, color-mix(in oklab, var(--foreground) 4%, transparent) 1px, transparent 1px);
+    linear-gradient(color-mix(in oklab, var(--foreground) 3%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in oklab, var(--foreground) 3%, transparent) 1px, transparent 1px);
   background-size: 48px 48px;
   mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
 }
