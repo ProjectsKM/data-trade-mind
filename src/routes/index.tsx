@@ -1,6 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { getCurrentUser, type User } from "@/lib/store";
+import { useUser, type User } from "@/lib/store";
 import { useReveal } from "@/lib/useReveal";
 
 export const Route = createFileRoute("/")({
@@ -22,8 +21,7 @@ function Reveal({ children, className = "" }: { children: React.ReactNode; class
 }
 
 function LandingPage() {
-  const [user, setUser] = useState<User | null>(null);
-  useEffect(() => { setUser(getCurrentUser()); }, []);
+  const { user } = useUser();
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Nav user={user} />
