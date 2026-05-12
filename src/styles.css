@@ -40,29 +40,29 @@
   --color-text-muted: var(--text-muted);
   --color-text-dim: var(--text-dim);
 
-  --font-sans: 'Outfit', system-ui, sans-serif;
-  --font-display: 'Michroma', 'Outfit', sans-serif;
-  --font-mono: 'DM Mono', ui-monospace, monospace;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-display: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 }
 
 :root {
-  --radius: 0.75rem;
-  --background: oklch(0.13 0.03 265);
-  --surface:    oklch(0.16 0.035 265);
-  --surface-2:  oklch(0.19 0.04 265);
-  --surface-3:  oklch(0.22 0.045 265);
-  --border:        oklch(0.23 0.04 265);
-  --border-strong: oklch(0.30 0.05 265);
-  --foreground: oklch(0.92 0.02 250);
-  --text-muted: oklch(0.62 0.04 255);
-  --text-dim:   oklch(0.40 0.04 260);
-  --accent: oklch(0.55 0.22 260);
-  --accent-foreground: oklch(0.98 0 0);
-  --electric: oklch(0.72 0.18 232);
-  --green:  oklch(0.78 0.20 150);
-  --red:    oklch(0.68 0.22 18);
-  --gold:   oklch(0.82 0.16 85);
-  --purple: oklch(0.75 0.16 295);
+  --radius: 0.625rem;
+  --background: oklch(0.145 0.012 250);
+  --surface:    oklch(0.180 0.012 250);
+  --surface-2:  oklch(0.215 0.012 250);
+  --surface-3:  oklch(0.250 0.012 250);
+  --border:        oklch(0.255 0.010 250);
+  --border-strong: oklch(0.330 0.012 250);
+  --foreground: oklch(0.96 0.005 250);
+  --text-muted: oklch(0.66 0.012 250);
+  --text-dim:   oklch(0.48 0.012 250);
+  --accent: oklch(0.62 0.15 245);
+  --accent-foreground: oklch(0.99 0 0);
+  --electric: oklch(0.74 0.13 220);
+  --green:  oklch(0.72 0.15 155);
+  --red:    oklch(0.66 0.18 22);
+  --gold:   oklch(0.78 0.13 80);
+  --purple: oklch(0.70 0.13 290);
 }
 
 .dark { --background: oklch(0.13 0.03 265); }
@@ -75,6 +75,7 @@
     color: var(--color-foreground);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
+    font-feature-settings: 'cv11', 'ss01', 'ss03';
     overflow-x: hidden;
   }
   ::selection { background: color-mix(in oklab, var(--accent) 40%, transparent); color: var(--foreground); }
@@ -85,8 +86,9 @@
 ::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 8px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--border-strong); }
 
-.font-display { font-family: var(--font-display); letter-spacing: -0.02em; }
-.font-mono { font-family: var(--font-mono); }
+.font-display { font-family: var(--font-display); letter-spacing: -0.01em; }
+.font-mono { font-family: var(--font-mono); font-feature-settings: 'tnum', 'zero'; }
+.tabular { font-variant-numeric: tabular-nums; font-feature-settings: 'tnum'; }
 
 @keyframes blink-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
 .blink-dot { animation: blink-dot 1.6s ease-in-out infinite; }
