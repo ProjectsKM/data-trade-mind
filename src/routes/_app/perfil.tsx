@@ -54,25 +54,25 @@ function PerfilPage() {
       <PageHeader title="Perfil" description="Sua conta, plano e estatísticas." />
 
       <section
-        className="mt-6 flex flex-col items-center gap-5 rounded-2xl border p-7 sm:flex-row sm:items-center sm:gap-6 fade-up"
-        style={{ background: "color-mix(in oklab, var(--surface) 92%, transparent)", borderColor: "var(--border)", boxShadow: "var(--shadow-elevated)" }}
+        className="mt-6 flex flex-col items-center gap-5 rounded-xl border p-6 sm:flex-row sm:items-center sm:gap-6 fade-up"
+        style={{ background: "color-mix(in oklab, var(--surface) 80%, transparent)", borderColor: "var(--border)" }}
       >
-        <div className="flex h-20 w-20 items-center justify-center rounded-2xl border font-display text-2xl font-semibold" style={{ background: "var(--surface-2)", borderColor: "var(--border-strong)", color: "var(--accent)" }}>
+        <div className="flex h-16 w-16 items-center justify-center rounded-xl font-display text-xl font-semibold" style={{ background: "color-mix(in oklab, var(--accent) 12%, var(--surface-2))", color: "var(--accent)" }}>
           {initials}
         </div>
         <div className="flex-1 text-center sm:text-left">
-          <div className="font-display text-xl font-semibold">{profile?.name || user.email.split("@")[0]}</div>
-          <div className="mt-0.5 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs text-muted-foreground sm:justify-start">
+          <div className="font-display text-lg font-semibold tracking-tight">{profile?.name || user.email.split("@")[0]}</div>
+          <div className="mt-1 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs text-muted-foreground sm:justify-start">
             <span className="inline-flex items-center gap-1"><Mail className="h-3 w-3" />{user.email}</span>
             {profile?.country && <span className="inline-flex items-center gap-1"><Globe className="h-3 w-3" />{profile.country}</span>}
           </div>
         </div>
         <span
-          className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider"
+          className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider"
           style={
             state.isPro
-              ? { background: "color-mix(in oklab, var(--accent) 12%, transparent)", color: "var(--accent)", borderColor: "color-mix(in oklab, var(--accent) 35%, transparent)" }
-              : { background: "var(--surface-2)", color: "var(--text-muted)", borderColor: "var(--border-strong)" }
+              ? { background: "color-mix(in oklab, var(--accent) 14%, transparent)", color: "var(--accent)" }
+              : { background: "var(--surface-2)", color: "var(--text-muted)" }
           }
         >
           <Crown className="h-3.5 w-3.5" />
@@ -80,18 +80,18 @@ function PerfilPage() {
         </span>
       </section>
 
-      <div className="mt-6 grid gap-3 sm:grid-cols-3 stagger">
+      <div className="mt-5 grid gap-3 sm:grid-cols-3 stagger">
         <StatCard label="Análises" value={state.isPro ? "∞" : state.analysesLeft} hint={state.isPro ? "PRO ilimitado" : "restantes este mês"} icon={<Sparkles className="h-4 w-4" />} tone="accent" />
         <StatCard label="Trades" value={state.tradeList.length} hint={`${closedTrades} fechados`} icon={<ClipboardList className="h-4 w-4" />} />
         <StatCard label="Win-rate" value={`${winRate}%`} hint={`${winTrades}/${closedTrades || 0} vitórias`} icon={<TrendingUp className="h-4 w-4" />} tone={winRate >= 55 ? "success" : winRate >= 45 ? "warning" : "danger"} />
       </div>
 
-      <div className="mt-6 grid gap-4 lg:grid-cols-2">
+      <div className="mt-5 grid gap-4 lg:grid-cols-2">
         <section
-          className="rounded-2xl border p-6 card-glow fade-up"
-          style={{ background: "color-mix(in oklab, var(--surface) 92%, transparent)", borderColor: "var(--border)" }}
+          className="rounded-xl border p-5 fade-up"
+          style={{ background: "color-mix(in oklab, var(--surface) 80%, transparent)", borderColor: "var(--border)" }}
         >
-          <div className="mb-4 flex items-center gap-2">
+          <div className="mb-3 flex items-center gap-2">
             <Crown className="h-4 w-4" style={{ color: "var(--accent)" }} />
             <h2 className="font-display text-base font-semibold">Plano atual</h2>
           </div>
@@ -102,7 +102,7 @@ function PerfilPage() {
           {!state.isPro && (
             <button
               onClick={() => nav({ to: "/upgrade" })}
-              className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold text-white press hover:-translate-y-0.5 smooth"
+              className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-semibold text-white press smooth hover:opacity-90"
               style={{ background: "var(--accent)" }}
             >
               <Crown className="h-4 w-4" />
@@ -112,11 +112,11 @@ function PerfilPage() {
         </section>
 
         <section
-          className="rounded-2xl border p-6 card-glow fade-up"
-          style={{ background: "color-mix(in oklab, var(--surface) 92%, transparent)", borderColor: "var(--border)" }}
+          className="rounded-xl border p-5 fade-up"
+          style={{ background: "color-mix(in oklab, var(--surface) 80%, transparent)", borderColor: "var(--border)" }}
         >
-          <div className="mb-4 flex items-center gap-2">
-            <Mail className="h-4 w-4" style={{ color: "var(--electric)" }} />
+          <div className="mb-3 flex items-center gap-2">
+            <Mail className="h-4 w-4" style={{ color: "var(--accent)" }} />
             <h2 className="font-display text-base font-semibold">Conta</h2>
           </div>
           <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Nome</label>
@@ -124,8 +124,8 @@ function PerfilPage() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Seu nome"
-            className="w-full rounded-xl border bg-[color:var(--surface-2)] px-3.5 py-2.5 text-sm outline-none transition-all focus:border-[color:var(--accent)] focus:shadow-[0_0_0_3px_color-mix(in_oklab,var(--accent)_15%,transparent)]"
-            style={{ borderColor: "var(--border-strong)" }}
+            className="w-full rounded-lg border bg-[color:var(--surface-2)] px-3 py-2 text-sm outline-none transition-colors focus:border-[color:var(--accent)] focus:shadow-[0_0_0_2px_color-mix(in_oklab,var(--accent)_12%,transparent)]"
+            style={{ borderColor: "var(--border)" }}
           />
           <Row label="Email" value={user.email} className="mt-3" />
           {profile?.country && <Row label="País" value={profile.country} />}
@@ -133,7 +133,7 @@ function PerfilPage() {
             <button
               onClick={save}
               disabled={saving || name === (profile?.name ?? "")}
-              className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white press disabled:opacity-50 smooth"
+              className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white press disabled:opacity-50 smooth hover:opacity-90"
               style={{ background: "var(--accent)" }}
             >
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
@@ -141,8 +141,8 @@ function PerfilPage() {
             </button>
             <button
               onClick={() => { logout(); nav({ to: "/" }); }}
-              className="inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold smooth press hover:border-[color:var(--red)] hover:text-[color:var(--red)]"
-              style={{ borderColor: "var(--border-strong)" }}
+              className="inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold smooth press hover:border-[color:var(--red)] hover:text-[color:var(--red)]"
+              style={{ borderColor: "var(--border)" }}
             >
               <LogOut className="h-4 w-4" />
               Sair
