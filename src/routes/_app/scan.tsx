@@ -16,6 +16,7 @@ import {
   LineChart,
 } from "lucide-react";
 import { useAppState, type ScanResult } from "@/lib/store";
+import { toast } from "sonner";
 import { PageHeader } from "@/components/app/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -90,12 +91,15 @@ function ScanPage() {
 
   async function startAnalysis() {
     if (!state.isPro && state.analysesLeft <= 0) {
-      setErr("Você usou suas 5 análises grátis. Faça upgrade para continuar.");
+      const msg = "Você usou suas 5 análises grátis. Faça upgrade para continuar.";
+      setErr(msg);
+      toast.error(msg);
       setStage("error");
       return;
     }
     setStage("analyzing");
     setErr("");
+    toast.info("Analisando o gráfico…");
     try {
       const [, b64] = imgData.split(",");
       const mediaType = (imgData.split(";")[0].split(":")[1] || "image/png") as
@@ -110,7 +114,9 @@ function ScanPage() {
       });
       const data = (await r.json()) as { ok: boolean; result?: ScanResult; error?: string };
       if (!data.ok || !data.result) {
-        setErr(data.error || "Não foi possível analisar a imagem.");
+        const msg = data.error || "Não foi possível analisar a imagem.";
+        setErr(msg);
+        toast.error(msg);
         setStage("error");
         return;
       }
@@ -119,8 +125,11 @@ function ScanPage() {
       await addScan(res);
       if (!state.isPro) update({ analysesLeft: Math.max(0, state.analysesLeft - 1) });
       setStage("result");
+      toast.success(`Análise concluída — ${res.direcao} ${res.confianca}%`);
     } catch {
-      setErr("Erro de conexão. Tente novamente.");
+      const msg = "Erro de conexão. Tente novamente.";
+      setErr(msg);
+      toast.error(msg);
       setStage("error");
     }
   }
