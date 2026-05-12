@@ -8,6 +8,7 @@ import {
   Calculator,
   LogOut,
   Loader2,
+  LayoutDashboard,
 } from "lucide-react";
 import { logout, useAppState, useUser } from "@/lib/store";
 
@@ -49,6 +50,7 @@ function AppLayout() {
   }
 
   const tabs = [
+    { to: "/dashboard", Icon: LayoutDashboard, label: "Início", desc: "Visão geral" },
     { to: "/scan", Icon: LineChart, label: "Scan", desc: "Análise" },
     { to: "/mind", Icon: Sparkles, label: "Mind", desc: "Mentor" },
     { to: "/gestao", Icon: ClipboardList, label: "Gestão", desc: "Trades" },
@@ -64,7 +66,7 @@ function AppLayout() {
         className="sticky top-0 z-50 flex h-14 items-center justify-between border-b px-5 backdrop-blur-xl fade-down"
         style={{ background: "color-mix(in oklab, var(--background) 78%, transparent)", borderColor: "var(--border-strong)" }}
       >
-        <Link to="/scan" className="font-display text-lg font-semibold tracking-tight smooth hover:opacity-90">
+        <Link to="/dashboard" className="font-display text-lg font-semibold tracking-tight smooth hover:opacity-90">
           Orion<span style={{ color: "var(--accent)" }}>Hub</span>
         </Link>
         <div className="flex items-center gap-3">

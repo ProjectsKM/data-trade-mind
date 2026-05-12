@@ -21,6 +21,7 @@ import { Route as AppRelatorioRouteImport } from './routes/_app/relatorio'
 import { Route as AppPerfilRouteImport } from './routes/_app/perfil'
 import { Route as AppMindRouteImport } from './routes/_app/mind'
 import { Route as AppGestaoRouteImport } from './routes/_app/gestao'
+import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
 import { Route as AppCalculadoraRouteImport } from './routes/_app/calculadora'
 
 const SignupRoute = SignupRouteImport.update({
@@ -82,6 +83,11 @@ const AppGestaoRoute = AppGestaoRouteImport.update({
   path: '/gestao',
   getParentRoute: () => AppRoute,
 } as any)
+const AppDashboardRoute = AppDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppCalculadoraRoute = AppCalculadoraRouteImport.update({
   id: '/calculadora',
   path: '/calculadora',
@@ -93,6 +99,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/calculadora': typeof AppCalculadoraRoute
+  '/dashboard': typeof AppDashboardRoute
   '/gestao': typeof AppGestaoRoute
   '/mind': typeof AppMindRoute
   '/perfil': typeof AppPerfilRoute
@@ -107,6 +114,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/calculadora': typeof AppCalculadoraRoute
+  '/dashboard': typeof AppDashboardRoute
   '/gestao': typeof AppGestaoRoute
   '/mind': typeof AppMindRoute
   '/perfil': typeof AppPerfilRoute
@@ -123,6 +131,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/_app/calculadora': typeof AppCalculadoraRoute
+  '/_app/dashboard': typeof AppDashboardRoute
   '/_app/gestao': typeof AppGestaoRoute
   '/_app/mind': typeof AppMindRoute
   '/_app/perfil': typeof AppPerfilRoute
@@ -139,6 +148,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/signup'
     | '/calculadora'
+    | '/dashboard'
     | '/gestao'
     | '/mind'
     | '/perfil'
@@ -153,6 +163,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/signup'
     | '/calculadora'
+    | '/dashboard'
     | '/gestao'
     | '/mind'
     | '/perfil'
@@ -168,6 +179,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/signup'
     | '/_app/calculadora'
+    | '/_app/dashboard'
     | '/_app/gestao'
     | '/_app/mind'
     | '/_app/perfil'
@@ -273,6 +285,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppGestaoRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/dashboard': {
+      id: '/_app/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AppDashboardRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/calculadora': {
       id: '/_app/calculadora'
       path: '/calculadora'
@@ -285,6 +304,7 @@ declare module '@tanstack/react-router' {
 
 interface AppRouteChildren {
   AppCalculadoraRoute: typeof AppCalculadoraRoute
+  AppDashboardRoute: typeof AppDashboardRoute
   AppGestaoRoute: typeof AppGestaoRoute
   AppMindRoute: typeof AppMindRoute
   AppPerfilRoute: typeof AppPerfilRoute
@@ -295,6 +315,7 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppCalculadoraRoute: AppCalculadoraRoute,
+  AppDashboardRoute: AppDashboardRoute,
   AppGestaoRoute: AppGestaoRoute,
   AppMindRoute: AppMindRoute,
   AppPerfilRoute: AppPerfilRoute,
