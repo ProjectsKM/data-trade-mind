@@ -51,7 +51,7 @@ function PerfilPage() {
 
   return (
     <div className="mx-auto w-full max-w-5xl px-6 py-8">
-      <PageHeader title="Perfil" subtitle="Sua conta, plano e estatísticas." />
+      <PageHeader title="Perfil" description="Sua conta, plano e estatísticas." />
 
       <section
         className="mt-6 flex flex-col items-center gap-5 rounded-2xl border p-7 sm:flex-row sm:items-center sm:gap-6 fade-up"
