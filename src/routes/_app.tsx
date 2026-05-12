@@ -4,7 +4,6 @@ import {
   LineChart,
   Sparkles,
   ClipboardList,
-  BarChart3,
   Calculator,
   LogOut,
   Loader2,
@@ -53,8 +52,7 @@ function AppLayout() {
     { to: "/dashboard", Icon: LayoutDashboard, label: "Início", desc: "Visão geral" },
     { to: "/scan", Icon: LineChart, label: "Scan", desc: "Análise" },
     { to: "/mind", Icon: Sparkles, label: "Mind", desc: "Mentor" },
-    { to: "/gestao", Icon: ClipboardList, label: "Gestão", desc: "Trades" },
-    { to: "/relatorio", Icon: BarChart3, label: "Relatório", desc: "Métricas" },
+    { to: "/gestao", Icon: ClipboardList, label: "Gestão", desc: "Trades & métricas" },
     { to: "/calculadora", Icon: Calculator, label: "Calc", desc: "Banca" },
   ] as const;
 
