@@ -14,7 +14,171 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      mind_messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          country: string | null
+          created_at: string
+          email: string | null
+          id: string
+          name: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          country?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          country?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      scan_history: {
+        Row: {
+          ativo: string | null
+          confianca: number | null
+          created_at: string
+          direcao: string | null
+          id: string
+          result: Json
+          timeframe: string | null
+          user_id: string
+        }
+        Insert: {
+          ativo?: string | null
+          confianca?: number | null
+          created_at?: string
+          direcao?: string | null
+          id?: string
+          result: Json
+          timeframe?: string | null
+          user_id: string
+        }
+        Update: {
+          ativo?: string | null
+          confianca?: number | null
+          created_at?: string
+          direcao?: string | null
+          id?: string
+          result?: Json
+          timeframe?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      trades: {
+        Row: {
+          ativo: string
+          created_at: string
+          data: string
+          dir: string
+          id: string
+          lucro: number
+          obs: string | null
+          payout: number
+          res: string
+          updated_at: string
+          user_id: string
+          valor: number
+        }
+        Insert: {
+          ativo: string
+          created_at?: string
+          data?: string
+          dir: string
+          id?: string
+          lucro?: number
+          obs?: string | null
+          payout: number
+          res?: string
+          updated_at?: string
+          user_id: string
+          valor: number
+        }
+        Update: {
+          ativo?: string
+          created_at?: string
+          data?: string
+          dir?: string
+          id?: string
+          lucro?: number
+          obs?: string | null
+          payout?: number
+          res?: string
+          updated_at?: string
+          user_id?: string
+          valor?: number
+        }
+        Relationships: []
+      }
+      user_plans: {
+        Row: {
+          analyses_left: number
+          created_at: string
+          id: string
+          is_pro: boolean
+          trial_days_left: number
+          trial_started_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          analyses_left?: number
+          created_at?: string
+          id?: string
+          is_pro?: boolean
+          trial_days_left?: number
+          trial_started_at?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          analyses_left?: number
+          created_at?: string
+          id?: string
+          is_pro?: boolean
+          trial_days_left?: number
+          trial_started_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
