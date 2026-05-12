@@ -1,7 +1,10 @@
-// LocalStorage-backed auth + per-user app state.
-import { useEffect, useState, useCallback } from "react";
+// Supabase-backed auth + per-user app state.
+import { useEffect, useState, useCallback, useRef } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import type { User as AuthUser } from "@supabase/supabase-js";
 
 export type User = {
+  id: string;
   name: string;
   email: string;
   country?: string;
@@ -9,7 +12,7 @@ export type User = {
 };
 
 export type Trade = {
-  id: number;
+  id: string;
   ativo: string;
   data: string;
   dir: "COMPRA" | "VENDA";
@@ -21,6 +24,7 @@ export type Trade = {
 };
 
 export type ScanResult = {
+  id?: string;
   ativo?: string;
   timeframe?: string;
   direcao?: "COMPRA" | "VENDA";
@@ -40,7 +44,7 @@ export type ScanResult = {
   createdAt?: string;
 };
 
-export type ChatMsg = { role: "user" | "assistant"; content: string; ts?: string };
+export type ChatMsg = { id?: string; role: "user" | "assistant"; content: string; ts?: string };
 
 export type AppState = {
   isPro: boolean;
@@ -52,12 +56,6 @@ export type AppState = {
   mindMessages: ChatMsg[];
 };
 
-const KEY_USER = "orion:user";
-const KEY_USERS = "orion:users";
-const stateKey = (email: string) => `orion:state:${email}`;
-
-const isBrowser = () => typeof window !== "undefined";
-
 const defaultState = (): AppState => ({
   isPro: false,
   trialDaysLeft: 7,
@@ -68,113 +66,213 @@ const defaultState = (): AppState => ({
   mindMessages: [],
 });
 
-function readJSON<T>(k: string, fallback: T): T {
-  if (!isBrowser()) return fallback;
-  try {
-    const raw = localStorage.getItem(k);
-    return raw ? (JSON.parse(raw) as T) : fallback;
-  } catch {
-    return fallback;
-  }
-}
-function writeJSON(k: string, v: unknown) {
-  if (!isBrowser()) return;
-  localStorage.setItem(k, JSON.stringify(v));
-}
-
-function hash(s: string): string {
-  let h = 0;
-  for (let i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0;
-  return String(h);
-}
-
-type Account = { email: string; name: string; country?: string; pw: string };
-
-export function getCurrentUser(): User | null {
-  return readJSON<User | null>(KEY_USER, null);
-}
-
-export function signup(input: { name: string; email: string; password: string; country?: string }): User {
-  const accounts = readJSON<Account[]>(KEY_USERS, []);
-  const email = input.email.trim().toLowerCase();
-  if (accounts.find((a) => a.email === email)) {
-    throw new Error("Já existe uma conta com esse email.");
-  }
-  if (input.password.length < 6) throw new Error("Senha precisa de pelo menos 6 caracteres.");
-  const acc: Account = {
-    email,
-    name: input.name.trim() || email.split("@")[0],
-    country: input.country,
-    pw: hash(input.password),
+function toUser(u: AuthUser, profile?: { name?: string | null; country?: string | null } | null): User {
+  return {
+    id: u.id,
+    email: u.email ?? "",
+    name: profile?.name || (u.user_metadata?.name as string) || (u.email?.split("@")[0] ?? "user"),
+    country: profile?.country || (u.user_metadata?.country as string) || undefined,
+    createdAt: u.created_at,
   };
-  accounts.push(acc);
-  writeJSON(KEY_USERS, accounts);
-  const user: User = { name: acc.name, email: acc.email, country: acc.country, createdAt: new Date().toISOString() };
-  writeJSON(KEY_USER, user);
-  if (!localStorage.getItem(stateKey(email))) writeJSON(stateKey(email), defaultState());
-  window.dispatchEvent(new Event("orion:auth"));
-  return user;
 }
 
-export function login(emailRaw: string, password: string): User {
-  const accounts = readJSON<Account[]>(KEY_USERS, []);
-  const email = emailRaw.trim().toLowerCase();
-  const acc = accounts.find((a) => a.email === email);
-  if (!acc || acc.pw !== hash(password)) throw new Error("Email ou senha incorretos.");
-  const user: User = { name: acc.name, email: acc.email, country: acc.country, createdAt: new Date().toISOString() };
-  writeJSON(KEY_USER, user);
-  if (!localStorage.getItem(stateKey(email))) writeJSON(stateKey(email), defaultState());
-  window.dispatchEvent(new Event("orion:auth"));
-  return user;
+// ---------- Auth API ----------
+
+export async function signup(input: { name: string; email: string; password: string; country?: string }): Promise<User> {
+  if (input.password.length < 6) throw new Error("Senha precisa de pelo menos 6 caracteres.");
+  const redirectUrl = typeof window !== "undefined" ? `${window.location.origin}/scan` : undefined;
+  const { data, error } = await supabase.auth.signUp({
+    email: input.email.trim().toLowerCase(),
+    password: input.password,
+    options: {
+      data: { name: input.name.trim(), country: input.country },
+      emailRedirectTo: redirectUrl,
+    },
+  });
+  if (error) throw new Error(error.message);
+  if (!data.user) throw new Error("Não foi possível criar a conta.");
+  return toUser(data.user);
 }
 
-export function logout() {
-  if (!isBrowser()) return;
-  localStorage.removeItem(KEY_USER);
-  window.dispatchEvent(new Event("orion:auth"));
+export async function login(emailRaw: string, password: string): Promise<User> {
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: emailRaw.trim().toLowerCase(),
+    password,
+  });
+  if (error) throw new Error(error.message === "Invalid login credentials" ? "Email ou senha incorretos." : error.message);
+  if (!data.user) throw new Error("Falha no login.");
+  return toUser(data.user);
 }
+
+export async function logout() {
+  await supabase.auth.signOut();
+}
+
+// ---------- Hooks ----------
 
 export function useUser() {
   const [user, setUser] = useState<User | null>(null);
   const [ready, setReady] = useState(false);
+
   useEffect(() => {
-    setUser(getCurrentUser());
-    setReady(true);
-    const h = () => setUser(getCurrentUser());
-    window.addEventListener("orion:auth", h);
-    window.addEventListener("storage", h);
-    return () => {
-      window.removeEventListener("orion:auth", h);
-      window.removeEventListener("storage", h);
-    };
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
+      setUser(session?.user ? toUser(session.user) : null);
+      setReady(true);
+    });
+    supabase.auth.getSession().then(({ data }) => {
+      setUser(data.session?.user ? toUser(data.session.user) : null);
+      setReady(true);
+    });
+    return () => sub.subscription.unsubscribe();
   }, []);
+
   return { user, ready };
 }
 
 export function useAppState() {
   const { user } = useUser();
-  const [state, setState] = useState<AppState>(() => defaultState());
+  const [state, setState] = useState<AppState>(defaultState);
+  const userIdRef = useRef<string | null>(null);
 
+  // Load all data when user changes.
   useEffect(() => {
-    if (!user) return;
-    const s = readJSON<AppState>(stateKey(user.email), defaultState());
-    const start = new Date(s.trialStartedAt || new Date().toISOString());
-    const days = Math.max(0, 7 - Math.floor((Date.now() - start.getTime()) / 86400000));
-    s.trialDaysLeft = s.isPro ? 999 : days;
-    setState(s);
-  }, [user?.email]);
-
-  const update = useCallback(
-    (patch: Partial<AppState> | ((s: AppState) => AppState)) => {
-      if (!user) return;
-      setState((prev) => {
-        const next = typeof patch === "function" ? patch(prev) : { ...prev, ...patch };
-        writeJSON(stateKey(user.email), next);
-        return next;
+    if (!user) {
+      userIdRef.current = null;
+      setState(defaultState());
+      return;
+    }
+    userIdRef.current = user.id;
+    let cancelled = false;
+    (async () => {
+      const [planRes, tradesRes, scansRes, msgsRes] = await Promise.all([
+        supabase.from("user_plans").select("*").eq("user_id", user.id).maybeSingle(),
+        supabase.from("trades").select("*").eq("user_id", user.id).order("data", { ascending: false }),
+        supabase.from("scan_history").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(50),
+        supabase.from("mind_messages").select("*").eq("user_id", user.id).order("created_at", { ascending: true }).limit(200),
+      ]);
+      if (cancelled) return;
+      const plan = planRes.data;
+      const trialStart = plan?.trial_started_at ?? new Date().toISOString();
+      const trialDaysLeft = plan?.is_pro ? 999 : Math.max(0, 7 - Math.floor((Date.now() - new Date(trialStart).getTime()) / 86400000));
+      setState({
+        isPro: plan?.is_pro ?? false,
+        analysesLeft: plan?.analyses_left ?? 5,
+        trialDaysLeft,
+        trialStartedAt: trialStart,
+        tradeList: (tradesRes.data ?? []).map((t) => ({
+          id: t.id,
+          ativo: t.ativo,
+          data: t.data,
+          dir: t.dir as Trade["dir"],
+          valor: Number(t.valor),
+          payout: Number(t.payout),
+          res: t.res as Trade["res"],
+          lucro: Number(t.lucro),
+          obs: t.obs ?? undefined,
+        })),
+        history: (scansRes.data ?? []).map((s) => ({
+          ...((s.result as object) ?? {}),
+          id: s.id,
+          ativo: s.ativo ?? undefined,
+          timeframe: s.timeframe ?? undefined,
+          direcao: (s.direcao as ScanResult["direcao"]) ?? undefined,
+          confianca: s.confianca ?? undefined,
+          createdAt: s.created_at,
+        })),
+        mindMessages: (msgsRes.data ?? []).map((m) => ({
+          id: m.id,
+          role: m.role as ChatMsg["role"],
+          content: m.content,
+          ts: m.created_at,
+        })),
       });
-    },
-    [user?.email]
-  );
+    })();
+    return () => { cancelled = true; };
+  }, [user?.id]);
 
-  return { state, update };
+  // Update plan fields (isPro, analysesLeft, trialDaysLeft, trialStartedAt). For arrays use helpers.
+  const update = useCallback((patch: Partial<Pick<AppState, "isPro" | "analysesLeft" | "trialDaysLeft" | "trialStartedAt">>) => {
+    const uid = userIdRef.current;
+    if (!uid) return;
+    setState((prev) => {
+      const next = { ...prev, ...patch };
+      const dbPatch: Record<string, unknown> = {};
+      if (patch.isPro !== undefined) dbPatch.is_pro = patch.isPro;
+      if (patch.analysesLeft !== undefined) dbPatch.analyses_left = patch.analysesLeft;
+      if (patch.trialDaysLeft !== undefined) dbPatch.trial_days_left = patch.trialDaysLeft;
+      if (patch.trialStartedAt !== undefined) dbPatch.trial_started_at = patch.trialStartedAt;
+      if (Object.keys(dbPatch).length) {
+        supabase.from("user_plans").update(dbPatch).eq("user_id", uid).then(({ error }) => {
+          if (error) console.error("update plan", error);
+        });
+      }
+      return next;
+    });
+  }, []);
+
+  const addTrade = useCallback(async (t: Omit<Trade, "id">) => {
+    const uid = userIdRef.current;
+    if (!uid) return;
+    const { data, error } = await supabase.from("trades").insert({
+      user_id: uid, ativo: t.ativo, data: t.data, dir: t.dir, valor: t.valor, payout: t.payout, res: t.res, lucro: t.lucro, obs: t.obs ?? null,
+    }).select().single();
+    if (error || !data) { console.error("addTrade", error); return; }
+    const created: Trade = { id: data.id, ativo: data.ativo, data: data.data, dir: data.dir as Trade["dir"], valor: Number(data.valor), payout: Number(data.payout), res: data.res as Trade["res"], lucro: Number(data.lucro), obs: data.obs ?? undefined };
+    setState((s) => ({ ...s, tradeList: [created, ...s.tradeList] }));
+  }, []);
+
+  const updateTrade = useCallback(async (id: string, patch: Partial<Trade>) => {
+    const uid = userIdRef.current;
+    if (!uid) return;
+    setState((s) => ({ ...s, tradeList: s.tradeList.map((t) => (t.id === id ? { ...t, ...patch } : t)) }));
+    await supabase.from("trades").update({
+      ...(patch.ativo !== undefined && { ativo: patch.ativo }),
+      ...(patch.data !== undefined && { data: patch.data }),
+      ...(patch.dir !== undefined && { dir: patch.dir }),
+      ...(patch.valor !== undefined && { valor: patch.valor }),
+      ...(patch.payout !== undefined && { payout: patch.payout }),
+      ...(patch.res !== undefined && { res: patch.res }),
+      ...(patch.lucro !== undefined && { lucro: patch.lucro }),
+      ...(patch.obs !== undefined && { obs: patch.obs ?? null }),
+    }).eq("id", id);
+  }, []);
+
+  const deleteTrade = useCallback(async (id: string) => {
+    setState((s) => ({ ...s, tradeList: s.tradeList.filter((t) => t.id !== id) }));
+    await supabase.from("trades").delete().eq("id", id);
+  }, []);
+
+  const addScan = useCallback(async (r: ScanResult) => {
+    const uid = userIdRef.current;
+    if (!uid) return;
+    const { data, error } = await supabase.from("scan_history").insert({
+      user_id: uid,
+      ativo: r.ativo ?? null,
+      timeframe: r.timeframe ?? null,
+      direcao: r.direcao ?? null,
+      confianca: r.confianca ?? null,
+      result: r as unknown as Record<string, unknown>,
+    }).select().single();
+    if (error || !data) { console.error("addScan", error); return; }
+    setState((s) => ({ ...s, history: [{ ...r, id: data.id, createdAt: data.created_at }, ...s.history].slice(0, 50) }));
+  }, []);
+
+  const addMindMessages = useCallback(async (msgs: ChatMsg[]) => {
+    const uid = userIdRef.current;
+    if (!uid || msgs.length === 0) return;
+    setState((s) => ({ ...s, mindMessages: [...s.mindMessages, ...msgs] }));
+    await supabase.from("mind_messages").insert(msgs.map((m) => ({ user_id: uid, role: m.role, content: m.content })));
+  }, []);
+
+  const clearMind = useCallback(async () => {
+    const uid = userIdRef.current;
+    if (!uid) return;
+    setState((s) => ({ ...s, mindMessages: [] }));
+    await supabase.from("mind_messages").delete().eq("user_id", uid);
+  }, []);
+
+  return { state, update, addTrade, updateTrade, deleteTrade, addScan, addMindMessages, clearMind };
 }
+
+// Synchronous getter no longer available — use useUser() hook.
+export function getCurrentUser(): null { return null; }
