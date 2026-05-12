@@ -17,10 +17,6 @@ import { Route as ApiAiScanRouteImport } from './routes/api/ai-scan'
 import { Route as ApiAiMindRouteImport } from './routes/api/ai-mind'
 import { Route as AppUpgradeRouteImport } from './routes/_app/upgrade'
 import { Route as AppScanRouteImport } from './routes/_app/scan'
-import { Route as AppRelatorioRouteImport } from './routes/_app/relatorio'
-import { Route as AppMindRouteImport } from './routes/_app/mind'
-import { Route as AppGestaoRouteImport } from './routes/_app/gestao'
-import { Route as AppCalculadoraRouteImport } from './routes/_app/calculadora'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -61,35 +57,11 @@ const AppScanRoute = AppScanRouteImport.update({
   path: '/scan',
   getParentRoute: () => AppRoute,
 } as any)
-const AppRelatorioRoute = AppRelatorioRouteImport.update({
-  id: '/relatorio',
-  path: '/relatorio',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppMindRoute = AppMindRouteImport.update({
-  id: '/mind',
-  path: '/mind',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppGestaoRoute = AppGestaoRouteImport.update({
-  id: '/gestao',
-  path: '/gestao',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppCalculadoraRoute = AppCalculadoraRouteImport.update({
-  id: '/calculadora',
-  path: '/calculadora',
-  getParentRoute: () => AppRoute,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
-  '/calculadora': typeof AppCalculadoraRoute
-  '/gestao': typeof AppGestaoRoute
-  '/mind': typeof AppMindRoute
-  '/relatorio': typeof AppRelatorioRoute
   '/scan': typeof AppScanRoute
   '/upgrade': typeof AppUpgradeRoute
   '/api/ai-mind': typeof ApiAiMindRoute
@@ -99,10 +71,6 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
-  '/calculadora': typeof AppCalculadoraRoute
-  '/gestao': typeof AppGestaoRoute
-  '/mind': typeof AppMindRoute
-  '/relatorio': typeof AppRelatorioRoute
   '/scan': typeof AppScanRoute
   '/upgrade': typeof AppUpgradeRoute
   '/api/ai-mind': typeof ApiAiMindRoute
@@ -114,10 +82,6 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
-  '/_app/calculadora': typeof AppCalculadoraRoute
-  '/_app/gestao': typeof AppGestaoRoute
-  '/_app/mind': typeof AppMindRoute
-  '/_app/relatorio': typeof AppRelatorioRoute
   '/_app/scan': typeof AppScanRoute
   '/_app/upgrade': typeof AppUpgradeRoute
   '/api/ai-mind': typeof ApiAiMindRoute
@@ -129,10 +93,6 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/signup'
-    | '/calculadora'
-    | '/gestao'
-    | '/mind'
-    | '/relatorio'
     | '/scan'
     | '/upgrade'
     | '/api/ai-mind'
@@ -142,10 +102,6 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/signup'
-    | '/calculadora'
-    | '/gestao'
-    | '/mind'
-    | '/relatorio'
     | '/scan'
     | '/upgrade'
     | '/api/ai-mind'
@@ -156,10 +112,6 @@ export interface FileRouteTypes {
     | '/_app'
     | '/login'
     | '/signup'
-    | '/_app/calculadora'
-    | '/_app/gestao'
-    | '/_app/mind'
-    | '/_app/relatorio'
     | '/_app/scan'
     | '/_app/upgrade'
     | '/api/ai-mind'
@@ -233,51 +185,15 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppScanRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/relatorio': {
-      id: '/_app/relatorio'
-      path: '/relatorio'
-      fullPath: '/relatorio'
-      preLoaderRoute: typeof AppRelatorioRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/mind': {
-      id: '/_app/mind'
-      path: '/mind'
-      fullPath: '/mind'
-      preLoaderRoute: typeof AppMindRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/gestao': {
-      id: '/_app/gestao'
-      path: '/gestao'
-      fullPath: '/gestao'
-      preLoaderRoute: typeof AppGestaoRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/calculadora': {
-      id: '/_app/calculadora'
-      path: '/calculadora'
-      fullPath: '/calculadora'
-      preLoaderRoute: typeof AppCalculadoraRouteImport
-      parentRoute: typeof AppRoute
-    }
   }
 }
 
 interface AppRouteChildren {
-  AppCalculadoraRoute: typeof AppCalculadoraRoute
-  AppGestaoRoute: typeof AppGestaoRoute
-  AppMindRoute: typeof AppMindRoute
-  AppRelatorioRoute: typeof AppRelatorioRoute
   AppScanRoute: typeof AppScanRoute
   AppUpgradeRoute: typeof AppUpgradeRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
-  AppCalculadoraRoute: AppCalculadoraRoute,
-  AppGestaoRoute: AppGestaoRoute,
-  AppMindRoute: AppMindRoute,
-  AppRelatorioRoute: AppRelatorioRoute,
   AppScanRoute: AppScanRoute,
   AppUpgradeRoute: AppUpgradeRoute,
 }
@@ -295,3 +211,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
