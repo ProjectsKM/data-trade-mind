@@ -28,12 +28,12 @@ export function StatCard({
 }) {
   return (
     <div
-      className={cn("rounded-xl border p-4 smooth hover:border-[color:var(--border-strong)]", className)}
+      className={cn("card-glow rounded-xl border p-4", className)}
       style={{ background: "var(--surface)", borderColor: "var(--border)" }}
     >
       <div className="flex items-center justify-between text-muted-foreground">
         <span className="text-[11px] font-medium uppercase tracking-wide">{label}</span>
-        {icon && <span className="opacity-60">{icon}</span>}
+        {icon && <span style={{ color: toneColor[tone], filter: `drop-shadow(0 0 6px color-mix(in oklab, ${toneColor[tone]} 50%, transparent))` }}>{icon}</span>}
       </div>
       <div
         className="mt-2 font-display text-2xl font-semibold tabular tracking-tight"
