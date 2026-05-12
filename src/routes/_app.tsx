@@ -6,7 +6,6 @@ import {
   ClipboardList,
   BarChart3,
   Calculator,
-  User as UserIcon,
   LogOut,
   Loader2,
 } from "lucide-react";
@@ -22,7 +21,6 @@ function BgFx() {
       <div className="aurora" />
       <div className="orb a" />
       <div className="orb b" />
-      <div className="orb c" />
       <div className="grid" />
     </div>
   );
@@ -43,9 +41,7 @@ function AppLayout() {
       <div className="relative flex min-h-screen items-center justify-center fade-in" style={{ background: "var(--background)" }}>
         <BgFx />
         <div className="relative z-10 flex flex-col items-center gap-3">
-          <div className="ring-gradient flex h-12 w-12 items-center justify-center rounded-full" style={{ background: "var(--surface)" }}>
-            <Loader2 className="h-5 w-5 animate-spin" style={{ color: "var(--accent)" }} />
-          </div>
+          <Loader2 className="h-5 w-5 animate-spin" style={{ color: "var(--accent)" }} />
           <span className="font-display text-[10px] uppercase tracking-[0.3em] text-muted-foreground">Carregando</span>
         </div>
       </div>
@@ -58,7 +54,6 @@ function AppLayout() {
     { to: "/gestao", Icon: ClipboardList, label: "Gestão", desc: "Trades" },
     { to: "/relatorio", Icon: BarChart3, label: "Relatório", desc: "Métricas" },
     { to: "/calculadora", Icon: Calculator, label: "Calc", desc: "Banca" },
-    { to: "/perfil", Icon: UserIcon, label: "Perfil", desc: "Conta" },
   ] as const;
 
   return (
@@ -70,7 +65,7 @@ function AppLayout() {
         style={{ background: "color-mix(in oklab, var(--background) 78%, transparent)", borderColor: "var(--border-strong)" }}
       >
         <Link to="/scan" className="font-display text-lg font-semibold tracking-tight smooth hover:opacity-90">
-          Orion<span className="gradient-text">Hub</span>
+          Orion<span style={{ color: "var(--accent)" }}>Hub</span>
         </Link>
         <div className="flex items-center gap-3">
           <Link
@@ -100,8 +95,8 @@ function AppLayout() {
           <Link
             to="/perfil"
             aria-label="Perfil"
-            className="ring-gradient flex h-8 w-8 items-center justify-center rounded-full text-[11px] font-semibold smooth"
-            style={{ background: "var(--surface-2)", color: "var(--foreground)" }}
+            className="flex h-8 w-8 items-center justify-center rounded-md border text-[11px] font-semibold smooth hover:border-[color:var(--accent)] hover:text-[color:var(--accent)]"
+            style={{ background: "var(--surface-2)", borderColor: "var(--border-strong)", color: "var(--foreground)" }}
           >
             {user.email.slice(0, 2).toUpperCase()}
           </Link>
