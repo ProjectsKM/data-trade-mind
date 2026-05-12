@@ -17,6 +17,7 @@ import { Route as ApiAiScanRouteImport } from './routes/api/ai-scan'
 import { Route as ApiAiMindRouteImport } from './routes/api/ai-mind'
 import { Route as AppUpgradeRouteImport } from './routes/_app/upgrade'
 import { Route as AppScanRouteImport } from './routes/_app/scan'
+import { Route as AppRelatorioRouteImport } from './routes/_app/relatorio'
 import { Route as AppMindRouteImport } from './routes/_app/mind'
 import { Route as AppGestaoRouteImport } from './routes/_app/gestao'
 
@@ -59,6 +60,11 @@ const AppScanRoute = AppScanRouteImport.update({
   path: '/scan',
   getParentRoute: () => AppRoute,
 } as any)
+const AppRelatorioRoute = AppRelatorioRouteImport.update({
+  id: '/relatorio',
+  path: '/relatorio',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppMindRoute = AppMindRouteImport.update({
   id: '/mind',
   path: '/mind',
@@ -76,6 +82,7 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/gestao': typeof AppGestaoRoute
   '/mind': typeof AppMindRoute
+  '/relatorio': typeof AppRelatorioRoute
   '/scan': typeof AppScanRoute
   '/upgrade': typeof AppUpgradeRoute
   '/api/ai-mind': typeof ApiAiMindRoute
@@ -87,6 +94,7 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/gestao': typeof AppGestaoRoute
   '/mind': typeof AppMindRoute
+  '/relatorio': typeof AppRelatorioRoute
   '/scan': typeof AppScanRoute
   '/upgrade': typeof AppUpgradeRoute
   '/api/ai-mind': typeof ApiAiMindRoute
@@ -100,6 +108,7 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/_app/gestao': typeof AppGestaoRoute
   '/_app/mind': typeof AppMindRoute
+  '/_app/relatorio': typeof AppRelatorioRoute
   '/_app/scan': typeof AppScanRoute
   '/_app/upgrade': typeof AppUpgradeRoute
   '/api/ai-mind': typeof ApiAiMindRoute
@@ -113,6 +122,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/gestao'
     | '/mind'
+    | '/relatorio'
     | '/scan'
     | '/upgrade'
     | '/api/ai-mind'
@@ -124,6 +134,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/gestao'
     | '/mind'
+    | '/relatorio'
     | '/scan'
     | '/upgrade'
     | '/api/ai-mind'
@@ -136,6 +147,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/_app/gestao'
     | '/_app/mind'
+    | '/_app/relatorio'
     | '/_app/scan'
     | '/_app/upgrade'
     | '/api/ai-mind'
@@ -209,6 +221,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppScanRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/relatorio': {
+      id: '/_app/relatorio'
+      path: '/relatorio'
+      fullPath: '/relatorio'
+      preLoaderRoute: typeof AppRelatorioRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/mind': {
       id: '/_app/mind'
       path: '/mind'
@@ -229,6 +248,7 @@ declare module '@tanstack/react-router' {
 interface AppRouteChildren {
   AppGestaoRoute: typeof AppGestaoRoute
   AppMindRoute: typeof AppMindRoute
+  AppRelatorioRoute: typeof AppRelatorioRoute
   AppScanRoute: typeof AppScanRoute
   AppUpgradeRoute: typeof AppUpgradeRoute
 }
@@ -236,6 +256,7 @@ interface AppRouteChildren {
 const AppRouteChildren: AppRouteChildren = {
   AppGestaoRoute: AppGestaoRoute,
   AppMindRoute: AppMindRoute,
+  AppRelatorioRoute: AppRelatorioRoute,
   AppScanRoute: AppScanRoute,
   AppUpgradeRoute: AppUpgradeRoute,
 }
