@@ -437,7 +437,7 @@ function ResultView({ r, onReset }: { r: ScanResult; onReset: () => void }) {
             <Badge
               key={p}
               variant="outline"
-              className="border-[color:var(--purple)]/25 bg-[color:var(--purple)]/10 text-[color:var(--purple)]"
+              className="border-[color:var(--accent)]/25 bg-[color:var(--accent)]/10 text-[color:var(--accent)]"
             >
               {p}
             </Badge>
