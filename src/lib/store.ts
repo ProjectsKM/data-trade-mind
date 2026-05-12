@@ -202,7 +202,7 @@ export function useAppState() {
       if (patch.trialDaysLeft !== undefined) dbPatch.trial_days_left = patch.trialDaysLeft;
       if (patch.trialStartedAt !== undefined) dbPatch.trial_started_at = patch.trialStartedAt;
       if (Object.keys(dbPatch).length) {
-        supabase.from("user_plans").update(dbPatch).eq("user_id", uid).then(({ error }) => {
+        supabase.from("user_plans").update(dbPatch as never).eq("user_id", uid).then(({ error }) => {
           if (error) console.error("update plan", error);
         });
       }
@@ -251,7 +251,7 @@ export function useAppState() {
       timeframe: r.timeframe ?? null,
       direcao: r.direcao ?? null,
       confianca: r.confianca ?? null,
-      result: r as unknown as Record<string, unknown>,
+      result: r as never,
     }).select().single();
     if (error || !data) { console.error("addScan", error); return; }
     setState((s) => ({ ...s, history: [{ ...r, id: data.id, createdAt: data.created_at }, ...s.history].slice(0, 50) }));
