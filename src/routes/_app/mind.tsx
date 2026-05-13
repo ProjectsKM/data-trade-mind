@@ -227,7 +227,16 @@ function MindPage() {
         replyText = data.ok ? data.reply || "Sem resposta." : `⚠️ ${data.error || "Erro."}`;
         setMessages((m) => [...m, { role: "assistant", content: replyText, ts: new Date().toISOString() }]);
       }
-      if (!replyText) replyText = errored ? "⚠️ Não consegui responder agora." : "Sem resposta.";
+      if (!replyText) {
+        replyText = errored ? "⚠️ Não consegui responder agora." : "Sem resposta.";
+        setMessages((m) => {
+          const copy = m.slice();
+          const last = copy[copy.length - 1];
+          if (last && last.role === "assistant" && last.content === "") copy[copy.length - 1] = { ...last, content: replyText };
+          else copy.push({ role: "assistant", content: replyText, ts: new Date().toISOString() });
+          return copy;
+        });
+      }
       await supabase.from("mind_messages").insert({ user_id: user.id, role: "assistant", content: replyText, thread_id: threadId } as never);
       await supabase.from("mind_threads").update({ updated_at: new Date().toISOString() }).eq("id", threadId);
       void refreshThreads();
