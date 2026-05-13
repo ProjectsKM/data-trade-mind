@@ -80,46 +80,143 @@ type ParsedRow = {
   errors: string[];
 };
 
+// Parse a CSV row honoring "quoted, fields" with embedded commas and "" escapes.
+function parseCSVRow(line: string, delimiter = ","): string[] {
+  const out: string[] = [];
+  let cur = "";
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (inQuotes) {
+      if (c === '"' && line[i + 1] === '"') { cur += '"'; i++; }
+      else if (c === '"') { inQuotes = false; }
+      else cur += c;
+    } else {
+      if (c === '"') inQuotes = true;
+      else if (c === delimiter) { out.push(cur); cur = ""; }
+      else cur += c;
+    }
+  }
+  out.push(cur);
+  return out.map((s) => s.trim());
+}
+
+// Accept "1,5", "1.5", "$ 1.234,56", "1 234.56" → number
+function parseNumber(raw: string | undefined): number {
+  if (raw == null) return NaN;
+  let s = String(raw).trim().replace(/[\s$R€]/gi, "");
+  if (!s) return NaN;
+  const neg = s.startsWith("-") || (s.startsWith("(") && s.endsWith(")"));
+  s = s.replace(/^[-(]/, "").replace(/\)$/, "");
+  const lastComma = s.lastIndexOf(",");
+  const lastDot = s.lastIndexOf(".");
+  if (lastComma > lastDot) {
+    // comma is decimal separator (pt-BR): remove thousand dots, swap comma → dot
+    s = s.replace(/\./g, "").replace(",", ".");
+  } else {
+    // dot is decimal separator: remove thousand commas
+    s = s.replace(/,/g, "");
+  }
+  const n = Number(s);
+  return neg ? -n : n;
+}
+
+const HEADER_KEYS = ["id", "ativo", "data", "dir", "valor", "payout", "res", "lucro", "obs"];
+
 function validateCSV(text: string): ParsedRow[] {
-  const rows = text.split(/\r?\n/).filter((r) => r.trim().length > 0);
-  // detect header
-  const hasHeader = rows[0]?.toLowerCase().includes("ativo");
-  const data = hasHeader ? rows.slice(1) : rows;
+  const lines = text.replace(/^\uFEFF/, "").split(/\r?\n/).filter((r) => r.trim().length > 0);
+  if (lines.length === 0) return [];
+
+  // Detect delimiter (comma or semicolon — semicolon is common in pt-BR exports)
+  const first = lines[0];
+  const delim = (first.match(/;/g)?.length ?? 0) > (first.match(/,/g)?.length ?? 0) ? ";" : ",";
+
+  const firstCols = parseCSVRow(first, delim).map((c) => c.toLowerCase());
+  const hasHeader = firstCols.some((c) => HEADER_KEYS.includes(c));
+
+  // Build column index map. Default positional layout: id,ativo,data,dir,valor,payout,res,lucro,obs
+  const idx: Record<string, number> = {};
+  if (hasHeader) {
+    HEADER_KEYS.forEach((k) => { const i = firstCols.indexOf(k); if (i >= 0) idx[k] = i; });
+  } else {
+    HEADER_KEYS.forEach((k, i) => { idx[k] = i; });
+  }
+
+  const dataLines = hasHeader ? lines.slice(1) : lines;
   const out: ParsedRow[] = [];
-  data.forEach((row, idx) => {
-    const cols = row.split(",");
+
+  dataLines.forEach((row, i) => {
+    const cols = parseCSVRow(row, delim);
+    const get = (k: string) => (idx[k] != null ? cols[idx[k]] : undefined);
     const errors: string[] = [];
-    // expected: id, ativo, data, dir, valor, payout, res, lucro, obs (id may be empty)
-    if (cols.length < 7) errors.push(`Linha precisa de ao menos 7 colunas (encontrou ${cols.length}).`);
-    const [, ativo, data2, dir, valor, payout, res, lucro, obs] = cols;
-    if (!ativo?.trim()) errors.push("Ativo vazio.");
-    const dt = data2 ? new Date(data2) : null;
-    if (!dt || isNaN(+dt)) errors.push("Data inválida.");
-    const dirN = (dir || "").trim().toUpperCase();
-    if (!["COMPRA", "VENDA"].includes(dirN)) errors.push(`Direção inválida ("${dir}").`);
-    const v = Number(valor);
-    if (!isFinite(v) || v <= 0) errors.push("Valor deve ser número > 0.");
-    const p = Number(payout);
-    if (!isFinite(p) || p < 0 || p > 1000) errors.push("Payout fora do intervalo (0-1000).");
-    const resN = (res || "").trim().toUpperCase();
-    if (!["WIN", "LOSS", "OPEN"].includes(resN)) errors.push(`Resultado inválido ("${res}").`);
-    const l = Number(lucro);
+
+    const ativo = (get("ativo") || "").trim();
+    if (!ativo) errors.push("Ativo vazio.");
+
+    const rawData = (get("data") || "").trim();
+    let dt: Date | null = null;
+    if (rawData) {
+      // Try ISO first, then dd/mm/yyyy[ hh:mm]
+      const iso = new Date(rawData);
+      if (!isNaN(+iso)) dt = iso;
+      else {
+        const m = rawData.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})(?:[ T](\d{1,2}):(\d{2}))?/);
+        if (m) {
+          const [, dd, mm, yy, hh = "0", mi = "0"] = m;
+          const yr = yy.length === 2 ? 2000 + Number(yy) : Number(yy);
+          dt = new Date(yr, Number(mm) - 1, Number(dd), Number(hh), Number(mi));
+        }
+      }
+    } else {
+      dt = new Date();
+    }
+    if (!dt || isNaN(+dt)) errors.push(`Data inválida ("${rawData}").`);
+
+    const dirRaw = (get("dir") || "").trim().toUpperCase();
+    const dirMap: Record<string, "COMPRA" | "VENDA"> = {
+      COMPRA: "COMPRA", BUY: "COMPRA", LONG: "COMPRA", CALL: "COMPRA",
+      VENDA: "VENDA", SELL: "VENDA", SHORT: "VENDA", PUT: "VENDA",
+    };
+    const dirN = dirMap[dirRaw];
+    if (!dirN) errors.push(`Direção inválida ("${get("dir")}").`);
+
+    const v = parseNumber(get("valor"));
+    if (!isFinite(v) || v <= 0) errors.push(`Valor inválido ("${get("valor")}").`);
+
+    const pRaw = (get("payout") || "").replace(/%/g, "");
+    const p = parseNumber(pRaw);
+    if (!isFinite(p) || p < 0 || p > 1000) errors.push(`Payout fora do intervalo ("${get("payout")}").`);
+
+    const resRaw = (get("res") || "").trim().toUpperCase();
+    const resMap: Record<string, "WIN" | "LOSS" | "OPEN"> = {
+      WIN: "WIN", W: "WIN", GAIN: "WIN", VITORIA: "WIN", VITÓRIA: "WIN",
+      LOSS: "LOSS", L: "LOSS", LOSE: "LOSS", PERDA: "LOSS", DERROTA: "LOSS",
+      OPEN: "OPEN", ABERTA: "OPEN", ABERTO: "OPEN",
+    };
+    const resN = resMap[resRaw];
+    if (!resN) errors.push(`Resultado inválido ("${get("res")}").`);
+
+    const lucroRaw = get("lucro");
+    const l = parseNumber(lucroRaw);
+    const obs = (get("obs") || "").trim();
+
     out.push({
-      line: idx + (hasHeader ? 2 : 1),
+      line: i + (hasHeader ? 2 : 1),
       raw: row,
       errors,
-      trade: errors.length === 0 ? {
-        ativo: ativo.trim().toUpperCase(),
-        data: (dt as Date).toISOString(),
-        dir: dirN as Trade["dir"],
+      trade: errors.length === 0 && dt && dirN && resN ? {
+        ativo: ativo.toUpperCase(),
+        data: dt.toISOString(),
+        dir: dirN,
         valor: v,
         payout: p,
-        res: resN as Trade["res"],
-        lucro: isFinite(l) ? l : calcLucro(v, p, resN as Trade["res"]),
-        obs: obs?.trim() || undefined,
+        res: resN,
+        lucro: isFinite(l) ? l : calcLucro(v, p, resN),
+        obs: obs || undefined,
       } : undefined,
     });
   });
+
   return out;
 }
 
