@@ -76,12 +76,12 @@ function PerfilPage() {
           }
         >
           <Crown className="h-3.5 w-3.5" />
-          {state.isPro ? "PRO" : "FREE"}
+          {state.isPro ? "ANUAL" : "TRIAL"}
         </span>
       </section>
 
       <div className="mt-5 grid gap-3 sm:grid-cols-3 stagger">
-        <StatCard label="Análises" value={state.isPro ? "∞" : state.analysesLeft} hint={state.isPro ? "PRO ilimitado" : "restantes este mês"} icon={<Sparkles className="h-4 w-4" />} tone="accent" />
+        <StatCard label="Análises" value={state.isPro ? "∞" : state.analysesLeft} hint={state.isPro ? "Anual ilimitado" : "restantes no trial"} icon={<Sparkles className="h-4 w-4" />} tone="accent" />
         <StatCard label="Trades" value={state.tradeList.length} hint={`${closedTrades} fechados`} icon={<ClipboardList className="h-4 w-4" />} />
         <StatCard label="Win-rate" value={`${winRate}%`} hint={`${winTrades}/${closedTrades || 0} vitórias`} icon={<TrendingUp className="h-4 w-4" />} tone={winRate >= 55 ? "success" : winRate >= 45 ? "warning" : "danger"} />
       </div>
@@ -95,7 +95,7 @@ function PerfilPage() {
             <Crown className="h-4 w-4" style={{ color: "var(--accent)" }} />
             <h2 className="font-display text-base font-semibold">Plano atual</h2>
           </div>
-          <Row label="Plano" value={state.isPro ? "PRO" : "Free"} />
+          <Row label="Plano" value={state.isPro ? "Acesso Anual" : "Trial"} />
           <Row label="Análises restantes" value={state.isPro ? "Ilimitado" : String(state.analysesLeft)} />
           <Row label="Dias de trial" value={state.isPro ? "—" : `${state.trialDaysLeft} dias`} />
           <Row label="Início do trial" value={new Date(state.trialStartedAt).toLocaleDateString("pt-BR")} icon={<Calendar className="h-3 w-3" />} />
@@ -106,7 +106,7 @@ function PerfilPage() {
               style={{ background: "var(--accent)" }}
             >
               <Crown className="h-4 w-4" />
-              Fazer upgrade para PRO
+              Ativar acesso anual
             </button>
           )}
         </section>

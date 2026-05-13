@@ -2,12 +2,14 @@ import { createFileRoute, Outlet, useNavigate, Link, useLocation } from "@tansta
 import { useEffect } from "react";
 import {
   LineChart,
-  Sparkles,
   ClipboardList,
   Calculator,
   LogOut,
   Loader2,
   LayoutDashboard,
+  Brain,
+  Newspaper,
+  CircleDot,
 } from "lucide-react";
 import { logout, useAppState, useUser } from "@/lib/store";
 
@@ -51,10 +53,15 @@ function AppLayout() {
   const tabs = [
     { to: "/dashboard", Icon: LayoutDashboard, label: "Início", desc: "Visão geral" },
     { to: "/scan", Icon: LineChart, label: "Scan", desc: "Análise" },
-    { to: "/mind", Icon: Sparkles, label: "Mind", desc: "Mentor" },
+    { to: "/mind", Icon: Brain, label: "Mind", desc: "Mentor" },
     { to: "/gestao", Icon: ClipboardList, label: "Gestão", desc: "Trades & métricas" },
     { to: "/calculadora", Icon: Calculator, label: "Calc", desc: "Banca" },
+    { to: "/noticias", Icon: Newspaper, label: "Notícias", desc: "Calendário" },
+    { to: "/cryptobubbles", Icon: CircleDot, label: "Bubbles", desc: "Cripto" },
   ] as const;
+
+  const isFullHeightRoute =
+    loc.pathname.startsWith("/mind") || loc.pathname.startsWith("/cryptobubbles");
 
   return (
     <div className="relative flex min-h-screen flex-col" style={{ background: "var(--background)" }}>
@@ -82,7 +89,7 @@ function AppLayout() {
                 : { background: "var(--surface)", color: "var(--text-muted)", borderColor: "var(--border-strong)" }
             }
           >
-            {state.isPro ? "PRO" : `Free · ${state.analysesLeft} · Upgrade`}
+            {state.isPro ? "Acesso Anual" : `Trial · ${state.analysesLeft} · Ativar`}
           </Link>
           <button
             onClick={() => { logout(); nav({ to: "/" }); }}
@@ -176,7 +183,9 @@ function AppLayout() {
           })}
         </nav>
 
-        <main className="relative flex-1 overflow-y-auto pb-16 sm:pb-0">
+        <main
+          className={`relative flex-1 pb-16 sm:pb-0 ${isFullHeightRoute ? "overflow-hidden" : "overflow-y-auto"}`}
+        >
           <Outlet />
         </main>
       </div>

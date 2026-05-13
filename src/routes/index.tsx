@@ -272,13 +272,18 @@ function HowSection() {
 function PricingSection() {
   return (
     <section id="pricing" className="mx-auto max-w-6xl px-6 py-24">
-      <SectionHeader tag="PLANOS" title="Comece grátis. Evolua quando quiser." sub="Sem fidelidade. Cancele quando precisar." />
-      <div className="mx-auto grid max-w-4xl grid-cols-1 gap-4 md:grid-cols-3">
-        <Plan name="Free" price="0" period="grátis para sempre" feats={["5 análises por mês", "OrionMind básico", "Planilha sem limites"]} cta="Começar" />
-        <Plan name="Pro" price="49" period="por mês · cancelar quando quiser"
-          feats={["Análises ilimitadas", "OrionMind ilimitado", "Diagnóstico completo", "Calculadora avançada", "Export CSV"]}
-          cta="Assinar Pro" featured />
-        <Plan name="Team" price="129" period="por mês · até 5 usuários" feats={["Tudo do Pro", "5 usuários", "Suporte prioritário"]} cta="Falar com vendas" />
+      <SectionHeader tag="ACESSO ANUAL" title="Um único acesso. 12 meses completos." sub="Pagamento único. Sem mensalidade, sem renovação automática." />
+      <div className="mx-auto grid max-w-md grid-cols-1 gap-4">
+        <Plan name="Acesso Anual" price="497" period="pagamento único · 12 meses de acesso completo"
+          feats={[
+            "Análises ilimitadas no TraderScan",
+            "OrionMind ilimitado",
+            "Notícias & Calendário econômico",
+            "CryptoBubbles em tempo real",
+            "Calculadora avançada",
+            "Suporte prioritário",
+          ]}
+          cta="Ativar acesso anual" featured />
       </div>
     </section>
   );
