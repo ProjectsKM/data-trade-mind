@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
-import { Sparkles, Send, Trash2, Loader2, Plus, MessageSquare, Menu, X, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { Sparkles, Send, Trash2, Plus, MessageSquare, Menu, X, PanelLeftClose, PanelLeftOpen, ArrowDown } from "lucide-react";
 import { toast } from "sonner";
 import { useUser, type ChatMsg } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";
@@ -33,6 +33,8 @@ function MindPage() {
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
+  const [streaming, setStreaming] = useState(false);
+  const [autoFollow, setAutoFollow] = useState(true);
   const [openSidebar, setOpenSidebar] = useState(false);
   const [collapsed, setCollapsed] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
@@ -40,6 +42,8 @@ function MindPage() {
   });
   const scrollRef = useRef<HTMLDivElement>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
+  const autoFollowRef = useRef(true);
+  useEffect(() => { autoFollowRef.current = autoFollow; }, [autoFollow]);
 
   // Persist collapsed
   useEffect(() => {
@@ -91,9 +95,29 @@ function MindPage() {
     return () => { cancel = true; };
   }, [activeId]);
 
+  // Smart auto-scroll: only follow when user is already near the bottom.
+  const scrollToBottom = useCallback((smooth = true) => {
+    const el = scrollRef.current; if (!el) return;
+    el.scrollTo({ top: el.scrollHeight, behavior: smooth ? "smooth" : "auto" });
+  }, []);
+
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages.length, busy]);
+    const el = scrollRef.current; if (!el) return;
+    const onScroll = () => {
+      const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+      setAutoFollow(nearBottom);
+    };
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => el.removeEventListener("scroll", onScroll);
+  }, []);
+
+  // Scroll to bottom when switching threads / first load.
+  useEffect(() => { scrollToBottom(false); setAutoFollow(true); }, [activeId, scrollToBottom]);
+
+  // While streaming, follow only if user hasn't scrolled away.
+  useEffect(() => {
+    if (autoFollow) scrollToBottom(true);
+  }, [messages, autoFollow, scrollToBottom]);
 
   useEffect(() => {
     const ta = taRef.current; if (!ta) return;
@@ -149,6 +173,8 @@ function MindPage() {
     await supabase.from("mind_messages").insert({ user_id: user.id, role: "user", content: t, thread_id: threadId } as never);
 
     setBusy(true);
+    setAutoFollow(true);
+    autoFollowRef.current = true;
     try {
       const history = [...(messages.length ? messages : []), userMsg].map((m) => ({ role: m.role, content: m.content }));
       const r = await fetch("/api/ai-mind", {
@@ -156,11 +182,61 @@ function MindPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages: history }),
       });
-      const data = (await r.json()) as { ok: boolean; reply?: string; error?: string };
-      if (!data.ok) toast.error(data.error || "Erro na resposta da IA.");
-      const replyText = data.ok ? data.reply || "Sem resposta." : `⚠️ ${data.error || "Erro."}`;
-      const reply: ChatMsg = { role: "assistant", content: replyText, ts: new Date().toISOString() };
-      setMessages((m) => [...m, reply]);
+      const ctype = r.headers.get("content-type") || "";
+      let replyText = "";
+      let errored = false;
+      if (ctype.includes("text/event-stream") && r.body) {
+        // Add placeholder assistant message we will fill incrementally.
+        setMessages((m) => [...m, { role: "assistant", content: "", ts: new Date().toISOString() }]);
+        setStreaming(true);
+        const reader = r.body.getReader();
+        const decoder = new TextDecoder();
+        let buf = "";
+        outer: while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buf += decoder.decode(value, { stream: true });
+          const parts = buf.split("\n\n");
+          buf = parts.pop() ?? "";
+          for (const p of parts) {
+            const line = p.split("\n").find((l) => l.startsWith("data:"));
+            if (!line) continue;
+            const payload = line.slice(5).trim();
+            if (payload === "[DONE]") break outer;
+            try {
+              const j = JSON.parse(payload);
+              if (typeof j.delta === "string") {
+                replyText += j.delta;
+                setMessages((m) => {
+                  const copy = m.slice();
+                  const last = copy[copy.length - 1];
+                  if (last && last.role === "assistant") copy[copy.length - 1] = { ...last, content: replyText };
+                  return copy;
+                });
+              } else if (j.error) {
+                errored = true;
+                toast.error(j.error);
+              }
+            } catch { /* ignore */ }
+          }
+        }
+        setStreaming(false);
+      } else {
+        const data = (await r.json()) as { ok: boolean; reply?: string; error?: string };
+        if (!data.ok) { errored = true; toast.error(data.error || "Erro na resposta da IA."); }
+        replyText = data.ok ? data.reply || "Sem resposta." : `⚠️ ${data.error || "Erro."}`;
+        setMessages((m) => [...m, { role: "assistant", content: replyText, ts: new Date().toISOString() }]);
+      }
+      if (!replyText) {
+        replyText = errored ? "⚠️ Não consegui responder agora." : "Sem resposta.";
+        setMessages((m) => {
+          const copy = m.slice();
+          const last = copy[copy.length - 1];
+          if (last && last.role === "assistant" && last.content === "") copy[copy.length - 1] = { ...last, content: replyText };
+          else copy.push({ role: "assistant", content: replyText, ts: new Date().toISOString() });
+          return copy;
+        });
+      }
       await supabase.from("mind_messages").insert({ user_id: user.id, role: "assistant", content: replyText, thread_id: threadId } as never);
       await supabase.from("mind_threads").update({ updated_at: new Date().toISOString() }).eq("id", threadId);
       void refreshThreads();
@@ -170,6 +246,7 @@ function MindPage() {
       setMessages((m) => [...m, reply]);
     } finally {
       setBusy(false);
+      setStreaming(false);
     }
   }
 
@@ -272,15 +349,13 @@ function MindPage() {
           </div>
         </header>
 
-        <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-6">
+        <div ref={scrollRef} className="relative flex-1 overflow-y-auto px-5 py-6">
           <div className="mx-auto flex max-w-3xl flex-col gap-4">
             {display.map((m, i) => <Bubble key={i} m={m} initials={initials} />)}
-            {busy && (
+            {busy && !streaming && (
               <div className="flex items-end gap-2.5 fade-in">
                 <Avatar isAssistant />
-                <div className="rounded-xl rounded-bl-sm border px-4 py-3" style={{ background: "var(--surface-2)", borderColor: "var(--border)" }}>
-                  <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
-                </div>
+                <ThinkingBubble />
               </div>
             )}
             {empty && !busy && (
@@ -296,6 +371,16 @@ function MindPage() {
             )}
           </div>
         </div>
+
+        {!autoFollow && (
+          <button
+            onClick={() => { setAutoFollow(true); scrollToBottom(true); }}
+            className="pointer-events-auto absolute bottom-24 left-1/2 z-10 -translate-x-1/2 rounded-full border px-3 py-1.5 text-xs shadow-md smooth hover:border-[color:var(--accent)] hover:text-[color:var(--accent)]"
+            style={{ background: "var(--surface-2)", borderColor: "var(--border-strong)", color: "var(--text-muted)" }}
+          >
+            <span className="inline-flex items-center gap-1.5"><ArrowDown className="h-3 w-3" /> Rolar para o final</span>
+          </button>
+        )}
 
         <div className="border-t px-5 py-3" style={{ borderColor: "var(--border)" }}>
           <div className="mx-auto max-w-3xl">
@@ -329,6 +414,24 @@ function Avatar({ isAssistant, initials }: { isAssistant?: boolean; initials?: s
     <div className="flex h-7 w-7 flex-none items-center justify-center rounded-md border text-[10px] font-semibold"
       style={{ background: "var(--surface-2)", borderColor: "var(--border-strong)", color: "var(--text-muted)" }}>
       {initials}
+    </div>
+  );
+}
+
+function ThinkingBubble() {
+  return (
+    <div
+      className="rounded-xl rounded-bl-sm border px-4 py-3"
+      style={{ background: "var(--surface-2)", borderColor: "var(--border)" }}
+    >
+      <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+        <span className="thinking-text">Pensando</span>
+        <span className="thinking-dots inline-flex gap-1">
+          <span className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--accent)" }} />
+          <span className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--accent)" }} />
+          <span className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--accent)" }} />
+        </span>
+      </span>
     </div>
   );
 }
