@@ -80,46 +80,143 @@ type ParsedRow = {
   errors: string[];
 };
 
+// Parse a CSV row honoring "quoted, fields" with embedded commas and "" escapes.
+function parseCSVRow(line: string, delimiter = ","): string[] {
+  const out: string[] = [];
+  let cur = "";
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (inQuotes) {
+      if (c === '"' && line[i + 1] === '"') { cur += '"'; i++; }
+      else if (c === '"') { inQuotes = false; }
+      else cur += c;
+    } else {
+      if (c === '"') inQuotes = true;
+      else if (c === delimiter) { out.push(cur); cur = ""; }
+      else cur += c;
+    }
+  }
+  out.push(cur);
+  return out.map((s) => s.trim());
+}
+
+// Accept "1,5", "1.5", "$ 1.234,56", "1 234.56" → number
+function parseNumber(raw: string | undefined): number {
+  if (raw == null) return NaN;
+  let s = String(raw).trim().replace(/[\s$R€]/gi, "");
+  if (!s) return NaN;
+  const neg = s.startsWith("-") || (s.startsWith("(") && s.endsWith(")"));
+  s = s.replace(/^[-(]/, "").replace(/\)$/, "");
+  const lastComma = s.lastIndexOf(",");
+  const lastDot = s.lastIndexOf(".");
+  if (lastComma > lastDot) {
+    // comma is decimal separator (pt-BR): remove thousand dots, swap comma → dot
+    s = s.replace(/\./g, "").replace(",", ".");
+  } else {
+    // dot is decimal separator: remove thousand commas
+    s = s.replace(/,/g, "");
+  }
+  const n = Number(s);
+  return neg ? -n : n;
+}
+
+const HEADER_KEYS = ["id", "ativo", "data", "dir", "valor", "payout", "res", "lucro", "obs"];
+
 function validateCSV(text: string): ParsedRow[] {
-  const rows = text.split(/\r?\n/).filter((r) => r.trim().length > 0);
-  // detect header
-  const hasHeader = rows[0]?.toLowerCase().includes("ativo");
-  const data = hasHeader ? rows.slice(1) : rows;
+  const lines = text.replace(/^\uFEFF/, "").split(/\r?\n/).filter((r) => r.trim().length > 0);
+  if (lines.length === 0) return [];
+
+  // Detect delimiter (comma or semicolon — semicolon is common in pt-BR exports)
+  const first = lines[0];
+  const delim = (first.match(/;/g)?.length ?? 0) > (first.match(/,/g)?.length ?? 0) ? ";" : ",";
+
+  const firstCols = parseCSVRow(first, delim).map((c) => c.toLowerCase());
+  const hasHeader = firstCols.some((c) => HEADER_KEYS.includes(c));
+
+  // Build column index map. Default positional layout: id,ativo,data,dir,valor,payout,res,lucro,obs
+  const idx: Record<string, number> = {};
+  if (hasHeader) {
+    HEADER_KEYS.forEach((k) => { const i = firstCols.indexOf(k); if (i >= 0) idx[k] = i; });
+  } else {
+    HEADER_KEYS.forEach((k, i) => { idx[k] = i; });
+  }
+
+  const dataLines = hasHeader ? lines.slice(1) : lines;
   const out: ParsedRow[] = [];
-  data.forEach((row, idx) => {
-    const cols = row.split(",");
+
+  dataLines.forEach((row, i) => {
+    const cols = parseCSVRow(row, delim);
+    const get = (k: string) => (idx[k] != null ? cols[idx[k]] : undefined);
     const errors: string[] = [];
-    // expected: id, ativo, data, dir, valor, payout, res, lucro, obs (id may be empty)
-    if (cols.length < 7) errors.push(`Linha precisa de ao menos 7 colunas (encontrou ${cols.length}).`);
-    const [, ativo, data2, dir, valor, payout, res, lucro, obs] = cols;
-    if (!ativo?.trim()) errors.push("Ativo vazio.");
-    const dt = data2 ? new Date(data2) : null;
-    if (!dt || isNaN(+dt)) errors.push("Data inválida.");
-    const dirN = (dir || "").trim().toUpperCase();
-    if (!["COMPRA", "VENDA"].includes(dirN)) errors.push(`Direção inválida ("${dir}").`);
-    const v = Number(valor);
-    if (!isFinite(v) || v <= 0) errors.push("Valor deve ser número > 0.");
-    const p = Number(payout);
-    if (!isFinite(p) || p < 0 || p > 1000) errors.push("Payout fora do intervalo (0-1000).");
-    const resN = (res || "").trim().toUpperCase();
-    if (!["WIN", "LOSS", "OPEN"].includes(resN)) errors.push(`Resultado inválido ("${res}").`);
-    const l = Number(lucro);
+
+    const ativo = (get("ativo") || "").trim();
+    if (!ativo) errors.push("Ativo vazio.");
+
+    const rawData = (get("data") || "").trim();
+    let dt: Date | null = null;
+    if (rawData) {
+      // Try ISO first, then dd/mm/yyyy[ hh:mm]
+      const iso = new Date(rawData);
+      if (!isNaN(+iso)) dt = iso;
+      else {
+        const m = rawData.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})(?:[ T](\d{1,2}):(\d{2}))?/);
+        if (m) {
+          const [, dd, mm, yy, hh = "0", mi = "0"] = m;
+          const yr = yy.length === 2 ? 2000 + Number(yy) : Number(yy);
+          dt = new Date(yr, Number(mm) - 1, Number(dd), Number(hh), Number(mi));
+        }
+      }
+    } else {
+      dt = new Date();
+    }
+    if (!dt || isNaN(+dt)) errors.push(`Data inválida ("${rawData}").`);
+
+    const dirRaw = (get("dir") || "").trim().toUpperCase();
+    const dirMap: Record<string, "COMPRA" | "VENDA"> = {
+      COMPRA: "COMPRA", BUY: "COMPRA", LONG: "COMPRA", CALL: "COMPRA",
+      VENDA: "VENDA", SELL: "VENDA", SHORT: "VENDA", PUT: "VENDA",
+    };
+    const dirN = dirMap[dirRaw];
+    if (!dirN) errors.push(`Direção inválida ("${get("dir")}").`);
+
+    const v = parseNumber(get("valor"));
+    if (!isFinite(v) || v <= 0) errors.push(`Valor inválido ("${get("valor")}").`);
+
+    const pRaw = (get("payout") || "").replace(/%/g, "");
+    const p = parseNumber(pRaw);
+    if (!isFinite(p) || p < 0 || p > 1000) errors.push(`Payout fora do intervalo ("${get("payout")}").`);
+
+    const resRaw = (get("res") || "").trim().toUpperCase();
+    const resMap: Record<string, "WIN" | "LOSS" | "OPEN"> = {
+      WIN: "WIN", W: "WIN", GAIN: "WIN", VITORIA: "WIN", VITÓRIA: "WIN",
+      LOSS: "LOSS", L: "LOSS", LOSE: "LOSS", PERDA: "LOSS", DERROTA: "LOSS",
+      OPEN: "OPEN", ABERTA: "OPEN", ABERTO: "OPEN",
+    };
+    const resN = resMap[resRaw];
+    if (!resN) errors.push(`Resultado inválido ("${get("res")}").`);
+
+    const lucroRaw = get("lucro");
+    const l = parseNumber(lucroRaw);
+    const obs = (get("obs") || "").trim();
+
     out.push({
-      line: idx + (hasHeader ? 2 : 1),
+      line: i + (hasHeader ? 2 : 1),
       raw: row,
       errors,
-      trade: errors.length === 0 ? {
-        ativo: ativo.trim().toUpperCase(),
-        data: (dt as Date).toISOString(),
-        dir: dirN as Trade["dir"],
+      trade: errors.length === 0 && dt && dirN && resN ? {
+        ativo: ativo.toUpperCase(),
+        data: dt.toISOString(),
+        dir: dirN,
         valor: v,
         payout: p,
-        res: resN as Trade["res"],
-        lucro: isFinite(l) ? l : calcLucro(v, p, resN as Trade["res"]),
-        obs: obs?.trim() || undefined,
+        res: resN,
+        lucro: isFinite(l) ? l : calcLucro(v, p, resN),
+        obs: obs || undefined,
       } : undefined,
     });
   });
+
   return out;
 }
 
@@ -624,49 +721,89 @@ function ReportTab({ trades }: { trades: Trade[] }) {
     );
   }
 
-  function exportPNG() {
+  // Render a chart canvas onto an opaque background and return base64 PNG + intrinsic size.
+  function snapshotChart(chart: ChartJS | null): { url: string; w: number; h: number } | null {
+    if (!chart) return null;
+    const src = chart.canvas;
+    if (!src || !src.width || !src.height) return null;
+    const out = document.createElement("canvas");
+    out.width = src.width;
+    out.height = src.height;
+    const ctx = out.getContext("2d");
+    if (!ctx) return null;
+    // Solid background to avoid transparent PNG looking broken on white viewers.
+    ctx.fillStyle = "#0F141C";
+    ctx.fillRect(0, 0, out.width, out.height);
+    ctx.drawImage(src, 0, 0);
+    return { url: out.toDataURL("image/png"), w: out.width, h: out.height };
+  }
+
+  async function waitForCharts() {
+    // Give Chart.js one animation frame so canvases are drawn.
+    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+  }
+
+  async function exportPNG() {
+    await waitForCharts();
     const charts = [
       { ref: lineRef.current, name: "evolucao-lucro" },
       { ref: barRef.current, name: "lucro-por-ativo" },
       { ref: doughnutRef.current, name: "distribuicao" },
     ];
     let count = 0;
-    charts.forEach(({ ref, name }) => {
-      if (!ref) return;
-      const url = ref.toBase64Image("image/png", 1);
+    let skipped = 0;
+    for (const { ref, name } of charts) {
+      const snap = snapshotChart(ref);
+      if (!snap) { skipped++; continue; }
       const a = document.createElement("a");
-      a.href = url;
+      a.href = snap.url;
       a.download = `orionhub-${name}-${Date.now()}.png`;
       a.click();
       count++;
-    });
-    if (count > 0) toast.success(`${count} gráfico(s) exportado(s) como PNG.`);
-    else toast.error("Nenhum gráfico disponível para exportar.");
+    }
+    if (count === 0) { toast.error("Aguarde os gráficos renderizarem e tente novamente."); return; }
+    toast.success(`${count} gráfico(s) exportado(s)${skipped ? ` (${skipped} pulado por não ter renderizado)` : ""}.`);
   }
 
-  function exportPDF() {
-    const charts = [
+  async function exportPDF() {
+    await waitForCharts();
+    const items = [
       { ref: lineRef.current, title: "Evolução do lucro" },
       { ref: barRef.current, title: "Lucro por ativo" },
       { ref: doughnutRef.current, title: "Distribuição de resultados" },
-    ].filter((c) => c.ref);
-    if (charts.length === 0) { toast.error("Nenhum gráfico disponível."); return; }
+    ];
+    const snaps = items
+      .map((c) => ({ title: c.title, snap: snapshotChart(c.ref) }))
+      .filter((c): c is { title: string; snap: { url: string; w: number; h: number } } => !!c.snap);
+    if (snaps.length === 0) {
+      toast.error("Aguarde os gráficos renderizarem e tente novamente.");
+      return;
+    }
     const pdf = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
     const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const margin = 40;
+    const maxW = pageW - margin * 2;
+
     pdf.setFontSize(16);
-    pdf.text("OrionHub — Relatório", 40, 40);
+    pdf.text("OrionHub — Relatório", margin, margin);
     pdf.setFontSize(10);
-    pdf.text(new Date().toLocaleString("pt-BR"), 40, 58);
-    let y = 90;
-    charts.forEach((c) => {
-      const img = c.ref!.toBase64Image("image/png", 1);
-      const w = pageW - 80;
-      const h = 220;
-      if (y + h + 40 > pdf.internal.pageSize.getHeight()) { pdf.addPage(); y = 40; }
+    pdf.setTextColor(120);
+    pdf.text(new Date().toLocaleString("pt-BR"), margin, margin + 16);
+    pdf.setTextColor(0);
+
+    let y = margin + 50;
+    snaps.forEach(({ title, snap }) => {
+      // Preserve aspect ratio, cap height
+      const aspect = snap.h / snap.w;
+      const w = maxW;
+      const h = Math.min(w * aspect, 280);
+      const titleH = 22;
+      if (y + h + titleH > pageH - margin) { pdf.addPage(); y = margin; }
       pdf.setFontSize(12);
-      pdf.text(c.title, 40, y);
-      pdf.addImage(img, "PNG", 40, y + 10, w, h);
-      y += h + 40;
+      pdf.text(title, margin, y + 12);
+      pdf.addImage(snap.url, "PNG", margin, y + titleH, w, h, undefined, "FAST");
+      y += h + titleH + 24;
     });
     pdf.save(`orionhub-relatorio-${Date.now()}.pdf`);
     toast.success("PDF do relatório exportado.");
@@ -715,11 +852,11 @@ function ReportTab({ trades }: { trades: Trade[] }) {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-end gap-2">
-        <Button variant="outline" size="sm" onClick={exportPNG} className="gap-1.5">
+        <Button variant="outline" size="sm" onClick={() => void exportPNG()} className="gap-1.5">
           <FileImage className="h-3.5 w-3.5" strokeWidth={1.75} />
           Exportar PNG
         </Button>
-        <Button variant="outline" size="sm" onClick={exportPDF} className="gap-1.5">
+        <Button variant="outline" size="sm" onClick={() => void exportPDF()} className="gap-1.5">
           <FileText className="h-3.5 w-3.5" strokeWidth={1.75} />
           Exportar PDF
         </Button>
