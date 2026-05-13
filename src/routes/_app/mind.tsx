@@ -256,7 +256,7 @@ function MindPage() {
   const empty = messages.length === 0;
 
   return (
-    <div className="flex h-full min-h-0 overflow-hidden">
+    <section className="flex h-full max-h-full min-h-0 overflow-hidden">
       {/* Sidebar */}
       <aside
         className={`absolute inset-y-0 left-0 z-30 flex flex-col border-r p-3 transition-all sm:relative sm:translate-x-0 ${openSidebar ? "translate-x-0" : "-translate-x-full"} ${collapsed ? "sm:hidden" : "w-72"}`}
@@ -323,7 +323,7 @@ function MindPage() {
       )}
 
       {/* Chat area */}
-      <div className="relative flex flex-1 flex-col min-h-0 min-w-0">
+      <div className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         <header className="flex flex-none items-center gap-3 border-b px-5 py-3" style={{ borderColor: "var(--border)" }}>
           <button onClick={() => setOpenSidebar(true)} className="sm:hidden text-muted-foreground"><Menu className="h-5 w-5" /></button>
           {collapsed && (
@@ -351,7 +351,7 @@ function MindPage() {
           </div>
         </header>
 
-        <div ref={scrollRef} className="relative flex-1 min-h-0 overflow-y-auto px-5 py-6">
+        <div ref={scrollRef} className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-6 pb-8">
           <div className="mx-auto flex max-w-3xl flex-col gap-4">
             {display.map((m, i) => <Bubble key={i} m={m} initials={initials} />)}
             {busy && !streaming && (
@@ -399,7 +399,7 @@ function MindPage() {
           </div>
         </div>
       </div>
-    </div>
+    </section>
   );
 }
 
