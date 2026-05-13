@@ -721,49 +721,89 @@ function ReportTab({ trades }: { trades: Trade[] }) {
     );
   }
 
-  function exportPNG() {
+  // Render a chart canvas onto an opaque background and return base64 PNG + intrinsic size.
+  function snapshotChart(chart: ChartJS | null): { url: string; w: number; h: number } | null {
+    if (!chart) return null;
+    const src = chart.canvas;
+    if (!src || !src.width || !src.height) return null;
+    const out = document.createElement("canvas");
+    out.width = src.width;
+    out.height = src.height;
+    const ctx = out.getContext("2d");
+    if (!ctx) return null;
+    // Solid background to avoid transparent PNG looking broken on white viewers.
+    ctx.fillStyle = "#0F141C";
+    ctx.fillRect(0, 0, out.width, out.height);
+    ctx.drawImage(src, 0, 0);
+    return { url: out.toDataURL("image/png"), w: out.width, h: out.height };
+  }
+
+  async function waitForCharts() {
+    // Give Chart.js one animation frame so canvases are drawn.
+    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+  }
+
+  async function exportPNG() {
+    await waitForCharts();
     const charts = [
       { ref: lineRef.current, name: "evolucao-lucro" },
       { ref: barRef.current, name: "lucro-por-ativo" },
       { ref: doughnutRef.current, name: "distribuicao" },
     ];
     let count = 0;
-    charts.forEach(({ ref, name }) => {
-      if (!ref) return;
-      const url = ref.toBase64Image("image/png", 1);
+    let skipped = 0;
+    for (const { ref, name } of charts) {
+      const snap = snapshotChart(ref);
+      if (!snap) { skipped++; continue; }
       const a = document.createElement("a");
-      a.href = url;
+      a.href = snap.url;
       a.download = `orionhub-${name}-${Date.now()}.png`;
       a.click();
       count++;
-    });
-    if (count > 0) toast.success(`${count} gráfico(s) exportado(s) como PNG.`);
-    else toast.error("Nenhum gráfico disponível para exportar.");
+    }
+    if (count === 0) { toast.error("Aguarde os gráficos renderizarem e tente novamente."); return; }
+    toast.success(`${count} gráfico(s) exportado(s)${skipped ? ` (${skipped} pulado por não ter renderizado)` : ""}.`);
   }
 
-  function exportPDF() {
-    const charts = [
+  async function exportPDF() {
+    await waitForCharts();
+    const items = [
       { ref: lineRef.current, title: "Evolução do lucro" },
       { ref: barRef.current, title: "Lucro por ativo" },
       { ref: doughnutRef.current, title: "Distribuição de resultados" },
-    ].filter((c) => c.ref);
-    if (charts.length === 0) { toast.error("Nenhum gráfico disponível."); return; }
+    ];
+    const snaps = items
+      .map((c) => ({ title: c.title, snap: snapshotChart(c.ref) }))
+      .filter((c): c is { title: string; snap: { url: string; w: number; h: number } } => !!c.snap);
+    if (snaps.length === 0) {
+      toast.error("Aguarde os gráficos renderizarem e tente novamente.");
+      return;
+    }
     const pdf = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
     const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const margin = 40;
+    const maxW = pageW - margin * 2;
+
     pdf.setFontSize(16);
-    pdf.text("OrionHub — Relatório", 40, 40);
+    pdf.text("OrionHub — Relatório", margin, margin);
     pdf.setFontSize(10);
-    pdf.text(new Date().toLocaleString("pt-BR"), 40, 58);
-    let y = 90;
-    charts.forEach((c) => {
-      const img = c.ref!.toBase64Image("image/png", 1);
-      const w = pageW - 80;
-      const h = 220;
-      if (y + h + 40 > pdf.internal.pageSize.getHeight()) { pdf.addPage(); y = 40; }
+    pdf.setTextColor(120);
+    pdf.text(new Date().toLocaleString("pt-BR"), margin, margin + 16);
+    pdf.setTextColor(0);
+
+    let y = margin + 50;
+    snaps.forEach(({ title, snap }) => {
+      // Preserve aspect ratio, cap height
+      const aspect = snap.h / snap.w;
+      const w = maxW;
+      const h = Math.min(w * aspect, 280);
+      const titleH = 22;
+      if (y + h + titleH > pageH - margin) { pdf.addPage(); y = margin; }
       pdf.setFontSize(12);
-      pdf.text(c.title, 40, y);
-      pdf.addImage(img, "PNG", 40, y + 10, w, h);
-      y += h + 40;
+      pdf.text(title, margin, y + 12);
+      pdf.addImage(snap.url, "PNG", margin, y + titleH, w, h, undefined, "FAST");
+      y += h + titleH + 24;
     });
     pdf.save(`orionhub-relatorio-${Date.now()}.pdf`);
     toast.success("PDF do relatório exportado.");
