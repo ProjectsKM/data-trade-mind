@@ -852,11 +852,11 @@ function ReportTab({ trades }: { trades: Trade[] }) {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-end gap-2">
-        <Button variant="outline" size="sm" onClick={exportPNG} className="gap-1.5">
+        <Button variant="outline" size="sm" onClick={() => void exportPNG()} className="gap-1.5">
           <FileImage className="h-3.5 w-3.5" strokeWidth={1.75} />
           Exportar PNG
         </Button>
-        <Button variant="outline" size="sm" onClick={exportPDF} className="gap-1.5">
+        <Button variant="outline" size="sm" onClick={() => void exportPDF()} className="gap-1.5">
           <FileText className="h-3.5 w-3.5" strokeWidth={1.75} />
           Exportar PDF
         </Button>
