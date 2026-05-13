@@ -115,6 +115,8 @@ function AppLayout() {
               <Link
                 key={to}
                 to={to}
+                preload="intent"
+                viewTransition
                 className="group relative flex items-center gap-3 overflow-hidden rounded-md px-3 py-2 text-sm smooth press hover:translate-x-0.5"
                 style={
                   active
@@ -159,6 +161,8 @@ function AppLayout() {
               <Link
                 key={to}
                 to={to}
+                preload="intent"
+                viewTransition
                 className="flex flex-col items-center gap-1 px-3 py-1 text-[10px] font-medium smooth press"
                 style={{
                   color: active ? "var(--accent)" : "var(--text-dim)",
