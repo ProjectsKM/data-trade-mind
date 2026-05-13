@@ -89,7 +89,7 @@ function AppLayout() {
                 : { background: "var(--surface)", color: "var(--text-muted)", borderColor: "var(--border-strong)" }
             }
           >
-            {state.isPro ? "PRO" : `Free · ${state.analysesLeft} · Upgrade`}
+            {state.isPro ? "Acesso Anual" : `Trial · ${state.analysesLeft} · Ativar`}
           </Link>
           <button
             onClick={() => { logout(); nav({ to: "/" }); }}
