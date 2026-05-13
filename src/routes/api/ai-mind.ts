@@ -16,6 +16,9 @@ const SYSTEM = `Você é o **OrionMind**, mentor digital oficial da **Orion Capi
 ## CULTURA ORION
 Respeito, disciplina, evolução contínua, mentalidade forte, ambiente saudável, profissionalismo. Não use palavrões nem agressividade. Não fale de bloqueios de contas ou assuntos internos sensíveis.
 
+## PESSOAS-CHAVE
+- **Gabriel Dutra**: Trader oficial e professor do grupo **Orion Capital**. É o mentor principal, referência técnica e responsável por ensinar o método Orion aos alunos. Quando perguntarem sobre ele, fale com respeito, deixando claro que é o **professor e trader líder** da Orion Capital.
+
 ## BASE OPERACIONAL
 - Timeframes de análise: **5m e 15m**. Entradas geralmente em **expiração de 1 minuto**.
 - Estruturas: identificar **suporte/resistência**, **lateralização**, **tendência**, **confluências**, **retrações** e **rompimentos**.
@@ -78,23 +81,60 @@ export const Route = createFileRoute("/api/ai-mind")({
           const r = await fetch(OPENAI_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-            body: JSON.stringify({ model: MODEL, input, max_output_tokens: 800 }),
+            body: JSON.stringify({ model: MODEL, input, max_output_tokens: 1500, stream: true }),
           });
-          if (!r.ok) {
-            const txt = await r.text();
+          if (!r.ok || !r.body) {
+            const txt = await r.text().catch(() => "");
             console.error("ai-mind error", r.status, txt);
             if (r.status === 429) return jsonResponse({ ok: false, error: "Muitas mensagens em sequência. Aguarde." }, 429);
             return jsonResponse({ ok: false, error: "Falha ao consultar a IA." }, 502);
           }
-          const data = (await r.json()) as {
-            output_text?: string;
-            output?: Array<{ content?: Array<{ type: string; text?: string }> }>;
-          };
-          const reply =
-            data.output_text ||
-            data.output?.flatMap((o) => o.content || []).find((c) => c.type === "output_text")?.text ||
-            "Não consegui processar. Tente novamente.";
-          return jsonResponse({ ok: true, reply });
+          // Proxy SSE stream and re-emit only delta text as simple "data: <chunk>" lines.
+          const reader = r.body.getReader();
+          const decoder = new TextDecoder();
+          const encoder = new TextEncoder();
+          const stream = new ReadableStream<Uint8Array>({
+            async start(controller) {
+              let buffer = "";
+              try {
+                while (true) {
+                  const { value, done } = await reader.read();
+                  if (done) break;
+                  buffer += decoder.decode(value, { stream: true });
+                  const events = buffer.split("\n\n");
+                  buffer = events.pop() ?? "";
+                  for (const evt of events) {
+                    const line = evt.split("\n").find((l) => l.startsWith("data:"));
+                    if (!line) continue;
+                    const payload = line.slice(5).trim();
+                    if (!payload || payload === "[DONE]") continue;
+                    try {
+                      const j = JSON.parse(payload);
+                      if (j.type === "response.output_text.delta" && typeof j.delta === "string") {
+                        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ delta: j.delta })}\n\n`));
+                      } else if (j.type === "response.error") {
+                        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: j.error?.message || "Erro" })}\n\n`));
+                      }
+                    } catch { /* ignore */ }
+                  }
+                }
+                controller.enqueue(encoder.encode(`data: [DONE]\n\n`));
+              } catch (e) {
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: "Erro de stream." })}\n\n`));
+              } finally {
+                controller.close();
+              }
+            },
+          });
+          return new Response(stream, {
+            status: 200,
+            headers: {
+              ...CORS_HEADERS,
+              "Content-Type": "text/event-stream; charset=utf-8",
+              "Cache-Control": "no-cache, no-transform",
+              "Connection": "keep-alive",
+            },
+          });
         } catch (e) {
           console.error("ai-mind exception", e);
           return jsonResponse({ ok: false, error: "Erro de conexão com a IA." }, 502);
