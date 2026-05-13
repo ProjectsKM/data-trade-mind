@@ -593,6 +593,10 @@ function OpsTab({
 }
 
 function ReportTab({ trades }: { trades: Trade[] }) {
+  const lineRef = useRef<ChartJS<"line"> | null>(null);
+  const barRef = useRef<ChartJS<"bar"> | null>(null);
+  const doughnutRef = useRef<ChartJS<"doughnut"> | null>(null);
+
   const sorted = [...trades].sort((a, b) => +new Date(a.data) - +new Date(b.data));
   const closed = trades.filter((t) => t.res !== "OPEN");
   const wins = closed.filter((t) => t.res === "WIN").length;
@@ -618,6 +622,54 @@ function ReportTab({ trades }: { trades: Trade[] }) {
         description="Adicione operações na aba Operações para visualizar gráficos e métricas."
       />
     );
+  }
+
+  function exportPNG() {
+    const charts = [
+      { ref: lineRef.current, name: "evolucao-lucro" },
+      { ref: barRef.current, name: "lucro-por-ativo" },
+      { ref: doughnutRef.current, name: "distribuicao" },
+    ];
+    let count = 0;
+    charts.forEach(({ ref, name }) => {
+      if (!ref) return;
+      const url = ref.toBase64Image("image/png", 1);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `orionhub-${name}-${Date.now()}.png`;
+      a.click();
+      count++;
+    });
+    if (count > 0) toast.success(`${count} gráfico(s) exportado(s) como PNG.`);
+    else toast.error("Nenhum gráfico disponível para exportar.");
+  }
+
+  function exportPDF() {
+    const charts = [
+      { ref: lineRef.current, title: "Evolução do lucro" },
+      { ref: barRef.current, title: "Lucro por ativo" },
+      { ref: doughnutRef.current, title: "Distribuição de resultados" },
+    ].filter((c) => c.ref);
+    if (charts.length === 0) { toast.error("Nenhum gráfico disponível."); return; }
+    const pdf = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
+    const pageW = pdf.internal.pageSize.getWidth();
+    pdf.setFontSize(16);
+    pdf.text("OrionHub — Relatório", 40, 40);
+    pdf.setFontSize(10);
+    pdf.text(new Date().toLocaleString("pt-BR"), 40, 58);
+    let y = 90;
+    charts.forEach((c) => {
+      const img = c.ref!.toBase64Image("image/png", 1);
+      const w = pageW - 80;
+      const h = 220;
+      if (y + h + 40 > pdf.internal.pageSize.getHeight()) { pdf.addPage(); y = 40; }
+      pdf.setFontSize(12);
+      pdf.text(c.title, 40, y);
+      pdf.addImage(img, "PNG", 40, y + 10, w, h);
+      y += h + 40;
+    });
+    pdf.save(`orionhub-relatorio-${Date.now()}.pdf`);
+    toast.success("PDF do relatório exportado.");
   }
 
   const accent = "98, 142, 230";
@@ -662,6 +714,16 @@ function ReportTab({ trades }: { trades: Trade[] }) {
 
   return (
     <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <Button variant="outline" size="sm" onClick={exportPNG} className="gap-1.5">
+          <FileImage className="h-3.5 w-3.5" strokeWidth={1.75} />
+          Exportar PNG
+        </Button>
+        <Button variant="outline" size="sm" onClick={exportPDF} className="gap-1.5">
+          <FileText className="h-3.5 w-3.5" strokeWidth={1.75} />
+          Exportar PDF
+        </Button>
+      </div>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <StatCard label="Total operado" value={`$${totalOperado.toFixed(2)}`} icon={<DollarSign className="h-4 w-4" strokeWidth={1.75} />} />
         <StatCard label="Payout médio" value={`${payoutMed}%`} icon={<Percent className="h-4 w-4" strokeWidth={1.75} />} />
@@ -674,15 +736,16 @@ function ReportTab({ trades }: { trades: Trade[] }) {
         />
       </div>
       <ChartCard title="Evolução do lucro">
-        <div style={{ height: 280 }}><Line data={lineData} options={baseOpts} /></div>
+        <div style={{ height: 280 }}><Line ref={lineRef} data={lineData} options={baseOpts} /></div>
       </ChartCard>
       <div className="grid gap-4 md:grid-cols-2">
         <ChartCard title="Lucro por ativo">
-          <div style={{ height: 240 }}><Bar data={barData} options={baseOpts} /></div>
+          <div style={{ height: 240 }}><Bar ref={barRef} data={barData} options={baseOpts} /></div>
         </ChartCard>
         <ChartCard title="Distribuição de resultados">
           <div style={{ height: 240 }}>
             <Doughnut
+              ref={doughnutRef}
               data={doughnutData}
               options={{
                 ...baseOpts, scales: undefined, cutout: "68%",
