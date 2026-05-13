@@ -18,6 +18,9 @@ import {
   DollarSign,
   Target,
   Flame,
+  FileImage,
+  FileText,
+  AlertTriangle,
 } from "lucide-react";
 import {
   Chart as ChartJS,
@@ -32,12 +35,20 @@ import {
   Filler,
 } from "chart.js";
 import { Line, Bar, Doughnut } from "react-chartjs-2";
+import jsPDF from "jspdf";
 import { useAppState, type Trade } from "@/lib/store";
 import { PageHeader } from "@/components/app/PageHeader";
 import { StatCard } from "@/components/app/StatCard";
 import { EmptyState } from "@/components/app/EmptyState";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Tooltip, Legend, Filler);
 
@@ -62,11 +73,63 @@ function calcLucro(valor: number, payout: number, res: Trade["res"]) {
   return 0;
 }
 
+type ParsedRow = {
+  line: number;
+  raw: string;
+  trade?: Omit<Trade, "id">;
+  errors: string[];
+};
+
+function validateCSV(text: string): ParsedRow[] {
+  const rows = text.split(/\r?\n/).filter((r) => r.trim().length > 0);
+  // detect header
+  const hasHeader = rows[0]?.toLowerCase().includes("ativo");
+  const data = hasHeader ? rows.slice(1) : rows;
+  const out: ParsedRow[] = [];
+  data.forEach((row, idx) => {
+    const cols = row.split(",");
+    const errors: string[] = [];
+    // expected: id, ativo, data, dir, valor, payout, res, lucro, obs (id may be empty)
+    if (cols.length < 7) errors.push(`Linha precisa de ao menos 7 colunas (encontrou ${cols.length}).`);
+    const [, ativo, data2, dir, valor, payout, res, lucro, obs] = cols;
+    if (!ativo?.trim()) errors.push("Ativo vazio.");
+    const dt = data2 ? new Date(data2) : null;
+    if (!dt || isNaN(+dt)) errors.push("Data inválida.");
+    const dirN = (dir || "").trim().toUpperCase();
+    if (!["COMPRA", "VENDA"].includes(dirN)) errors.push(`Direção inválida ("${dir}").`);
+    const v = Number(valor);
+    if (!isFinite(v) || v <= 0) errors.push("Valor deve ser número > 0.");
+    const p = Number(payout);
+    if (!isFinite(p) || p < 0 || p > 1000) errors.push("Payout fora do intervalo (0-1000).");
+    const resN = (res || "").trim().toUpperCase();
+    if (!["WIN", "LOSS", "OPEN"].includes(resN)) errors.push(`Resultado inválido ("${res}").`);
+    const l = Number(lucro);
+    out.push({
+      line: idx + (hasHeader ? 2 : 1),
+      raw: row,
+      errors,
+      trade: errors.length === 0 ? {
+        ativo: ativo.trim().toUpperCase(),
+        data: (dt as Date).toISOString(),
+        dir: dirN as Trade["dir"],
+        valor: v,
+        payout: p,
+        res: resN as Trade["res"],
+        lucro: isFinite(l) ? l : calcLucro(v, p, resN as Trade["res"]),
+        obs: obs?.trim() || undefined,
+      } : undefined,
+    });
+  });
+  return out;
+}
+
 function GestaoPage() {
   const { state, addTrade, updateTrade, deleteTrade } = useAppState();
   const [form, setForm] = useState<Form>(emptyForm);
   const fileRef = useRef<HTMLInputElement>(null);
   const [tab, setTab] = useState<"ops" | "report">("ops");
+  const [importPreview, setImportPreview] = useState<ParsedRow[] | null>(null);
+  const [importing, setImporting] = useState(false);
   const trades = state.tradeList;
 
   const stats = useMemo(() => {
@@ -140,24 +203,36 @@ function GestaoPage() {
   function importCSV(file: File) {
     const r = new FileReader();
     r.onload = () => {
-      const text = String(r.result);
-      const rows = text.split(/\r?\n/).slice(1).filter(Boolean);
-      for (const row of rows) {
-        const [, ativo, data, dir, valor, payout, res, lucro, obs] = row.split(",");
-        void addTrade({
-          ativo: ativo || "?",
-          data: data || new Date().toISOString(),
-          dir: (dir as Trade["dir"]) || "COMPRA",
-          valor: Number(valor) || 0,
-          payout: Number(payout) || 0,
-          res: (res as Trade["res"]) || "OPEN",
-          lucro: Number(lucro) || 0,
-          obs: obs || undefined,
-        });
+      const parsed = validateCSV(String(r.result));
+      if (parsed.length === 0) {
+        toast.error("Arquivo CSV vazio.");
+        return;
       }
-      toast.success(`${rows.length} trade(s) importado(s).`);
+      setImportPreview(parsed);
     };
     r.readAsText(file);
+    if (fileRef.current) fileRef.current.value = "";
+  }
+
+  async function confirmImport() {
+    if (!importPreview) return;
+    const valid = importPreview.filter((r) => r.trade);
+    if (valid.length === 0) {
+      toast.error("Nenhuma linha válida para importar.");
+      return;
+    }
+    setImporting(true);
+    try {
+      for (const row of valid) {
+        await addTrade(row.trade!);
+      }
+      toast.success(`${valid.length} trade(s) importado(s).`);
+      setImportPreview(null);
+    } catch {
+      toast.error("Erro ao importar trades.");
+    } finally {
+      setImporting(false);
+    }
   }
 
   return (
@@ -251,6 +326,70 @@ function GestaoPage() {
       ) : (
         <ReportTab trades={trades} />
       )}
+
+      <Dialog open={!!importPreview} onOpenChange={(o) => !o && setImportPreview(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Pré-visualização da importação</DialogTitle>
+          </DialogHeader>
+          {importPreview && (() => {
+            const valid = importPreview.filter((r) => r.trade).length;
+            const invalid = importPreview.length - valid;
+            return (
+              <>
+                <div className="mb-3 flex gap-3 text-sm">
+                  <span className="rounded-md border px-2 py-1" style={{ borderColor: "color-mix(in oklab, var(--green) 30%, transparent)", color: "var(--green)" }}>
+                    {valid} válida(s)
+                  </span>
+                  <span className="rounded-md border px-2 py-1" style={{ borderColor: "color-mix(in oklab, var(--red) 30%, transparent)", color: "var(--red)" }}>
+                    {invalid} com erro
+                  </span>
+                </div>
+                <div className="max-h-72 overflow-y-auto rounded-md border" style={{ borderColor: "var(--border)" }}>
+                  <table className="w-full text-xs">
+                    <thead className="sticky top-0" style={{ background: "var(--surface-2)" }}>
+                      <tr className="text-left text-muted-foreground">
+                        <th className="px-3 py-1.5">Linha</th>
+                        <th className="px-3 py-1.5">Status</th>
+                        <th className="px-3 py-1.5">Detalhes</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {importPreview.map((r) => (
+                        <tr key={r.line} className="border-t" style={{ borderColor: "var(--border)" }}>
+                          <td className="px-3 py-1.5 font-mono">{r.line}</td>
+                          <td className="px-3 py-1.5">
+                            {r.errors.length === 0 ? (
+                              <span className="inline-flex items-center gap-1" style={{ color: "var(--green)" }}>
+                                <Check className="h-3 w-3" /> OK
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1" style={{ color: "var(--red)" }}>
+                                <AlertTriangle className="h-3 w-3" /> Erro
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-3 py-1.5 text-muted-foreground">
+                            {r.errors.length === 0
+                              ? `${r.trade?.ativo} · ${r.trade?.dir} · $${r.trade?.valor}`
+                              : r.errors.join(" ")}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            );
+          })()}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setImportPreview(null)} disabled={importing}>Cancelar</Button>
+            <Button onClick={() => void confirmImport()} disabled={importing || !importPreview?.some((r) => r.trade)}>
+              {importing ? "Importando..." : "Importar válidos"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
