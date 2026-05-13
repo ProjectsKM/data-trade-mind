@@ -13,14 +13,17 @@ import { Route as SignupRouteImport } from './routes/signup'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiCalendarRouteImport } from './routes/api/calendar'
 import { Route as ApiAiScanRouteImport } from './routes/api/ai-scan'
 import { Route as ApiAiMindRouteImport } from './routes/api/ai-mind'
 import { Route as AppUpgradeRouteImport } from './routes/_app/upgrade'
 import { Route as AppScanRouteImport } from './routes/_app/scan'
 import { Route as AppPerfilRouteImport } from './routes/_app/perfil'
+import { Route as AppNoticiasRouteImport } from './routes/_app/noticias'
 import { Route as AppMindRouteImport } from './routes/_app/mind'
 import { Route as AppGestaoRouteImport } from './routes/_app/gestao'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
+import { Route as AppCryptobubblesRouteImport } from './routes/_app/cryptobubbles'
 import { Route as AppCalculadoraRouteImport } from './routes/_app/calculadora'
 
 const SignupRoute = SignupRouteImport.update({
@@ -40,6 +43,11 @@ const AppRoute = AppRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiCalendarRoute = ApiCalendarRouteImport.update({
+  id: '/api/calendar',
+  path: '/api/calendar',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAiScanRoute = ApiAiScanRouteImport.update({
@@ -67,6 +75,11 @@ const AppPerfilRoute = AppPerfilRouteImport.update({
   path: '/perfil',
   getParentRoute: () => AppRoute,
 } as any)
+const AppNoticiasRoute = AppNoticiasRouteImport.update({
+  id: '/noticias',
+  path: '/noticias',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppMindRoute = AppMindRouteImport.update({
   id: '/mind',
   path: '/mind',
@@ -82,6 +95,11 @@ const AppDashboardRoute = AppDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AppRoute,
 } as any)
+const AppCryptobubblesRoute = AppCryptobubblesRouteImport.update({
+  id: '/cryptobubbles',
+  path: '/cryptobubbles',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppCalculadoraRoute = AppCalculadoraRouteImport.update({
   id: '/calculadora',
   path: '/calculadora',
@@ -93,28 +111,34 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/calculadora': typeof AppCalculadoraRoute
+  '/cryptobubbles': typeof AppCryptobubblesRoute
   '/dashboard': typeof AppDashboardRoute
   '/gestao': typeof AppGestaoRoute
   '/mind': typeof AppMindRoute
+  '/noticias': typeof AppNoticiasRoute
   '/perfil': typeof AppPerfilRoute
   '/scan': typeof AppScanRoute
   '/upgrade': typeof AppUpgradeRoute
   '/api/ai-mind': typeof ApiAiMindRoute
   '/api/ai-scan': typeof ApiAiScanRoute
+  '/api/calendar': typeof ApiCalendarRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/calculadora': typeof AppCalculadoraRoute
+  '/cryptobubbles': typeof AppCryptobubblesRoute
   '/dashboard': typeof AppDashboardRoute
   '/gestao': typeof AppGestaoRoute
   '/mind': typeof AppMindRoute
+  '/noticias': typeof AppNoticiasRoute
   '/perfil': typeof AppPerfilRoute
   '/scan': typeof AppScanRoute
   '/upgrade': typeof AppUpgradeRoute
   '/api/ai-mind': typeof ApiAiMindRoute
   '/api/ai-scan': typeof ApiAiScanRoute
+  '/api/calendar': typeof ApiCalendarRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -123,14 +147,17 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/_app/calculadora': typeof AppCalculadoraRoute
+  '/_app/cryptobubbles': typeof AppCryptobubblesRoute
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/gestao': typeof AppGestaoRoute
   '/_app/mind': typeof AppMindRoute
+  '/_app/noticias': typeof AppNoticiasRoute
   '/_app/perfil': typeof AppPerfilRoute
   '/_app/scan': typeof AppScanRoute
   '/_app/upgrade': typeof AppUpgradeRoute
   '/api/ai-mind': typeof ApiAiMindRoute
   '/api/ai-scan': typeof ApiAiScanRoute
+  '/api/calendar': typeof ApiCalendarRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -139,28 +166,34 @@ export interface FileRouteTypes {
     | '/login'
     | '/signup'
     | '/calculadora'
+    | '/cryptobubbles'
     | '/dashboard'
     | '/gestao'
     | '/mind'
+    | '/noticias'
     | '/perfil'
     | '/scan'
     | '/upgrade'
     | '/api/ai-mind'
     | '/api/ai-scan'
+    | '/api/calendar'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/login'
     | '/signup'
     | '/calculadora'
+    | '/cryptobubbles'
     | '/dashboard'
     | '/gestao'
     | '/mind'
+    | '/noticias'
     | '/perfil'
     | '/scan'
     | '/upgrade'
     | '/api/ai-mind'
     | '/api/ai-scan'
+    | '/api/calendar'
   id:
     | '__root__'
     | '/'
@@ -168,14 +201,17 @@ export interface FileRouteTypes {
     | '/login'
     | '/signup'
     | '/_app/calculadora'
+    | '/_app/cryptobubbles'
     | '/_app/dashboard'
     | '/_app/gestao'
     | '/_app/mind'
+    | '/_app/noticias'
     | '/_app/perfil'
     | '/_app/scan'
     | '/_app/upgrade'
     | '/api/ai-mind'
     | '/api/ai-scan'
+    | '/api/calendar'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -185,6 +221,7 @@ export interface RootRouteChildren {
   SignupRoute: typeof SignupRoute
   ApiAiMindRoute: typeof ApiAiMindRoute
   ApiAiScanRoute: typeof ApiAiScanRoute
+  ApiCalendarRoute: typeof ApiCalendarRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -215,6 +252,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/calendar': {
+      id: '/api/calendar'
+      path: '/api/calendar'
+      fullPath: '/api/calendar'
+      preLoaderRoute: typeof ApiCalendarRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/ai-scan': {
@@ -252,6 +296,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppPerfilRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/noticias': {
+      id: '/_app/noticias'
+      path: '/noticias'
+      fullPath: '/noticias'
+      preLoaderRoute: typeof AppNoticiasRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/mind': {
       id: '/_app/mind'
       path: '/mind'
@@ -273,6 +324,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppDashboardRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/cryptobubbles': {
+      id: '/_app/cryptobubbles'
+      path: '/cryptobubbles'
+      fullPath: '/cryptobubbles'
+      preLoaderRoute: typeof AppCryptobubblesRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/calculadora': {
       id: '/_app/calculadora'
       path: '/calculadora'
@@ -285,9 +343,11 @@ declare module '@tanstack/react-router' {
 
 interface AppRouteChildren {
   AppCalculadoraRoute: typeof AppCalculadoraRoute
+  AppCryptobubblesRoute: typeof AppCryptobubblesRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppGestaoRoute: typeof AppGestaoRoute
   AppMindRoute: typeof AppMindRoute
+  AppNoticiasRoute: typeof AppNoticiasRoute
   AppPerfilRoute: typeof AppPerfilRoute
   AppScanRoute: typeof AppScanRoute
   AppUpgradeRoute: typeof AppUpgradeRoute
@@ -295,9 +355,11 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppCalculadoraRoute: AppCalculadoraRoute,
+  AppCryptobubblesRoute: AppCryptobubblesRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppGestaoRoute: AppGestaoRoute,
   AppMindRoute: AppMindRoute,
+  AppNoticiasRoute: AppNoticiasRoute,
   AppPerfilRoute: AppPerfilRoute,
   AppScanRoute: AppScanRoute,
   AppUpgradeRoute: AppUpgradeRoute,
@@ -312,7 +374,18 @@ const rootRouteChildren: RootRouteChildren = {
   SignupRoute: SignupRoute,
   ApiAiMindRoute: ApiAiMindRoute,
   ApiAiScanRoute: ApiAiScanRoute,
+  ApiCalendarRoute: ApiCalendarRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
