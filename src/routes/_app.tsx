@@ -64,11 +64,11 @@ function AppLayout() {
     loc.pathname.startsWith("/mind") || loc.pathname.startsWith("/cryptobubbles");
 
   return (
-    <div className="relative flex min-h-screen flex-col" style={{ background: "var(--background)" }}>
+    <div className="relative flex h-dvh overflow-hidden flex-col" style={{ background: "var(--background)" }}>
       <BgFx />
 
       <header
-        className="sticky top-0 z-50 flex h-14 items-center justify-between border-b px-5 backdrop-blur-xl fade-down"
+        className="sticky top-0 z-50 flex h-14 flex-none items-center justify-between border-b px-5 backdrop-blur-xl fade-down"
         style={{ background: "color-mix(in oklab, var(--background) 78%, transparent)", borderColor: "var(--border-strong)" }}
       >
         <Link to="/dashboard" className="font-display text-lg font-semibold tracking-tight smooth hover:opacity-90">
@@ -110,7 +110,7 @@ function AppLayout() {
         </div>
       </header>
 
-      <div className="relative z-10 flex flex-1 overflow-hidden" style={{ height: "calc(100vh - 56px)" }}>
+      <div className="relative z-10 flex min-h-0 flex-1 overflow-hidden">
         <nav
           className="hidden w-56 flex-none flex-col gap-0.5 border-r p-3 sm:flex slide-in-left"
           style={{ background: "color-mix(in oklab, var(--surface) 78%, transparent)", borderColor: "var(--border)", backdropFilter: "blur(14px)" }}
@@ -184,7 +184,7 @@ function AppLayout() {
         </nav>
 
         <main
-          className={`relative flex-1 pb-16 sm:pb-0 ${isFullHeightRoute ? "overflow-hidden" : "overflow-y-auto"}`}
+          className={`relative min-h-0 flex-1 pb-16 sm:pb-0 ${isFullHeightRoute ? "overflow-hidden" : "overflow-y-auto"}`}
         >
           <Outlet />
         </main>
