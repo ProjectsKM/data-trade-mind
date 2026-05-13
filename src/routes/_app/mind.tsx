@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
-import { Sparkles, Send, Trash2, Plus, MessageSquare, Menu, X, PanelLeftClose, PanelLeftOpen, ArrowDown } from "lucide-react";
+import { Brain, Send, Trash2, Plus, MessageSquare, Menu, X, PanelLeftClose, PanelLeftOpen, ArrowDown } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { toast } from "sonner";
 import { useUser, type ChatMsg } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";
@@ -254,7 +256,7 @@ function MindPage() {
   const empty = messages.length === 0;
 
   return (
-    <div className="flex h-full">
+    <div className="flex h-full min-h-0 overflow-hidden">
       {/* Sidebar */}
       <aside
         className={`absolute inset-y-0 left-0 z-30 flex flex-col border-r p-3 transition-all sm:relative sm:translate-x-0 ${openSidebar ? "translate-x-0" : "-translate-x-full"} ${collapsed ? "sm:hidden" : "w-72"}`}
@@ -321,8 +323,8 @@ function MindPage() {
       )}
 
       {/* Chat area */}
-      <div className="flex flex-1 flex-col">
-        <header className="flex items-center gap-3 border-b px-5 py-3" style={{ borderColor: "var(--border)" }}>
+      <div className="relative flex flex-1 flex-col min-h-0 min-w-0">
+        <header className="flex flex-none items-center gap-3 border-b px-5 py-3" style={{ borderColor: "var(--border)" }}>
           <button onClick={() => setOpenSidebar(true)} className="sm:hidden text-muted-foreground"><Menu className="h-5 w-5" /></button>
           {collapsed && (
             <button
@@ -336,7 +338,7 @@ function MindPage() {
           )}
           <div className="flex h-9 w-9 items-center justify-center rounded-lg border"
             style={{ background: "color-mix(in oklab, var(--accent) 10%, transparent)", borderColor: "color-mix(in oklab, var(--accent) 28%, transparent)", color: "var(--accent)" }}>
-            <Sparkles className="h-4 w-4" strokeWidth={1.75} />
+            <Brain className="h-4 w-4" strokeWidth={1.75} />
           </div>
           <div className="flex-1 min-w-0">
             <div className="font-display text-sm font-semibold tracking-tight truncate">
@@ -349,7 +351,7 @@ function MindPage() {
           </div>
         </header>
 
-        <div ref={scrollRef} className="relative flex-1 overflow-y-auto px-5 py-6">
+        <div ref={scrollRef} className="relative flex-1 min-h-0 overflow-y-auto px-5 py-6">
           <div className="mx-auto flex max-w-3xl flex-col gap-4">
             {display.map((m, i) => <Bubble key={i} m={m} initials={initials} />)}
             {busy && !streaming && (
@@ -375,14 +377,14 @@ function MindPage() {
         {!autoFollow && (
           <button
             onClick={() => { setAutoFollow(true); scrollToBottom(true); }}
-            className="pointer-events-auto absolute bottom-24 left-1/2 z-10 -translate-x-1/2 rounded-full border px-3 py-1.5 text-xs shadow-md smooth hover:border-[color:var(--accent)] hover:text-[color:var(--accent)]"
+            className="pointer-events-auto absolute bottom-28 left-1/2 z-10 -translate-x-1/2 rounded-full border px-3 py-1.5 text-xs shadow-md smooth hover:border-[color:var(--accent)] hover:text-[color:var(--accent)]"
             style={{ background: "var(--surface-2)", borderColor: "var(--border-strong)", color: "var(--text-muted)" }}
           >
             <span className="inline-flex items-center gap-1.5"><ArrowDown className="h-3 w-3" /> Rolar para o final</span>
           </button>
         )}
 
-        <div className="border-t px-5 py-3" style={{ borderColor: "var(--border)" }}>
+        <div className="flex-none border-t px-5 py-3" style={{ borderColor: "var(--border)", background: "color-mix(in oklab, var(--background) 92%, transparent)", backdropFilter: "blur(14px)" }}>
           <div className="mx-auto max-w-3xl">
             <div className="flex items-end gap-2 rounded-xl border p-2 smooth focus-within:border-[color:var(--accent)]"
               style={{ background: "var(--surface)", borderColor: "var(--border-strong)" }}>
@@ -406,7 +408,7 @@ function Avatar({ isAssistant, initials }: { isAssistant?: boolean; initials?: s
     return (
       <div className="flex h-7 w-7 flex-none items-center justify-center rounded-md border"
         style={{ background: "color-mix(in oklab, var(--accent) 12%, transparent)", borderColor: "color-mix(in oklab, var(--accent) 30%, transparent)", color: "var(--accent)" }}>
-        <Sparkles className="h-3.5 w-3.5" strokeWidth={1.75} />
+        <Brain className="h-3.5 w-3.5" strokeWidth={1.75} />
       </div>
     );
   }
@@ -445,22 +447,36 @@ function Bubble({ m, initials }: { m: ChatMsg; initials: string }) {
         style={isUser
           ? { background: "color-mix(in oklab, var(--accent) 14%, transparent)", borderColor: "color-mix(in oklab, var(--accent) 32%, transparent)", color: "var(--foreground)" }
           : { background: "var(--surface-2)", borderColor: "var(--border)" }}>
-        {renderMarkdown(m.content)}
+        {isUser ? <span style={{ whiteSpace: "pre-wrap" }}>{m.content}</span> : <MarkdownContent text={m.content} />}
       </div>
     </div>
   );
 }
 
-function renderMarkdown(text: string) {
-  const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g);
+function MarkdownContent({ text }: { text: string }) {
   return (
-    <>
-      {parts.map((p, i) => {
-        if (p.startsWith("**") && p.endsWith("**")) return <strong key={i}>{p.slice(2, -2)}</strong>;
-        if (p.startsWith("`") && p.endsWith("`"))
-          return <code key={i} className="rounded px-1 py-0.5 font-mono text-[12px]" style={{ background: "var(--surface-3)", color: "var(--accent)" }}>{p.slice(1, -1)}</code>;
-        return <span key={i} style={{ whiteSpace: "pre-wrap" }}>{p}</span>;
-      })}
-    </>
+    <div className="markdown-body">
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={{
+          h1: ({ children }) => <h2 className="font-display mt-3 mb-2 text-base font-semibold tracking-tight first:mt-0" style={{ color: "var(--foreground)" }}>{children}</h2>,
+          h2: ({ children }) => <h3 className="font-display mt-3 mb-1.5 text-[15px] font-semibold tracking-tight first:mt-0" style={{ color: "var(--foreground)" }}>{children}</h3>,
+          h3: ({ children }) => <h4 className="font-display mt-2.5 mb-1 text-sm font-semibold tracking-tight first:mt-0" style={{ color: "var(--accent)" }}>{children}</h4>,
+          h4: ({ children }) => <h5 className="font-display mt-2 mb-1 text-[13px] font-semibold uppercase tracking-wider first:mt-0" style={{ color: "var(--text-muted)" }}>{children}</h5>,
+          p: ({ children }) => <p className="my-1.5 first:mt-0 last:mb-0" style={{ whiteSpace: "pre-wrap" }}>{children}</p>,
+          ul: ({ children }) => <ul className="my-1.5 list-disc space-y-0.5 pl-5">{children}</ul>,
+          ol: ({ children }) => <ol className="my-1.5 list-decimal space-y-0.5 pl-5">{children}</ol>,
+          li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+          strong: ({ children }) => <strong style={{ color: "var(--foreground)" }}>{children}</strong>,
+          em: ({ children }) => <em className="italic">{children}</em>,
+          code: ({ children }) => <code className="rounded px-1 py-0.5 font-mono text-[12px]" style={{ background: "var(--surface-3, var(--surface))", color: "var(--accent)" }}>{children}</code>,
+          blockquote: ({ children }) => <blockquote className="my-2 border-l-2 pl-3 italic" style={{ borderColor: "var(--accent)", color: "var(--text-muted)" }}>{children}</blockquote>,
+          a: ({ children, href }) => <a href={href} target="_blank" rel="noreferrer" className="underline" style={{ color: "var(--accent)" }}>{children}</a>,
+          hr: () => <hr className="my-3" style={{ borderColor: "var(--border)" }} />,
+        }}
+      >
+        {text}
+      </ReactMarkdown>
+    </div>
   );
 }
