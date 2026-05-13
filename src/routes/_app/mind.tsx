@@ -409,6 +409,24 @@ function Avatar({ isAssistant, initials }: { isAssistant?: boolean; initials?: s
   );
 }
 
+function ThinkingBubble() {
+  return (
+    <div
+      className="rounded-xl rounded-bl-sm border px-4 py-3"
+      style={{ background: "var(--surface-2)", borderColor: "var(--border)" }}
+    >
+      <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+        <span className="thinking-text">Pensando</span>
+        <span className="thinking-dots inline-flex gap-1">
+          <span className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--accent)" }} />
+          <span className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--accent)" }} />
+          <span className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--accent)" }} />
+        </span>
+      </span>
+    </div>
+  );
+}
+
 function Bubble({ m, initials }: { m: ChatMsg; initials: string }) {
   const isUser = m.role === "user";
   return (
