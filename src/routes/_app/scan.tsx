@@ -14,12 +14,22 @@ import {
   Info,
   AlertCircle,
   LineChart,
+  Clock,
+  History,
+  Trash2,
 } from "lucide-react";
 import { useAppState, type ScanResult } from "@/lib/store";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/app/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  loadScanHistory,
+  addScanHistory,
+  removeScanHistory,
+  makeThumb,
+  type ScanHistoryItem,
+} from "@/lib/scanHistory";
 
 export const Route = createFileRoute("/_app/scan")({
   head: () => ({ meta: [{ title: "TraderScan — OrionHub" }] }),
@@ -28,16 +38,34 @@ export const Route = createFileRoute("/_app/scan")({
 
 type Stage = "upload" | "duration" | "analyzing" | "result" | "error";
 const DURATIONS = [1, 5, 15, 30, 60] as const;
+const EXPIRATIONS = [1, 5] as const;
+
+function fmtHHMM(d: Date) {
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
+function computeTimes(expiracao: 1 | 5) {
+  const entry = new Date();
+  entry.setSeconds(0, 0);
+  entry.setMinutes(entry.getMinutes() + expiracao);
+  const p1 = new Date(entry); p1.setMinutes(p1.getMinutes() + 1);
+  const p2 = new Date(p1); p2.setMinutes(p2.getMinutes() + 1);
+  return { entrada: fmtHHMM(entry), protecao1: fmtHHMM(p1), protecao2: fmtHHMM(p2) };
+}
 
 function ScanPage() {
-  const { state, update, addScan } = useAppState();
+  const { state, update } = useAppState();
   const [stage, setStage] = useState<Stage>("upload");
   const [imgData, setImgData] = useState<string>("");
   const [duration, setDuration] = useState<(typeof DURATIONS)[number]>(5);
+  const [expiracao, setExpiracao] = useState<(typeof EXPIRATIONS)[number]>(5);
   const [result, setResult] = useState<ScanResult | null>(null);
+  const [resultThumb, setResultThumb] = useState<string>("");
   const [err, setErr] = useState<string>("");
   const [drag, setDrag] = useState(false);
+  const [history, setHistory] = useState<ScanHistoryItem[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => { setHistory(loadScanHistory()); }, []);
 
   useEffect(() => {
     function onPaste(e: ClipboardEvent) {
@@ -91,7 +119,7 @@ function ScanPage() {
 
   async function startAnalysis() {
     if (!state.isPro && state.analysesLeft <= 0) {
-      const msg = "Você usou suas 5 análises grátis. Faça upgrade para continuar.";
+      const msg = "Você usou suas análises do trial. Ative o acesso anual para continuar.";
       setErr(msg);
       toast.error(msg);
       setStage("error");
@@ -120,9 +148,23 @@ function ScanPage() {
         setStage("error");
         return;
       }
-      const res: ScanResult = { ...data.result, createdAt: new Date().toISOString() };
+      const times = computeTimes(expiracao);
+      const res: ScanResult = {
+        ...data.result,
+        ...times,
+        createdAt: new Date().toISOString(),
+      };
       setResult(res);
-      await addScan(res);
+      const thumb = await makeThumb(imgData);
+      setResultThumb(thumb);
+      const item: ScanHistoryItem = {
+        id: crypto.randomUUID(),
+        thumb,
+        result: res,
+        expiracaoMin: expiracao,
+        createdAt: res.createdAt!,
+      };
+      setHistory(addScanHistory(item));
       if (!state.isPro) update({ analysesLeft: Math.max(0, state.analysesLeft - 1) });
       setStage("result");
       toast.success(`Análise concluída — ${res.direcao} ${res.confianca}%`);
@@ -138,19 +180,31 @@ function ScanPage() {
     setStage("upload");
     setImgData("");
     setResult(null);
+    setResultThumb("");
     setErr("");
     if (fileRef.current) fileRef.current.value = "";
   }
 
+  function openHistoryItem(item: ScanHistoryItem) {
+    setResult(item.result);
+    setResultThumb(item.thumb);
+    setExpiracao(item.expiracaoMin);
+    setImgData(item.thumb);
+    setStage("result");
+  }
+  function deleteHistoryItem(id: string) {
+    setHistory(removeScanHistory(id));
+  }
+
   const planBadge = state.isPro ? (
     <Badge variant="outline" className="border-[color:var(--accent)]/30 bg-[color:var(--accent)]/10 text-[color:var(--accent)]">
-      Plano PRO
+      Acesso Anual
     </Badge>
   ) : (
     <Link to="/upgrade" className="smooth hover:opacity-80">
       <Badge variant="outline" className="gap-1.5 font-mono text-[10px] tracking-wide">
         <span className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--gold)" }} />
-        {state.analysesLeft} análises restantes
+        {state.analysesLeft} análises no trial
       </Badge>
     </Link>
   );
@@ -228,6 +282,48 @@ function ScanPage() {
             <Info className="mt-0.5 h-3.5 w-3.5 flex-none" strokeWidth={1.75} style={{ color: "var(--accent)" }} />
             <span>Garanta que velas, indicadores e horário estejam visíveis no print para uma análise mais precisa.</span>
           </div>
+
+          {history.length > 0 && (
+            <div className="rounded-xl border" style={{ background: "var(--surface)", borderColor: "var(--border)" }}>
+              <div className="flex items-center justify-between px-4 py-3">
+                <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                  <History className="h-3.5 w-3.5" strokeWidth={1.75} />
+                  Histórico de análises
+                </div>
+                <span className="font-mono text-[10px] text-[color:var(--text-dim)]">{history.length}</span>
+              </div>
+              <div className="grid gap-2 px-3 pb-3 sm:grid-cols-2">
+                {history.slice(0, 8).map((h) => {
+                  const compra = h.result.direcao === "COMPRA";
+                  return (
+                    <div key={h.id} className="group relative flex gap-3 rounded-lg border p-2 smooth hover:border-[color:var(--accent)]"
+                      style={{ background: "var(--surface-2)", borderColor: "var(--border)" }}>
+                      <button onClick={() => openHistoryItem(h)} className="flex flex-1 gap-3 text-left">
+                        <img src={h.thumb} alt="" className="h-14 w-20 flex-none rounded object-cover" />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs font-semibold" style={{ color: compra ? "var(--green)" : "var(--red)" }}>
+                              {compra ? "Compra" : "Venda"}
+                            </span>
+                            <span className="font-mono text-[10px] text-muted-foreground">{h.result.confianca}%</span>
+                          </div>
+                          <div className="mt-0.5 font-mono text-[10px] text-muted-foreground">
+                            Entrada {h.result.entrada} · M{h.expiracaoMin}
+                          </div>
+                          <div className="font-mono text-[10px] text-[color:var(--text-dim)]">
+                            {new Date(h.createdAt).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                          </div>
+                        </div>
+                      </button>
+                      <button onClick={() => deleteHistoryItem(h.id)} className="absolute right-1.5 top-1.5 hidden text-muted-foreground hover:text-[color:var(--red)] group-hover:block">
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -244,7 +340,7 @@ function ScanPage() {
             style={{ background: "var(--surface)", borderColor: "var(--border)" }}
           >
             <div className="mb-3 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-              Tempo da operação
+              Timeframe do gráfico
             </div>
             <div className="grid grid-cols-5 gap-2">
               {DURATIONS.map((d) => {
@@ -265,6 +361,33 @@ function ScanPage() {
                 );
               })}
             </div>
+
+            <div className="mt-5 mb-3 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+              Tempo da entrada
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {EXPIRATIONS.map((d) => {
+                const active = d === expiracao;
+                return (
+                  <button
+                    key={d}
+                    onClick={() => setExpiracao(d)}
+                    className="rounded-md border py-2.5 text-sm font-medium font-mono smooth press"
+                    style={
+                      active
+                        ? { background: "color-mix(in oklab, var(--accent) 14%, transparent)", color: "var(--accent)", borderColor: "color-mix(in oklab, var(--accent) 35%, transparent)" }
+                        : { background: "var(--surface-2)", color: "var(--text-muted)", borderColor: "var(--border-strong)" }
+                    }
+                  >
+                    {d} min
+                  </button>
+                );
+              })}
+            </div>
+            <div className="mt-2 flex items-center gap-1.5 text-[10px] text-[color:var(--text-dim)]">
+              <Clock className="h-3 w-3" /> Entrada será {expiracao} min após o scan; proteções a cada 1 min depois.
+            </div>
+
             <div className="mt-5 flex gap-2">
               <Button variant="outline" onClick={reset} className="flex-1">
                 Trocar imagem
@@ -308,7 +431,7 @@ function ScanPage() {
         </div>
       )}
 
-      {stage === "result" && result && <ResultView r={result} onReset={reset} />}
+      {stage === "result" && result && <ResultView r={result} thumb={resultThumb} onReset={reset} />}
     </div>
   );
 }
@@ -344,13 +467,19 @@ function ActionTile({
   );
 }
 
-function ResultView({ r, onReset }: { r: ScanResult; onReset: () => void }) {
+function ResultView({ r, thumb, onReset }: { r: ScanResult; thumb: string; onReset: () => void }) {
   const isCall = r.direcao === "COMPRA";
   const conf = Math.min(100, Math.max(0, Number(r.confianca) || 50));
   const confColor = conf >= 75 ? "var(--green)" : conf >= 50 ? "var(--gold)" : "var(--red)";
 
   return (
     <div className="space-y-4 fade-up">
+      {thumb && (
+        <div className="overflow-hidden rounded-xl border" style={{ background: "var(--surface)", borderColor: "var(--border)" }}>
+          <img src={thumb} alt="gráfico analisado" className="mx-auto max-h-[260px] w-full object-contain" />
+        </div>
+      )}
+
       {/* Verdict card */}
       <div
         className="rounded-xl border p-5"
@@ -381,7 +510,7 @@ function ResultView({ r, onReset }: { r: ScanResult; onReset: () => void }) {
                 className="font-display text-2xl font-semibold tracking-tight"
                 style={{ color: isCall ? "var(--green)" : "var(--red)" }}
               >
-                {isCall ? "CALL — Compra" : "PUT — Venda"}
+                {isCall ? "Compra" : "Venda"}
               </div>
               <div className="mt-0.5 text-xs text-muted-foreground">
                 {r.ativo || "Ativo"} · {r.timeframe || "—"}
