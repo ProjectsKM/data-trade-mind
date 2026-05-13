@@ -212,14 +212,16 @@
 .reveal { opacity: 0; transform: translateY(24px); transition: opacity .7s cubic-bezier(.2,.7,.2,1), transform .7s cubic-bezier(.2,.7,.2,1); will-change: opacity, transform; }
 .reveal.in-view { opacity: 1; transform: translateY(0); }
 
-.smooth      { transition: all .16s cubic-bezier(.2,.7,.2,1); }
+.smooth      { transition: background-color .18s cubic-bezier(.2,.7,.2,1), color .18s cubic-bezier(.2,.7,.2,1), border-color .18s cubic-bezier(.2,.7,.2,1), box-shadow .18s cubic-bezier(.2,.7,.2,1), transform .18s cubic-bezier(.2,.7,.2,1), opacity .18s cubic-bezier(.2,.7,.2,1); }
 .hover-lift  { transition: transform .18s cubic-bezier(.2,.7,.2,1), box-shadow .18s, border-color .18s; }
 .hover-lift:hover { transform: translateY(-1px); box-shadow: 0 8px 24px -12px color-mix(in oklab, var(--accent) 22%, transparent); }
 .hover-glow  { transition: box-shadow .18s, border-color .18s, transform .18s; }
 .hover-glow:hover { box-shadow: 0 0 18px color-mix(in oklab, var(--accent) 18%, transparent); border-color: color-mix(in oklab, var(--accent) 28%, transparent); }
-.press:active { transform: scale(.97); }
+.press:active { transform: scale(.97); transition: transform .08s ease; }
 
-.route-anim { animation: fadeIn .14s ease both; }
+button, a, [role="button"] { transition: background-color .15s ease, color .15s ease, border-color .15s ease, opacity .15s ease; }
+
+.route-anim { animation: fadeIn .12s ease both; }
 
 @keyframes faqOpen { from { opacity: 0; transform: translateY(-4px); max-height: 0; } to { opacity: 1; transform: translateY(0); max-height: 400px; } }
 .faq-open { animation: faqOpen .35s cubic-bezier(.2,.7,.2,1) both; overflow: hidden; }
