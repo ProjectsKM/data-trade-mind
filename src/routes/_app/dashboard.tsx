@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import {
-  LineChart, Sparkles, ClipboardList, BarChart3, Calculator,
+ LineChart, Sparkles, ClipboardList, BarChart3, Calculator, Brain,
   TrendingUp, MessageSquare, ArrowRight, Plus, Crown, Activity,
 } from "lucide-react";
 import { useAppState, useUser } from "@/lib/store";
