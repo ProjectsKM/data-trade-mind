@@ -64,7 +64,7 @@ function AppLayout() {
     loc.pathname.startsWith("/mind") || loc.pathname.startsWith("/cryptobubbles");
 
   return (
-    <div className="relative flex h-dvh overflow-hidden flex-col" style={{ background: "var(--background)" }}>
+    <div data-orion-app-shell="true" className="relative flex h-dvh overflow-hidden flex-col" style={{ background: "var(--background)" }}>
       <BgFx />
 
       <header
