@@ -34,9 +34,18 @@ function MindPage() {
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [openSidebar, setOpenSidebar] = useState(false);
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem("orion.mind.sidebarCollapsed") === "1";
+  });
   const scrollRef = useRef<HTMLDivElement>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
+
+  // Persist collapsed
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem("orion.mind.sidebarCollapsed", collapsed ? "1" : "0");
+  }, [collapsed]);
 
   // Load threads
   const refreshThreads = useCallback(async () => {
@@ -51,6 +60,20 @@ function MindPage() {
   }, [user?.id]);
 
   useEffect(() => { void refreshThreads(); }, [refreshThreads]);
+
+  // Restore last active thread after threads load
+  useEffect(() => {
+    if (activeId || threads.length === 0 || typeof window === "undefined") return;
+    const last = window.localStorage.getItem("orion.mind.activeThreadId");
+    if (last && threads.some((t) => t.id === last)) setActiveId(last);
+  }, [threads, activeId]);
+
+  // Persist active thread
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (activeId) window.localStorage.setItem("orion.mind.activeThreadId", activeId);
+    else window.localStorage.removeItem("orion.mind.activeThreadId");
+  }, [activeId]);
 
   // Load messages for active thread
   useEffect(() => {
