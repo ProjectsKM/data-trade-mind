@@ -172,7 +172,7 @@ function AppLayout() {
           })}
         </nav>
 
-        <main key={loc.pathname} className="relative flex-1 overflow-y-auto pb-16 route-anim sm:pb-0">
+        <main className="relative flex-1 overflow-y-auto pb-16 sm:pb-0">
           <Outlet />
         </main>
       </div>
