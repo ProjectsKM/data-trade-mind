@@ -152,7 +152,6 @@ function MindPage() {
     setInput("");
 
     let threadId = activeId;
-    let threadsList = threads;
 
     // Create thread on first message
     if (!threadId) {
@@ -165,8 +164,7 @@ function MindPage() {
       if (error || !data) { toast.error("Erro ao criar conversa."); return; }
       threadId = data.id;
       setActiveId(threadId);
-      threadsList = [data, ...threads];
-      setThreads(threadsList);
+      setThreads([data, ...threads]);
     }
 
     const userMsg: ChatMsg = { role: "user", content: t, ts: new Date().toISOString() };
