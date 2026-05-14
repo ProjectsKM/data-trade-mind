@@ -1,23 +1,46 @@
 import { createServerFn, createMiddleware } from "@tanstack/react-start";
-import { useSession } from "@tanstack/react-start/server";
+import { getCookie, setCookie, deleteCookie } from "@tanstack/react-start/server";
 import { z } from "zod";
+import { createHmac, timingSafeEqual } from "node:crypto";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
-type AdminSession = { ok: true; at: number };
+const COOKIE_NAME = "orion_admin";
+const MAX_AGE = 60 * 60 * 12; // 12h
 
-function sessionConfig() {
-  const password = process.env.SESSION_SECRET;
-  if (!password || password.length < 32) {
-    // useSession requires >=32 chars; pad deterministically if shorter.
-    const base = (password || "lovable-orion-admin-fallback-secret-please-change") + "x".repeat(32);
-    return { password: base.slice(0, 64), name: "orion_admin", maxAge: 60 * 60 * 12 };
+function secret() {
+  return process.env.SESSION_SECRET || process.env.ADMIN_PASSWORD || "lovable-orion-admin-fallback-secret";
+}
+function sign(payload: string) {
+  return createHmac("sha256", secret()).update(payload).digest("hex");
+}
+function makeToken() {
+  const payload = `${Date.now()}`;
+  return `${payload}.${sign(payload)}`;
+}
+function verifyToken(token: string | undefined) {
+  if (!token) return false;
+  const [payload, sig] = token.split(".");
+  if (!payload || !sig) return false;
+  const expected = sign(payload);
+  try {
+    const a = Buffer.from(sig, "hex");
+    const b = Buffer.from(expected, "hex");
+    if (a.length !== b.length) return false;
+    if (!timingSafeEqual(a, b)) return false;
+  } catch {
+    return false;
   }
-  return { password, name: "orion_admin", maxAge: 60 * 60 * 12 };
+  const ts = Number(payload);
+  if (!Number.isFinite(ts)) return false;
+  if (Date.now() - ts > MAX_AGE * 1000) return false;
+  return true;
+}
+function isAuthed() {
+  return verifyToken(getCookie(COOKIE_NAME));
 }
 
 const requireAdminSession = createMiddleware({ type: "function" }).server(async ({ next }) => {
-  const session = await useSession<AdminSession>(sessionConfig());
-  if (!session.data?.ok) {
+  if (!isAuthed()) {
     throw new Response("Unauthorized", { status: 401 });
   }
   return next({ context: { admin: true as const } });
@@ -29,20 +52,23 @@ export const adminLogin = createServerFn({ method: "POST" })
     const expected = process.env.ADMIN_PASSWORD;
     if (!expected) return { ok: false as const, error: "ADMIN_PASSWORD não configurado." };
     if (data.password !== expected) return { ok: false as const, error: "Senha incorreta." };
-    const session = await useSession<AdminSession>(sessionConfig());
-    await session.update({ ok: true, at: Date.now() });
+    setCookie(COOKIE_NAME, makeToken(), {
+      httpOnly: true,
+      secure: true,
+      sameSite: "lax",
+      path: "/",
+      maxAge: MAX_AGE,
+    });
     return { ok: true as const };
   });
 
 export const adminLogout = createServerFn({ method: "POST" }).handler(async () => {
-  const session = await useSession<AdminSession>(sessionConfig());
-  await session.clear();
+  deleteCookie(COOKIE_NAME, { path: "/" });
   return { ok: true as const };
 });
 
 export const adminCheck = createServerFn({ method: "GET" }).handler(async () => {
-  const session = await useSession<AdminSession>(sessionConfig());
-  return { authed: !!session.data?.ok };
+  return { authed: isAuthed() };
 });
 
 export type AdminUserRow = {
