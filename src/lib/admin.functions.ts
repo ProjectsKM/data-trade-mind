@@ -83,35 +83,57 @@ export type AdminUserRow = {
   trial_started_at: string | null;
 };
 
+type AdminListUsersResult = { users: AdminUserRow[]; error?: string };
+
 export const listUsers = createServerFn({ method: "GET" })
   .middleware([requireAdminSession])
-  .handler(async () => {
-    const { data: profiles, error: e1 } = await supabaseAdmin
-      .from("profiles")
-      .select("user_id, email, name, country, created_at")
-      .order("created_at", { ascending: false })
-      .limit(1000);
-    if (e1) throw new Error(e1.message);
-    const { data: plans, error: e2 } = await supabaseAdmin
-      .from("user_plans")
-      .select("user_id, is_pro, analyses_left, trial_days_left, trial_started_at");
-    if (e2) throw new Error(e2.message);
-    const planMap = new Map((plans ?? []).map((p) => [p.user_id, p]));
-    const rows: AdminUserRow[] = (profiles ?? []).map((p) => {
-      const pl = planMap.get(p.user_id);
-      return {
-        user_id: p.user_id,
-        email: p.email,
-        name: p.name,
-        country: p.country,
-        created_at: p.created_at,
-        is_pro: pl?.is_pro ?? false,
-        analyses_left: pl?.analyses_left ?? 0,
-        trial_days_left: pl?.trial_days_left ?? 0,
-        trial_started_at: pl?.trial_started_at ?? null,
-      };
-    });
-    return { users: rows };
+  .handler(async (): Promise<AdminListUsersResult> => {
+    try {
+      const { data: authData, error: authError } = await supabaseAdmin.auth.admin.listUsers({
+        page: 1,
+        perPage: 1000,
+      });
+      if (authError) return { users: [], error: authError.message };
+
+      const authUsers = authData.users ?? [];
+      const userIds = authUsers.map((u) => u.id);
+      if (userIds.length === 0) return { users: [] };
+
+      const { data: profiles, error: e1 } = await supabaseAdmin
+        .from("profiles")
+        .select("user_id, email, name, country, created_at")
+        .in("user_id", userIds);
+      if (e1) return { users: [], error: e1.message };
+
+      const { data: plans, error: e2 } = await supabaseAdmin
+        .from("user_plans")
+        .select("user_id, is_pro, analyses_left, trial_days_left, trial_started_at")
+        .in("user_id", userIds);
+      if (e2) return { users: [], error: e2.message };
+
+      const profileMap = new Map((profiles ?? []).map((p) => [p.user_id, p]));
+      const planMap = new Map((plans ?? []).map((p) => [p.user_id, p]));
+      const rows: AdminUserRow[] = authUsers.map((u) => {
+        const pr = profileMap.get(u.id);
+        const pl = planMap.get(u.id);
+        return {
+          user_id: u.id,
+          email: pr?.email ?? u.email ?? null,
+          name: pr?.name ?? (typeof u.user_metadata?.name === "string" ? u.user_metadata.name : null),
+          country: pr?.country ?? (typeof u.user_metadata?.country === "string" ? u.user_metadata.country : null),
+          created_at: pr?.created_at ?? u.created_at,
+          is_pro: pl?.is_pro ?? false,
+          analyses_left: pl?.analyses_left ?? 5,
+          trial_days_left: pl?.trial_days_left ?? 7,
+          trial_started_at: pl?.trial_started_at ?? null,
+        };
+      }).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+      return { users: rows };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Falha ao carregar usuários.";
+      return { users: [], error: message };
+    }
   });
 
 export const promoteUser = createServerFn({ method: "POST" })
