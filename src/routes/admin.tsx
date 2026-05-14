@@ -133,10 +133,13 @@ function Panel({ onLogout }: { onLogout: () => void }) {
     setLoading(true);
     try {
       const r = await fetchUsers();
+      if (r?.error) {
+        toast.error(r.error);
+      }
       setRows(Array.isArray(r?.users) ? r.users : []);
     } catch {
       setRows([]);
-      toast.error("Falha ao carregar usuários.");
+      toast.error("Falha ao carregar usuários. Verifique a secret SUPABASE_SERVICE_ROLE_KEY.");
     } finally {
       setLoading(false);
     }
@@ -252,7 +255,7 @@ function Panel({ onLogout }: { onLogout: () => void }) {
           <div className="px-4 py-10 text-center text-xs text-muted-foreground">Carregando usuários…</div>
         )}
         {!loading && filtered.length === 0 && (
-          <div className="px-4 py-10 text-center text-xs text-muted-foreground">Nenhum usuário encontrado.</div>
+          <div className="px-4 py-10 text-center text-xs text-muted-foreground">Nenhum usuário encontrado. Se há usuários no Supabase Auth, confira a secret SUPABASE_SERVICE_ROLE_KEY.</div>
         )}
         {!loading && filtered.map((r) => (
           <div key={r.user_id} className="grid grid-cols-12 items-center gap-3 border-b px-4 py-3 text-sm smooth hover:bg-[color:var(--surface-2)]" style={{ borderColor: "var(--border)" }}>
