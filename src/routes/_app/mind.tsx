@@ -167,7 +167,6 @@ function MindPage() {
       setActiveId(threadId);
       threadsList = [data, ...threads];
       setThreads(threadsList);
-      toast.success("Nova conversa criada.");
     }
 
     const userMsg: ChatMsg = { role: "user", content: t, ts: new Date().toISOString() };
