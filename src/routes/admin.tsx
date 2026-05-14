@@ -133,8 +133,9 @@ function Panel({ onLogout }: { onLogout: () => void }) {
     setLoading(true);
     try {
       const r = await fetchUsers();
-      setRows(r.users);
+      setRows(Array.isArray(r?.users) ? r.users : []);
     } catch {
+      setRows([]);
       toast.error("Falha ao carregar usuários.");
     } finally {
       setLoading(false);
