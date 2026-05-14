@@ -32,9 +32,9 @@ function OfertaPage() {
       <BgFx />
       <Header />
       <Hero />
+      <Reveal><Pricing /></Reveal>
       <Reveal><Compare /></Reveal>
       <Reveal><Modules /></Reveal>
-      <Reveal><Pricing /></Reveal>
       <Reveal><Mentor /></Reveal>
       <Reveal><Faq /></Reveal>
       <Reveal><FinalCta /></Reveal>
