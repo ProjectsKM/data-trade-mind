@@ -1,103 +1,57 @@
-## Objetivo
+## Auditoria de segurança — OrionHub
 
-Adicionar área administrativa interna, criar página de oferta pública, deixar o /upgrade mais persuasivo, limpar pequenos ruídos do /mind e refinar as animações globais.
+Rodei o scanner completo (Supabase linter + Lovable security scan) e encontrei **7 problemas**, sendo **4 críticos**. Abaixo o plano para corrigir tudo.
 
----
+### 🔴 Críticos
 
-## 1. /admin — área interna protegida por senha única
+**1. Escalada de privilégio em `user_plans`**
+A política RLS atual permite que qualquer usuário autenticado faça UPDATE no próprio registro de `user_plans` — ou seja, qualquer um pode setar `is_pro = true`, zerar limites, virar PRO de graça.
+- **Fix:** remover a policy `Users update own plan` da tabela `user_plans`. Promoção/rebaixamento continua funcionando porque é feito via `supabaseAdmin` em `admin.functions.ts` (service role bypassa RLS).
 
-**Acesso**
-- Novo segredo runtime `ADMIN_PASSWORD` (via `add_secret`).
-- Layout próprio fora do shell `_app` (sem sidebar OrionHub) — rota `src/routes/admin.tsx` (página de login) + `src/routes/admin/_panel.tsx` como layout pathless do painel + filhos `admin/_panel/index.tsx` (lista) e demais.
-- Proteção: server function `adminLogin({ password })` valida contra `process.env.ADMIN_PASSWORD` e, se ok, seta cookie `admin_session` (httpOnly, signed via `useSession` com `SESSION_SECRET`). Toda server fn admin usa middleware `requireAdminSession` que lê o cookie.
-- Se `SESSION_SECRET` não existir, adicionamos via `add_secret`.
+**2. Segredo hardcoded no admin (`src/lib/admin.functions.ts`)**
+Se `SESSION_SECRET`/`ADMIN_PASSWORD` faltarem, o HMAC cai num literal público (`"lovable-orion-admin-fallback-secret"`). Qualquer um forja o cookie `orion_admin` e ganha acesso total ao painel admin (listar usuários, promover, rebaixar).
+- **Fix:** remover o fallback. Lançar erro se `SESSION_SECRET` não estiver configurado. Exigir mínimo de 32 caracteres.
 
-**Painel (`/admin`)**
-- Tabela de usuários puxando de `profiles` + `user_plans` via server fn `listUsers` (usa `supabaseAdmin`, bypass RLS).
-- Filtros: todos / Free / PRO Anual. Busca por email/nome.
-- Ações por linha:
-  - **Promover para PRO Anual** → server fn `promoteUser({ userId })` faz update em `user_plans`: `is_pro=true`, `analyses_left=9999`, `trial_started_at=now()`, `trial_days_left=365`.
-  - **Despromover** → reverte para Free (`is_pro=false`, `analyses_left=5`, `trial_days_left=7`).
-  - **Copiar e-mail**.
-- Cards no topo: total usuários, total Free, total PRO, novos nos últimos 7 dias.
-- Botão **Sair** que limpa o cookie admin.
+**3. Rotas `/api/ai-scan` e `/api/ai-mind` sem autenticação**
+Qualquer pessoa na internet pode fazer POST nessas rotas e queimar sua quota da OpenAI. O limite `analysesLeft` só existe no cliente — totalmente burlável.
+- **Fix:** validar JWT do Supabase no handler antes de chamar OpenAI; se inválido → 401. Decrementar `analyses_left` server-side via `supabaseAdmin` (atomico) antes de chamar OpenAI; se 0 e não-pro → 402.
 
-**Segurança**
-- Nenhum link para /admin em nenhum lugar do site público.
-- Toda mutação valida sessão admin no servidor (não confia no cliente).
+**4. `attachSupabaseAuth` não registrado em `src/start.ts`**
+O middleware existe mas nunca é montado, então **nenhum** server function protegido por `requireSupabaseAuth` recebe o bearer token — todas falham com 401 (ou pior, ficam quebradas silenciosamente).
+- **Fix:** registrar `attachSupabaseAuth` em `functionMiddleware` no `createStart`.
 
----
+### 🟡 Avisos
 
-## 2. /upgrade — repaginada
+**5. Cookie admin com `SameSite=none`**
+Permite CSRF de qualquer site. Trocar para `"lax"`.
 
-Reescrever `src/routes/_app/upgrade.tsx`:
-- Hero com badge "ACESSO ANUAL · LANÇAMENTO", título grande com gradiente, subheadline curta.
-- Card de preço destacado com **R$ 497/ano** + comparação riscada "R$ 997" + selo "economize 50%" + microcopy "pagamento único · 12 meses".
-- Grid de 8 benefícios com ícones lucide (Infinity, BrainCircuit, LineChart, Newspaper, Bitcoin, Zap, Gem, ShieldCheck) em vez de emojis — cards com hover glow, gradiente sutil, animação stagger.
-- Seção "O que você desbloqueia agora" com 3 destaques visuais (TraderScan, OrionMind, Notícias+CryptoBubbles).
-- Bloco de prova social / promessa (sem inventar depoimentos — frase do mentor Gabriel Dutra).
-- FAQ accordion (5 perguntas: renovação, garantia, suporte, requisitos, formas de pagamento).
-- CTA fixo flutuante no mobile.
-- Mantém botão demo de ativar/desativar.
+**6. CORS wildcard em rotas que aceitam Authorization**
+`Access-Control-Allow-Origin: *` em `src/lib/cors.ts` e `calendar.ts`. Trocar para allowlist com a origem de produção (e a origem `*-dev.lovable.app`/`*.lovable.app` em dev), refletindo o `Origin` apenas se bater.
+
+**7. Proteção contra senhas vazadas desativada (Supabase Auth)**
+Ação manual no painel Supabase — mostrarei o link.
 
 ---
 
-## 3. /ofertalancamento — landing pública standalone
+### Detalhes técnicos
 
-- Nova rota top-level `src/routes/ofertalancamento.tsx` (fora de `_app`, sem sidebar/header do app — apenas header próprio mínimo com logo).
-- Estrutura:
-  1. Hero com countdown visual de lançamento, headline "Acesso Anual ao OrionHub — Lote de Lançamento".
-  2. Comparativo lado a lado: **Plano Free** vs **PRO Anual** (tabela de features com check/x).
-  3. Seção "Tudo que você leva no PRO" — grid com os módulos (TraderScan, OrionMind, Notícias, CryptoBubbles, Calculadora, Gestão).
-  4. Bloco de preço com R$ 497/ano + bônus de lançamento.
-  5. Sobre o mentor Gabriel Dutra (Trader Orion Capital).
-  6. FAQ.
-  7. CTA principal: botão "Garantir meu acesso" → abre WhatsApp (link `https://wa.me/...` configurável via constante no topo do arquivo — placeholder que o usuário troca).
-- Página totalmente responsiva, animações de scroll-reveal, sem dependência do shell autenticado.
-- Meta tags próprias (`head()`) com og:title/description para compartilhamento.
+**Migração SQL:**
+```sql
+DROP POLICY "Users update own plan" ON public.user_plans;
+```
 
----
+**Arquivos a editar:**
+- `src/start.ts` — registrar `attachSupabaseAuth`
+- `src/lib/admin.functions.ts` — remover fallback do secret + `sameSite: "lax"`
+- `src/routes/api/ai-scan.ts` — auth + decremento server-side de `analyses_left`
+- `src/routes/api/ai-mind.ts` — auth obrigatória
+- `src/lib/cors.ts` — allowlist de origens (produção + previews lovable)
+- `src/routes/api/calendar.ts` — usar mesma allowlist
 
-## 4. /mind — remover toast de "nova conversa"
+**Secrets necessários:**
+- Garantir que `SESSION_SECRET` esteja setado (já existe na lista — só vou validar). Se não tiver 32+ chars, peço para regenerar.
 
-- Em `src/routes/_app/mind.tsx`, localizar `toast.success("Nova conversa criada")` (ou similar) na criação de thread e remover. Manter a criação silenciosa.
+**Ação manual do usuário (painel Supabase):**
+- Ativar "Leaked Password Protection" em Auth → Policies.
 
----
-
-## 5. Animações globais mais fluidas
-
-Em `src/styles.css`:
-- Aumentar suavidade das transições padrão (`cubic-bezier(.22,.61,.36,1)`), durações entre 180–260ms.
-- Refinar `card-glow`, `hover-lift`, `pulse-glow` (glow mais sutil e contínuo).
-- Adicionar `.reveal-stagger` com `transition-delay` por índice usando `:nth-child`.
-- Melhorar transição de rota (View Transitions) — cross-fade + leve translate-y de 4px, 200ms.
-- Adicionar `.tap` (scale .98 com spring) e usar nos botões principais.
-- Suavizar `thinking-dots` e cursor de digitação do OrionMind.
-- Ajustar `@keyframes orbFloat` e `auroraShift` para ciclos mais longos (menos "movimento").
-- Garantir `prefers-reduced-motion` continua respeitado.
-
-Aplicar a classe `smooth` / `hover-lift` nos lugares óbvios (cards do dashboard, botões da sidebar, tabs) onde ainda não está.
-
----
-
-## Detalhes técnicos
-
-**Arquivos novos**
-- `src/routes/admin.tsx` (login)
-- `src/routes/admin/_panel.tsx` (layout protegido)
-- `src/routes/admin/_panel/index.tsx` (dashboard usuários)
-- `src/routes/ofertalancamento.tsx`
-- `src/lib/admin.functions.ts` (server fns: adminLogin, adminLogout, listUsers, promoteUser, demoteUser + middleware requireAdminSession)
-
-**Arquivos editados**
-- `src/routes/_app/upgrade.tsx` (redesign completo)
-- `src/routes/_app/mind.tsx` (remover toast)
-- `src/styles.css` (animações)
-
-**Segredos a adicionar**
-- `ADMIN_PASSWORD`
-- `SESSION_SECRET` (se ainda não existir)
-
-**Não muda**
-- Schema do banco (usa colunas existentes de `user_plans`).
-- Lógica do TraderScan, Notícias, CryptoBubbles, autenticação dos usuários comuns.
+Posso aplicar as correções?
