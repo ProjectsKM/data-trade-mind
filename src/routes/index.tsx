@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
+import { LineChart, BrainCircuit, ClipboardList, Calculator, Zap, ShieldCheck, Target, Smartphone, BarChart3, Languages, type LucideIcon } from "lucide-react";
 import { useUser, type User } from "@/lib/store";
 import { useReveal } from "@/lib/useReveal";
 
@@ -183,28 +184,30 @@ function ToolsSection() {
     <section id="tools" className="mx-auto max-w-6xl px-6 py-24">
       <SectionHeader tag="FERRAMENTAS" title="Tudo que você precisa para operar com mais clareza" sub="Quatro módulos integrados, alimentados por IA." />
       <div className="grid grid-cols-1 gap-4 stagger md:grid-cols-2">
-        <ToolCard tone="blue" icon="📈" title="TraderScan"
+        <ToolCard tone="blue" Icon={LineChart} title="TraderScan"
           desc="Cole ou arraste a print de qualquer gráfico. A IA identifica padrões, indicadores, suporte/resistência e devolve direção, confiança e horários de entrada e proteção."
           feats={["Vision Claude para análise visual", "Funciona em qualquer broker", "Saída estruturada (CALL/PUT)"]} />
-        <ToolCard tone="cyan" icon="🧠" title="OrionMind"
+        <ToolCard tone="cyan" Icon={BrainCircuit} title="OrionMind"
           desc="Seu mentor IA 24/7. Conversa contextualizada sobre estratégias, gestão de risco, psicologia de trade. Pode diagnosticar sua planilha de operações."
           feats={["Memória da conversa", "Diagnóstico da sua planilha", "Português natural"]} />
-        <ToolCard tone="purple" icon="📋" title="Planilha"
+        <ToolCard tone="purple" Icon={ClipboardList} title="Planilha"
           desc="Registre cada operação. Win-rate, lucro acumulado, melhor ativo e horário. Tudo gerado automaticamente."
           feats={["Stats em tempo real", "Export CSV", "Filtros por período"]} />
-        <ToolCard tone="gold" icon="🧮" title="Calculadora"
+        <ToolCard tone="gold" Icon={Calculator} title="Calculadora"
           desc="Quanto entrar em cada trade? Stop loss diário? Sequência de martingale? A calculadora resolve."
           feats={["Gestão por % da banca", "Martingale seguro", "Projeção de lucro"]} />
       </div>
     </section>
   );
 }
-function ToolCard({ tone, icon, title, desc, feats }: { tone: "blue" | "cyan" | "purple" | "gold"; icon: string; title: string; desc: string; feats: string[] }) {
+function ToolCard({ tone, Icon, title, desc, feats }: { tone: "blue" | "cyan" | "purple" | "gold"; Icon: LucideIcon; title: string; desc: string; feats: string[] }) {
   const tones: Record<string, string> = { blue: "var(--accent)", cyan: "var(--electric)", purple: "var(--purple)", gold: "var(--gold)" };
   return (
     <div className="group rounded-3xl border p-8 hover-lift hover-glow" style={{ background: "var(--surface)", borderColor: "var(--border)" }}>
-      <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl text-2xl"
-        style={{ background: `color-mix(in oklab, ${tones[tone]} 8%, transparent)`, border: `1px solid color-mix(in oklab, ${tones[tone]} 18%, transparent)` }}>{icon}</div>
+      <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl"
+        style={{ background: `color-mix(in oklab, ${tones[tone]} 8%, transparent)`, border: `1px solid color-mix(in oklab, ${tones[tone]} 18%, transparent)` }}>
+        <Icon className="h-6 w-6" style={{ color: tones[tone] }} strokeWidth={1.75} />
+      </div>
       <h3 className="mb-2.5 text-xl font-extrabold tracking-tight">{title}</h3>
       <p className="mb-4 text-sm leading-relaxed text-muted-foreground">{desc}</p>
       <ul className="flex flex-col gap-1.5">
@@ -224,17 +227,17 @@ function FeaturesSection() {
       <SectionHeader tag="POR QUE ORIONHUB" title="Pensado para o trader real" sub="Não é mais um indicador. É um copiloto." />
       <div className="grid grid-cols-1 gap-4 stagger md:grid-cols-3">
         {[
-          { icon: "⚡", title: "Análise em < 2s", desc: "Cole o print e em segundos a IA devolve direção, confiança e padrões identificados." },
-          { icon: "🔒", title: "Privacidade", desc: "Suas imagens não são armazenadas. Conversas e trades ficam só no seu navegador." },
-          { icon: "🎯", title: "Sem ruído", desc: "Sinais objetivos, sem prometer milagres. Sempre com gestão de risco em primeiro lugar." },
-          { icon: "📲", title: "Funciona no celular", desc: "Cole o print direto da corretora. Funciona em qualquer dispositivo." },
-          { icon: "📊", title: "Dados que evoluem", desc: "Quanto mais você opera, melhor seu relatório. Diagnóstico real do que funciona." },
-          { icon: "🇧🇷", title: "100% em português", desc: "IA treinada para responder de forma simples e direta, sem termos confusos." },
+          { Icon: Zap, title: "Análise em < 2s", desc: "Cole o print e em segundos a IA devolve direção, confiança e padrões identificados." },
+          { Icon: ShieldCheck, title: "Privacidade", desc: "Suas imagens não são armazenadas. Conversas e trades ficam só no seu navegador." },
+          { Icon: Target, title: "Sem ruído", desc: "Sinais objetivos, sem prometer milagres. Sempre com gestão de risco em primeiro lugar." },
+          { Icon: Smartphone, title: "Funciona no celular", desc: "Cole o print direto da corretora. Funciona em qualquer dispositivo." },
+          { Icon: BarChart3, title: "Dados que evoluem", desc: "Quanto mais você opera, melhor seu relatório. Diagnóstico real do que funciona." },
+          { Icon: Languages, title: "100% em português", desc: "IA treinada para responder de forma simples e direta, sem termos confusos." },
         ].map((f) => (
           <div key={f.title} className="rounded-2xl border p-7 hover-lift hover-glow" style={{ background: "var(--surface)", borderColor: "var(--border)" }}>
-            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl text-xl"
+            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl"
               style={{ background: "color-mix(in oklab, var(--accent) 7%, transparent)", border: "1px solid color-mix(in oklab, var(--accent) 15%, transparent)" }}>
-              {f.icon}
+              <f.Icon className="h-5 w-5" style={{ color: "var(--electric)" }} strokeWidth={1.75} />
             </div>
             <h3 className="mb-2 text-base font-bold">{f.title}</h3>
             <p className="text-[13px] leading-relaxed text-muted-foreground">{f.desc}</p>
