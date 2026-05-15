@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { useAppState, type ScanResult } from "@/lib/store";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/app/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -135,9 +136,18 @@ function ScanPage() {
         | "image/jpeg"
         | "image/webp"
         | "image/gif";
+      const { data: sess } = await supabase.auth.getSession();
+      const token = sess.session?.access_token;
+      if (!token) {
+        const msg = "Sessão expirada. Faça login novamente.";
+        setErr(msg); toast.error(msg); setStage("error"); return;
+      }
       const r = await fetch("/api/ai-scan", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({ imageBase64: b64, mediaType, durationMin: duration }),
       });
       const data = (await r.json()) as { ok: boolean; result?: ScanResult; error?: string };
