@@ -1,16 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
-
-const CORS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type",
-} as const;
+import { corsHeaders } from "@/lib/cors";
 
 export const Route = createFileRoute("/api/calendar")({
   server: {
     handlers: {
-      OPTIONS: async () => new Response(null, { status: 204, headers: CORS }),
-      GET: async () => {
+      OPTIONS: async ({ request }: { request: Request }) =>
+        new Response(null, { status: 204, headers: corsHeaders(request) }),
+      GET: async ({ request }: { request: Request }) => {
+        const CORS = corsHeaders(request);
         try {
           const r = await fetch("https://nfs.faireconomy.media/ff_calendar_thisweek.json", {
             headers: { Accept: "application/json", "User-Agent": "OrionHub/1.0" },

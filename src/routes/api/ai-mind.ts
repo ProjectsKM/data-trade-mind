@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import "@tanstack/react-start";
 import { z } from "zod";
-import { CORS_HEADERS, jsonResponse } from "@/lib/cors";
+import { corsHeaders, jsonResponse } from "@/lib/cors";
+import { verifySupabaseUser } from "@/lib/verify-supabase-jwt.server";
 
 const OPENAI_URL = "https://api.openai.com/v1/responses";
 const MODEL = "gpt-4o-mini";
@@ -67,12 +68,16 @@ const Body = z.object({
 export const Route = createFileRoute("/api/ai-mind")({
   server: {
     handlers: {
-      OPTIONS: async () => new Response(null, { status: 204, headers: CORS_HEADERS }),
+      OPTIONS: async ({ request }: { request: Request }) =>
+        new Response(null, { status: 204, headers: corsHeaders(request) }),
       POST: async ({ request }: { request: Request }) => {
+        const userId = await verifySupabaseUser(request);
+        if (!userId) return jsonResponse({ ok: false, error: "Não autorizado." }, 401, request);
+
         let body: z.infer<typeof Body>;
-        try { body = Body.parse(await request.json()); } catch { return jsonResponse({ ok: false, error: "Mensagens inválidas." }, 400); }
+        try { body = Body.parse(await request.json()); } catch { return jsonResponse({ ok: false, error: "Mensagens inválidas." }, 400, request); }
         const apiKey = process.env.OPENAI_API_KEY;
-        if (!apiKey) return jsonResponse({ ok: false, error: "API key não configurada." }, 500);
+        if (!apiKey) return jsonResponse({ ok: false, error: "API key não configurada." }, 500, request);
         try {
           const input = [
             { role: "system" as const, content: SYSTEM },
@@ -86,8 +91,8 @@ export const Route = createFileRoute("/api/ai-mind")({
           if (!r.ok || !r.body) {
             const txt = await r.text().catch(() => "");
             console.error("ai-mind error", r.status, txt);
-            if (r.status === 429) return jsonResponse({ ok: false, error: "Muitas mensagens em sequência. Aguarde." }, 429);
-            return jsonResponse({ ok: false, error: "Falha ao consultar a IA." }, 502);
+            if (r.status === 429) return jsonResponse({ ok: false, error: "Muitas mensagens em sequência. Aguarde." }, 429, request);
+            return jsonResponse({ ok: false, error: "Falha ao consultar a IA." }, 502, request);
           }
           // Proxy SSE stream and re-emit only delta text as simple "data: <chunk>" lines.
           const reader = r.body.getReader();
@@ -129,7 +134,7 @@ export const Route = createFileRoute("/api/ai-mind")({
           return new Response(stream, {
             status: 200,
             headers: {
-              ...CORS_HEADERS,
+              ...corsHeaders(request),
               "Content-Type": "text/event-stream; charset=utf-8",
               "Cache-Control": "no-cache, no-transform",
               "Connection": "keep-alive",
@@ -137,7 +142,7 @@ export const Route = createFileRoute("/api/ai-mind")({
           });
         } catch (e) {
           console.error("ai-mind exception", e);
-          return jsonResponse({ ok: false, error: "Erro de conexão com a IA." }, 502);
+          return jsonResponse({ ok: false, error: "Erro de conexão com a IA." }, 502, request);
         }
       },
     },
