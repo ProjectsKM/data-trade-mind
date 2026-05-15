@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Check, X, Crown, BrainCircuit, LineChart, Newspaper, Bitcoin, Calculator,
   ClipboardList, Infinity as InfinityIcon, ShieldCheck, Zap, Gem, Sparkles, ArrowRight,
