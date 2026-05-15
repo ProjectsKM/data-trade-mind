@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Check, X, Crown, BrainCircuit, LineChart, Newspaper, Bitcoin, Calculator,
   ClipboardList, Infinity as InfinityIcon, ShieldCheck, Zap, Gem, Sparkles, ArrowRight,
@@ -55,10 +55,15 @@ function BgFx() {
 }
 
 function ExpiringBar() {
-  const target = new Date(Date.now() + 1000 * 60 * 60 * 24 * 3);
-  const [now, setNow] = useState(Date.now());
-  useEffect(() => { const i = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(i); }, []);
-  const diff = Math.max(0, target.getTime() - now);
+  const targetRef = useRef<number | null>(null);
+  const [now, setNow] = useState<number | null>(null);
+  useEffect(() => {
+    targetRef.current = Date.now() + 1000 * 60 * 60 * 24 * 3;
+    setNow(Date.now());
+    const i = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(i);
+  }, []);
+  const diff = now && targetRef.current ? Math.max(0, targetRef.current - now) : 1000 * 60 * 60 * 24 * 3;
   const d = Math.floor(diff / 86400000);
   const h = Math.floor((diff % 86400000) / 3600000);
   const m = Math.floor((diff % 3600000) / 60000);
@@ -83,10 +88,15 @@ function ExpiringBar() {
 }
 
 function Countdown() {
-  const target = new Date(Date.now() + 1000 * 60 * 60 * 24 * 3);
-  const [now, setNow] = useState(Date.now());
-  useEffect(() => { const i = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(i); }, []);
-  const diff = Math.max(0, target.getTime() - now);
+  const targetRef = useRef<number | null>(null);
+  const [now, setNow] = useState<number | null>(null);
+  useEffect(() => {
+    targetRef.current = Date.now() + 1000 * 60 * 60 * 24 * 3;
+    setNow(Date.now());
+    const i = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(i);
+  }, []);
+  const diff = now && targetRef.current ? Math.max(0, targetRef.current - now) : 1000 * 60 * 60 * 24 * 3;
   const d = Math.floor(diff / 86400000);
   const h = Math.floor((diff % 86400000) / 3600000);
   const m = Math.floor((diff % 3600000) / 60000);
