@@ -117,8 +117,13 @@ function Hero() {
           do mentor <span style={{ color: "var(--electric)" }}>Gabriel Dutra</span>
         </h1>
         <p className="mx-auto mt-5 max-w-2xl text-base text-muted-foreground md:text-lg fade-up" style={{ animationDelay: ".15s" }}>
-          OrionHub reúne IA de análise gráfica, mentor virtual 24/7, calendário econômico e radar cripto.
-          Preço promocional de lançamento — pagamento único, 12 meses de acesso completo.
+          Pare de operar no escuro. O OrionHub junta <strong className="text-foreground">análise gráfica com IA</strong>,
+          <strong className="text-foreground"> mentor virtual 24/7</strong>, calendário econômico em tempo real e radar
+          cripto — tudo numa única plataforma criada com a metodologia do Gabriel Dutra para você
+          <strong className="text-foreground"> entrar melhor, sair melhor e gerir sua banca com disciplina</strong>.
+        </p>
+        <p className="mx-auto mt-3 max-w-xl text-sm text-muted-foreground fade-up" style={{ animationDelay: ".2s" }}>
+          Pagamento único · 12 meses de acesso completo · Garantia de 7 dias.
         </p>
         <div className="mt-7 flex flex-col items-center gap-4 fade-up" style={{ animationDelay: ".25s" }}>
           <Countdown />
