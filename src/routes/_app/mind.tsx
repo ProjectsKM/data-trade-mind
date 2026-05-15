@@ -176,9 +176,19 @@ function MindPage() {
     autoFollowRef.current = true;
     try {
       const history = [...(messages.length ? messages : []), userMsg].map((m) => ({ role: m.role, content: m.content }));
+      const { data: sess } = await supabase.auth.getSession();
+      const token = sess.session?.access_token;
+      if (!token) {
+        toast.error("Sessão expirada. Faça login novamente.");
+        setBusy(false);
+        return;
+      }
       const r = await fetch("/api/ai-mind", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({ messages: history }),
       });
       const ctype = r.headers.get("content-type") || "";

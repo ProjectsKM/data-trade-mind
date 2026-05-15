@@ -8,7 +8,11 @@ const COOKIE_NAME = "orion_admin";
 const MAX_AGE = 60 * 60 * 12; // 12h
 
 function secret() {
-  return process.env.SESSION_SECRET || process.env.ADMIN_PASSWORD || "lovable-orion-admin-fallback-secret";
+  const s = process.env.SESSION_SECRET;
+  if (!s || s.length < 32) {
+    throw new Error("SESSION_SECRET must be set and at least 32 characters.");
+  }
+  return s;
 }
 function sign(payload: string) {
   return createHmac("sha256", secret()).update(payload).digest("hex");
@@ -55,7 +59,7 @@ export const adminLogin = createServerFn({ method: "POST" })
     setCookie(COOKIE_NAME, makeToken(), {
       httpOnly: true,
       secure: true,
-      sameSite: "none",
+      sameSite: "lax",
       path: "/",
       maxAge: MAX_AGE,
     });

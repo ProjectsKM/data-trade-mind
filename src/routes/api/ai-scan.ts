@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import "@tanstack/react-start";
 import { z } from "zod";
-import { CORS_HEADERS, jsonResponse } from "@/lib/cors";
+import { corsHeaders, jsonResponse } from "@/lib/cors";
+import { verifySupabaseUser } from "@/lib/verify-supabase-jwt.server";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const OPENAI_URL = "https://api.openai.com/v1/chat/completions";
 const MODEL = "gpt-4o-mini";
@@ -31,13 +33,38 @@ function buildPrompt(durationMin: number, baseDate: Date) {
 export const Route = createFileRoute("/api/ai-scan")({
   server: {
     handlers: {
-      OPTIONS: async () => new Response(null, { status: 204, headers: CORS_HEADERS }),
+      OPTIONS: async ({ request }: { request: Request }) =>
+        new Response(null, { status: 204, headers: corsHeaders(request) }),
       POST: async ({ request }: { request: Request }) => {
+        const userId = await verifySupabaseUser(request);
+        if (!userId) return jsonResponse({ ok: false, error: "Não autorizado." }, 401, request);
+
         let body: z.infer<typeof Body>;
-        try { body = Body.parse(await request.json()); } catch { return jsonResponse({ ok: false, error: "Dados inválidos." }, 400); }
+        try { body = Body.parse(await request.json()); } catch { return jsonResponse({ ok: false, error: "Dados inválidos." }, 400, request); }
         const apiKey = process.env.OPENAI_API_KEY;
-        if (!apiKey) return jsonResponse({ ok: false, error: "API key não configurada no servidor." }, 500);
-        if (body.imageBase64.length > 7_000_000) return jsonResponse({ ok: false, error: "Imagem muito grande (máx ~5 MB)." }, 413);
+        if (!apiKey) return jsonResponse({ ok: false, error: "API key não configurada no servidor." }, 500, request);
+        if (body.imageBase64.length > 7_000_000) return jsonResponse({ ok: false, error: "Imagem muito grande (máx ~5 MB)." }, 413, request);
+
+        // Server-side quota: PRO bypassa, free decrementa atomico.
+        const { data: plan, error: planErr } = await supabaseAdmin
+          .from("user_plans")
+          .select("is_pro, analyses_left")
+          .eq("user_id", userId)
+          .maybeSingle();
+        if (planErr) return jsonResponse({ ok: false, error: "Falha ao validar plano." }, 500, request);
+        const isPro = plan?.is_pro ?? false;
+        const left = plan?.analyses_left ?? 0;
+        if (!isPro) {
+          if (left <= 0) {
+            return jsonResponse({ ok: false, error: "Você usou suas análises do trial. Ative o acesso anual para continuar." }, 402, request);
+          }
+          const { error: updErr } = await supabaseAdmin
+            .from("user_plans")
+            .update({ analyses_left: left - 1 })
+            .eq("user_id", userId)
+            .eq("analyses_left", left);
+          if (updErr) return jsonResponse({ ok: false, error: "Falha ao consumir crédito." }, 500, request);
+        }
 
         const prompt = buildPrompt(body.durationMin, new Date());
         try {
@@ -61,22 +88,22 @@ export const Route = createFileRoute("/api/ai-scan")({
           if (!r.ok) {
             const txt = await r.text();
             console.error("OpenAI error", r.status, txt);
-            if (r.status === 429) return jsonResponse({ ok: false, error: "Limite de requisições. Aguarde um momento." }, 429);
-            if (r.status === 401) return jsonResponse({ ok: false, error: "API key inválida." }, 500);
-            return jsonResponse({ ok: false, error: "Falha ao consultar a IA." }, 502);
+            if (r.status === 429) return jsonResponse({ ok: false, error: "Limite de requisições. Aguarde um momento." }, 429, request);
+            if (r.status === 401) return jsonResponse({ ok: false, error: "API key inválida." }, 500, request);
+            return jsonResponse({ ok: false, error: "Falha ao consultar a IA." }, 502, request);
           }
           const data = (await r.json()) as { choices?: Array<{ message?: { content?: string } }> };
           const txt = data.choices?.[0]?.message?.content ?? "";
           let parsed: Record<string, unknown> | null = null;
           try { parsed = JSON.parse(txt.replace(/```json|```/g, "").trim()); } catch { parsed = null; }
-          if (!parsed) return jsonResponse({ ok: false, error: "Não foi possível interpretar a resposta. Tente uma imagem mais nítida." }, 200);
+          if (!parsed) return jsonResponse({ ok: false, error: "Não foi possível interpretar a resposta. Tente uma imagem mais nítida." }, 200, request);
           parsed.entrada = prompt.entrada;
           parsed.protecao1 = prompt.prot1;
           parsed.protecao2 = prompt.prot2;
-          return jsonResponse({ ok: true, result: parsed });
+          return jsonResponse({ ok: true, result: parsed }, 200, request);
         } catch (e) {
           console.error("ai-scan failed", e);
-          return jsonResponse({ ok: false, error: "Erro de conexão com a IA." }, 502);
+          return jsonResponse({ ok: false, error: "Erro de conexão com a IA." }, 502, request);
         }
       },
     },
