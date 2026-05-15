@@ -30,7 +30,7 @@ function OfertaPage() {
   return (
     <div className="min-h-dvh" style={{ background: "var(--background)", color: "var(--foreground)" }}>
       <BgFx />
-      <Header />
+      <ExpiringBar />
       <Reveal><Pricing /></Reveal>
       <Hero />
       <Reveal><Compare /></Reveal>
@@ -54,18 +54,31 @@ function BgFx() {
   );
 }
 
-function Header() {
+function ExpiringBar() {
+  const target = new Date(Date.now() + 1000 * 60 * 60 * 24 * 3);
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => { const i = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(i); }, []);
+  const diff = Math.max(0, target.getTime() - now);
+  const d = Math.floor(diff / 86400000);
+  const h = Math.floor((diff % 86400000) / 3600000);
+  const m = Math.floor((diff % 3600000) / 60000);
+  const s = Math.floor((diff % 60000) / 1000);
+  const pad = (n: number) => String(n).padStart(2, "0");
   return (
-    <header className="relative z-10 flex items-center justify-between px-6 py-5 md:px-12">
-      <Link to="/" className="font-display text-xl font-black tracking-tight">
-        Orion<span style={{ color: "var(--electric)" }}>Hub</span>
-      </Link>
-      <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer"
-        className="rounded-full px-4 py-2 text-xs font-bold smooth press hover:-translate-y-0.5"
-        style={{ background: "var(--gradient-primary)", color: "var(--accent-foreground)" }}>
-        Garantir acesso →
-      </a>
-    </header>
+    <div className="sticky top-0 z-30 w-full border-b backdrop-blur"
+      style={{
+        background: "linear-gradient(90deg, color-mix(in oklab, var(--accent) 22%, var(--background)), color-mix(in oklab, var(--electric) 22%, var(--background)))",
+        borderColor: "color-mix(in oklab, var(--accent) 35%, transparent)",
+      }}>
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-3 px-4 py-2.5 text-center text-xs md:text-sm">
+        <Zap className="h-4 w-4" style={{ color: "var(--electric)" }} />
+        <span className="font-semibold uppercase tracking-wider">Oferta de lançamento expira em</span>
+        <span className="tabular font-display text-base font-black md:text-lg" style={{ color: "var(--accent)" }}>
+          {pad(d)}d : {pad(h)}h : {pad(m)}m : {pad(s)}s
+        </span>
+        <span className="hidden text-muted-foreground md:inline">· vagas limitadas</span>
+      </div>
+    </div>
   );
 }
 
@@ -104,8 +117,13 @@ function Hero() {
           do mentor <span style={{ color: "var(--electric)" }}>Gabriel Dutra</span>
         </h1>
         <p className="mx-auto mt-5 max-w-2xl text-base text-muted-foreground md:text-lg fade-up" style={{ animationDelay: ".15s" }}>
-          OrionHub reúne IA de análise gráfica, mentor virtual 24/7, calendário econômico e radar cripto.
-          Preço promocional de lançamento — pagamento único, 12 meses de acesso completo.
+          Pare de operar no escuro. O OrionHub junta <strong className="text-foreground">análise gráfica com IA</strong>,
+          <strong className="text-foreground"> mentor virtual 24/7</strong>, calendário econômico em tempo real e radar
+          cripto — tudo numa única plataforma criada com a metodologia do Gabriel Dutra para você
+          <strong className="text-foreground"> entrar melhor, sair melhor e gerir sua banca com disciplina</strong>.
+        </p>
+        <p className="mx-auto mt-3 max-w-xl text-sm text-muted-foreground fade-up" style={{ animationDelay: ".2s" }}>
+          Pagamento único · 12 meses de acesso completo · Garantia de 7 dias.
         </p>
         <div className="mt-7 flex flex-col items-center gap-4 fade-up" style={{ animationDelay: ".25s" }}>
           <Countdown />
