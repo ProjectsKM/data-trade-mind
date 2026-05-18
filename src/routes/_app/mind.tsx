@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { useUser, type ChatMsg } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { VoiceRecorder } from "@/components/app/VoiceRecorder";
 
 export const Route = createFileRoute("/_app/mind")({
   head: () => ({ meta: [{ title: "OrionMind — OrionHub" }] }),
@@ -399,6 +400,10 @@ function MindPage() {
                 onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(); } }}
                 placeholder="Pergunte ao OrionMind…" rows={1}
                 className="flex-1 resize-none bg-transparent px-2 py-2 text-sm outline-none placeholder:text-[color:var(--text-dim)]" />
+              <VoiceRecorder
+                disabled={busy}
+                onTranscript={(t) => setInput((cur) => (cur ? cur + " " : "") + t)}
+              />
               <Button onClick={() => void send()} disabled={busy || !input.trim()} size="icon" className="h-9 w-9 flex-none">
                 <Send className="h-4 w-4" strokeWidth={1.75} />
               </Button>

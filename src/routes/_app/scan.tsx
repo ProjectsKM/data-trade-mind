@@ -17,13 +17,29 @@ import {
   Clock,
   History,
   Trash2,
+  ClipboardList,
+  Plus,
 } from "lucide-react";
-import { useAppState, type ScanResult } from "@/lib/store";
+import { useAppState, type ScanResult, type Trade } from "@/lib/store";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/app/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  ASSETS,
+  CATEGORIA_LABEL,
+  type Categoria,
+  payoutForCategoria,
+  categoriaForAtivo,
+  getBanca,
+  getValorMode,
+  setValorMode as persistValorMode,
+  calcLucro,
+} from "@/lib/assets";
 import {
   loadScanHistory,
   addScanHistory,
@@ -481,6 +497,7 @@ function ResultView({ r, thumb, onReset }: { r: ScanResult; thumb: string; onRes
   const isCall = r.direcao === "COMPRA";
   const conf = Math.min(100, Math.max(0, Number(r.confianca) || 50));
   const confColor = conf >= 75 ? "var(--green)" : conf >= 50 ? "var(--gold)" : "var(--red)";
+  const [openReg, setOpenReg] = useState(false);
 
   return (
     <div className="space-y-4 fade-up">
@@ -631,7 +648,13 @@ function ResultView({ r, thumb, onReset }: { r: ScanResult; thumb: string; onRes
           <ImageIcon className="h-4 w-4" strokeWidth={1.75} />
           Nova análise
         </Button>
+        <Button onClick={() => setOpenReg(true)} className="flex-1 gap-2" style={{ background: "var(--gradient-primary)", color: "var(--accent-foreground)" }}>
+          <ClipboardList className="h-4 w-4" strokeWidth={1.75} />
+          Registrar operação
+        </Button>
       </div>
+
+      <RegisterTradeDialog open={openReg} onOpenChange={setOpenReg} scan={r} />
     </div>
   );
 }
@@ -645,5 +668,161 @@ function ChipSection({ label, children }: { label: string; children: React.React
       <div className="mb-2.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{label}</div>
       <div className="flex flex-wrap gap-1.5">{children}</div>
     </div>
+  );
+}
+
+function RegisterTradeDialog({ open, onOpenChange, scan }: { open: boolean; onOpenChange: (o: boolean) => void; scan: ScanResult }) {
+  const { addTrade } = useAppState();
+  const initialCat: Categoria = (scan.ativo && categoriaForAtivo(scan.ativo)) || "CRIPTO";
+  const [categoria, setCategoria] = useState<Categoria>(initialCat);
+  const [ativo, setAtivo] = useState<string>(() => {
+    if (scan.ativo) {
+      const match = ASSETS[initialCat].find((a) => a.toUpperCase() === scan.ativo!.toUpperCase());
+      if (match) return match;
+    }
+    return ASSETS[initialCat][0];
+  });
+  const [dir, setDir] = useState<"COMPRA" | "VENDA">(scan.direcao === "VENDA" ? "VENDA" : "COMPRA");
+  const [res, setRes] = useState<"WIN" | "LOSS">("WIN");
+  const [payout, setPayout] = useState(String(payoutForCategoria(initialCat)));
+  const [valor, setValor] = useState("");
+  const [valorMode, setValorMode] = useState<"VALOR" | "PCT">(() => (typeof window !== "undefined" ? getValorMode() : "VALOR"));
+  const [obs, setObs] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [banca, setBancaSt] = useState<number | null>(null);
+  useEffect(() => { if (open) setBancaSt(getBanca()); }, [open]);
+
+  function changeCat(c: Categoria) {
+    setCategoria(c);
+    setAtivo(ASSETS[c][0]);
+    setPayout(String(payoutForCategoria(c)));
+  }
+
+  async function submit() {
+    const v = parseFloat(valor);
+    const p = parseFloat(payout);
+    if (!isFinite(v) || v <= 0 || !isFinite(p)) { toast.error("Preencha valor e payout."); return; }
+    let finalValor = v;
+    if (valorMode === "PCT") {
+      if (!banca || banca <= 0) { toast.error("Defina a banca na aba Gestão antes de operar em %."); return; }
+      finalValor = +(banca * (v / 100)).toFixed(2);
+    }
+    setBusy(true);
+    try {
+      await addTrade({
+        ativo,
+        data: new Date().toISOString(),
+        dir,
+        valor: finalValor,
+        payout: p,
+        res,
+        lucro: calcLucro(finalValor, p, res),
+        obs: obs.trim() || undefined,
+      });
+      toast.success(`Operação ${ativo} registrada.`);
+      onOpenChange(false);
+    } catch {
+      toast.error("Falha ao registrar operação.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Registrar operação</DialogTitle>
+        </DialogHeader>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div>
+            <label className="mb-1 block text-[10px] uppercase tracking-wider text-muted-foreground">Categoria</label>
+            <Select value={categoria} onValueChange={(v) => changeCat(v as Categoria)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {(Object.keys(ASSETS) as Categoria[]).map((c) => <SelectItem key={c} value={c}>{CATEGORIA_LABEL[c]}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label className="mb-1 block text-[10px] uppercase tracking-wider text-muted-foreground">Ativo</label>
+            <Select value={ativo} onValueChange={setAtivo}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {ASSETS[categoria].map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label className="mb-1 block text-[10px] uppercase tracking-wider text-muted-foreground">Direção</label>
+            <Select value={dir} onValueChange={(v) => setDir(v as "COMPRA" | "VENDA")}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="COMPRA">Compra</SelectItem>
+                <SelectItem value="VENDA">Venda</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label className="mb-1 block text-[10px] uppercase tracking-wider text-muted-foreground">Resultado</label>
+            <Select value={res} onValueChange={(v) => setRes(v as "WIN" | "LOSS")}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="WIN">Win</SelectItem>
+                <SelectItem value="LOSS">Loss</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="sm:col-span-2">
+            <label className="mb-1 block text-[10px] uppercase tracking-wider text-muted-foreground">
+              Valor {valorMode === "PCT" ? "(% da banca)" : "(USD)"}
+            </label>
+            <div className="flex gap-1.5">
+              <Input type="number" step="0.01" value={valor} onChange={(e) => setValor(e.target.value)} placeholder={valorMode === "PCT" ? "Ex: 2" : "Ex: 5.00"} />
+              <div className="inline-flex rounded-md border p-0.5" style={{ borderColor: "var(--border-strong)", background: "var(--surface-2)" }}>
+                {(["VALOR", "PCT"] as const).map((m) => {
+                  const active = valorMode === m;
+                  return (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => { setValorMode(m); persistValorMode(m); }}
+                      className="rounded px-2 text-[11px] font-semibold smooth"
+                      style={active ? { background: "var(--accent)", color: "var(--accent-foreground)" } : { color: "var(--text-muted)" }}
+                    >
+                      {m === "VALOR" ? "$" : "%"}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            {valorMode === "PCT" && valor && isFinite(parseFloat(valor)) && banca && (
+              <div className="mt-1 font-mono text-[10px] text-[color:var(--text-dim)]">
+                = ${(banca * (parseFloat(valor) / 100)).toFixed(2)}
+              </div>
+            )}
+            {valorMode === "PCT" && !banca && (
+              <div className="mt-1 text-[10px]" style={{ color: "var(--red)" }}>
+                Defina a banca na aba Gestão para operar em %.
+              </div>
+            )}
+          </div>
+          <div>
+            <label className="mb-1 block text-[10px] uppercase tracking-wider text-muted-foreground">Payout %</label>
+            <Input type="number" value={payout} onChange={(e) => setPayout(e.target.value)} />
+          </div>
+          <div className="sm:col-span-2">
+            <label className="mb-1 block text-[10px] uppercase tracking-wider text-muted-foreground">Observação</label>
+            <Input value={obs} onChange={(e) => setObs(e.target.value)} placeholder="Opcional" />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>Cancelar</Button>
+          <Button onClick={() => void submit()} disabled={busy} className="gap-1.5">
+            <Plus className="h-4 w-4" /> Registrar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

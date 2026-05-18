@@ -15,6 +15,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiTranscribeRouteImport } from './routes/api/transcribe'
 import { Route as ApiCalendarRouteImport } from './routes/api/calendar'
 import { Route as ApiAiScanRouteImport } from './routes/api/ai-scan'
 import { Route as ApiAiMindRouteImport } from './routes/api/ai-mind'
@@ -55,6 +56,11 @@ const AppRoute = AppRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiTranscribeRoute = ApiTranscribeRouteImport.update({
+  id: '/api/transcribe',
+  path: '/api/transcribe',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiCalendarRoute = ApiCalendarRouteImport.update({
@@ -136,6 +142,7 @@ export interface FileRoutesByFullPath {
   '/api/ai-mind': typeof ApiAiMindRoute
   '/api/ai-scan': typeof ApiAiScanRoute
   '/api/calendar': typeof ApiCalendarRoute
+  '/api/transcribe': typeof ApiTranscribeRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -155,6 +162,7 @@ export interface FileRoutesByTo {
   '/api/ai-mind': typeof ApiAiMindRoute
   '/api/ai-scan': typeof ApiAiScanRoute
   '/api/calendar': typeof ApiCalendarRoute
+  '/api/transcribe': typeof ApiTranscribeRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -176,6 +184,7 @@ export interface FileRoutesById {
   '/api/ai-mind': typeof ApiAiMindRoute
   '/api/ai-scan': typeof ApiAiScanRoute
   '/api/calendar': typeof ApiCalendarRoute
+  '/api/transcribe': typeof ApiTranscribeRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -197,6 +206,7 @@ export interface FileRouteTypes {
     | '/api/ai-mind'
     | '/api/ai-scan'
     | '/api/calendar'
+    | '/api/transcribe'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -216,6 +226,7 @@ export interface FileRouteTypes {
     | '/api/ai-mind'
     | '/api/ai-scan'
     | '/api/calendar'
+    | '/api/transcribe'
   id:
     | '__root__'
     | '/'
@@ -236,6 +247,7 @@ export interface FileRouteTypes {
     | '/api/ai-mind'
     | '/api/ai-scan'
     | '/api/calendar'
+    | '/api/transcribe'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -248,6 +260,7 @@ export interface RootRouteChildren {
   ApiAiMindRoute: typeof ApiAiMindRoute
   ApiAiScanRoute: typeof ApiAiScanRoute
   ApiCalendarRoute: typeof ApiCalendarRoute
+  ApiTranscribeRoute: typeof ApiTranscribeRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -292,6 +305,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/transcribe': {
+      id: '/api/transcribe'
+      path: '/api/transcribe'
+      fullPath: '/api/transcribe'
+      preLoaderRoute: typeof ApiTranscribeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/calendar': {
@@ -417,17 +437,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAiMindRoute: ApiAiMindRoute,
   ApiAiScanRoute: ApiAiScanRoute,
   ApiCalendarRoute: ApiCalendarRoute,
+  ApiTranscribeRoute: ApiTranscribeRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
