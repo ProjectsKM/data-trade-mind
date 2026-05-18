@@ -37,11 +37,30 @@ import {
 import { Line, Bar, Doughnut } from "react-chartjs-2";
 import jsPDF from "jspdf";
 import { useAppState, type Trade } from "@/lib/store";
+import {
+  ASSETS,
+  CATEGORIA_LABEL,
+  type Categoria,
+  payoutForCategoria,
+  categoriaForAtivo,
+  getBanca,
+  setBanca as persistBanca,
+  getValorMode,
+  setValorMode as persistValorMode,
+  calcLucro as calcLucroShared,
+} from "@/lib/assets";
 import { PageHeader } from "@/components/app/PageHeader";
 import { StatCard } from "@/components/app/StatCard";
 import { EmptyState } from "@/components/app/EmptyState";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -58,20 +77,27 @@ export const Route = createFileRoute("/_app/gestao")({
 });
 
 type Form = {
+  categoria: Categoria;
   ativo: string;
   valor: string;
+  valorMode: "VALOR" | "PCT";
   payout: string;
   dir: "COMPRA" | "VENDA";
-  res: "WIN" | "LOSS" | "OPEN";
+  res: "WIN" | "LOSS";
   obs: string;
 };
-const emptyForm: Form = { ativo: "", valor: "", payout: "85", dir: "COMPRA", res: "WIN", obs: "" };
+const makeEmptyForm = (): Form => ({
+  categoria: "CRIPTO",
+  ativo: ASSETS.CRIPTO[0],
+  valor: "",
+  valorMode: typeof window !== "undefined" ? getValorMode() : "VALOR",
+  payout: String(payoutForCategoria("CRIPTO")),
+  dir: "COMPRA",
+  res: "WIN",
+  obs: "",
+});
 
-function calcLucro(valor: number, payout: number, res: Trade["res"]) {
-  if (res === "WIN") return +(valor * (payout / 100)).toFixed(2);
-  if (res === "LOSS") return -valor;
-  return 0;
-}
+const calcLucro = calcLucroShared;
 
 type ParsedRow = {
   line: number;
