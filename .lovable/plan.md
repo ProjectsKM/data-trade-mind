@@ -1,57 +1,80 @@
-## Auditoria de segurança — OrionHub
+# Plano de implementação
 
-Rodei o scanner completo (Supabase linter + Lovable security scan) e encontrei **7 problemas**, sendo **4 críticos**. Abaixo o plano para corrigir tudo.
+## 1. `/cryptobubbles` — filtrar ativos no iframe
+**Arquivo:** `src/routes/_app/cryptobubbles.tsx`
+- Trocar o `src` do `<iframe>` para `https://cryptobubbles.net/#currencies=1,1027,52,1831,2,5426,1839`.
+- Manter todo o resto do design (PageHeader, container, classes). Sem outras mudanças.
 
-### 🔴 Críticos
+## 2. `/mind` — remover bordão + microfone com transcrição
 
-**1. Escalada de privilégio em `user_plans`**
-A política RLS atual permite que qualquer usuário autenticado faça UPDATE no próprio registro de `user_plans` — ou seja, qualquer um pode setar `is_pro = true`, zerar limites, virar PRO de graça.
-- **Fix:** remover a policy `Users update own plan` da tabela `user_plans`. Promoção/rebaixamento continua funcionando porque é feito via `supabaseAdmin` em `admin.functions.ts` (service role bypassa RLS).
+### 2a. Remover "NÃO É SORTE, É MÉTODO"
+**Arquivo:** `src/routes/api/ai-mind.ts`
+- Retirar a linha do bordão do system prompt e qualquer instrução que mande o bot encerrar com a frase. Reforçar no prompt: "não use bordões nem frases de assinatura ao final".
 
-**2. Segredo hardcoded no admin (`src/lib/admin.functions.ts`)**
-Se `SESSION_SECRET`/`ADMIN_PASSWORD` faltarem, o HMAC cai num literal público (`"lovable-orion-admin-fallback-secret"`). Qualquer um forja o cookie `orion_admin` e ganha acesso total ao painel admin (listar usuários, promover, rebaixar).
-- **Fix:** remover o fallback. Lançar erro se `SESSION_SECRET` não estiver configurado. Exigir mínimo de 32 caracteres.
+### 2b. Botão de microfone + Speech-to-text
+**Arquivo:** `src/routes/_app/mind.tsx` + novo `src/routes/api/transcribe.ts`
+- Novo server route `POST /api/transcribe`:
+  - Autenticado via `verifySupabaseUser`.
+  - Recebe `multipart/form-data` com `audio` (webm/opus do MediaRecorder).
+  - Encaminha para OpenAI `https://api.openai.com/v1/audio/transcriptions` com `model=gpt-4o-mini-transcribe` (Whisper-class), idioma `pt`.
+  - Retorna `{ ok, text }`.
+- No input do chat (área já existente), adicionar:
+  - Ícone de microfone (lucide `Mic` / `Square` / `Trash2`).
+  - Ao clicar: pedir permissão, iniciar `MediaRecorder`.
+  - Enquanto grava: barra animada estilo espectrograma (várias barras com altura aleatória via `requestAnimationFrame` lendo `AnalyserNode.getByteFrequencyData`), timer mm:ss, e dois botões:
+    - **Pausar/Retomar** (`MediaRecorder.pause()` / `.resume()`).
+    - **Descartar** (parar sem enviar, fechar stream).
+    - **Enviar** (parar, montar `Blob`, enviar para `/api/transcribe`, e ao receber o texto, colocar em `setInput` para o usuário revisar e mandar — sem auto-envio).
+  - Loading state enquanto transcreve.
 
-**3. Rotas `/api/ai-scan` e `/api/ai-mind` sem autenticação**
-Qualquer pessoa na internet pode fazer POST nessas rotas e queimar sua quota da OpenAI. O limite `analysesLeft` só existe no cliente — totalmente burlável.
-- **Fix:** validar JWT do Supabase no handler antes de chamar OpenAI; se inválido → 401. Decrementar `analyses_left` server-side via `supabaseAdmin` (atomico) antes de chamar OpenAI; se 0 e não-pro → 402.
+## 3. `/gestao` — dropdowns de ativos, banca inicial, payout automático, % vs valor, observações visíveis, só Win/Loss
 
-**4. `attachSupabaseAuth` não registrado em `src/start.ts`**
-O middleware existe mas nunca é montado, então **nenhum** server function protegido por `requireSupabaseAuth` recebe o bearer token — todas falham com 401 (ou pior, ficam quebradas silenciosamente).
-- **Fix:** registrar `attachSupabaseAuth` em `functionMiddleware` no `createStart`.
+**Arquivo:** `src/routes/_app/gestao.tsx` (+ usar `Select` de `@/components/ui/select`)
 
-### 🟡 Avisos
+### 3a. Banca inicial obrigatória
+- Persistir em `localStorage` (`orion.gestao.banca`). Se não houver banca definida, ao abrir a aba **Operações** mostrar card centralizado com input "Defina sua banca inicial (USD)" e botão Salvar; só liberar o formulário depois.
+- Botão pequeno "Editar banca" no topo da aba para alterar.
 
-**5. Cookie admin com `SameSite=none`**
-Permite CSRF de qualquer site. Trocar para `"lax"`.
+### 3b. Dropdown de ativo por categoria
+- Novo state `categoria: "CRIPTO" | "FOREX" | "ACOES"` com `Select`.
+- Listas:
+  - Cripto: BTC/USD, XRP/USD, BCH/USD, LTC/USD, ETH/USD, BNB/USD, SOL/USD.
+  - Forex (Opções): GBP/AUD, EUR/NZD, AUD/CAD, AUD/NZD, AUD/JPY, CAD/CHF, CAD/JPY, CHF/JPY, EUR/CHF, EUR/AUD, EUR/CAD, EUR/GBP, EUR/USD, NZD/CHF, USD/JPY, NZD/CAD.
+  - Ações: Apple, Amazon, McDonalds, Microsoft, Tesla.
+- Segundo `Select` com os ativos da categoria selecionada (substitui o `Input` de ativo livre).
 
-**6. CORS wildcard em rotas que aceitam Authorization**
-`Access-Control-Allow-Origin: *` em `src/lib/cors.ts` e `calendar.ts`. Trocar para allowlist com a origem de produção (e a origem `*-dev.lovable.app`/`*.lovable.app` em dev), refletindo o `Origin` apenas se bater.
+### 3c. Payout automático por categoria
+- Cripto → 86, Forex/Opções → 85, Ações → 83.
+- Quando a categoria muda, atualizar `form.payout`. Campo Payout continua editável caso o usuário queira ajustar.
 
-**7. Proteção contra senhas vazadas desativada (Supabase Auth)**
-Ação manual no painel Supabase — mostrarei o link.
+### 3d. Valor em $ ou %
+- Toggle ($/%) ao lado do input valor. Quando `%`, o valor enviado é `banca * (pct/100)`.
+- Persistir preferência em `localStorage`.
 
----
+### 3e. Só Win/Loss
+- Remover opção "Aberta" do select de resultado (default WIN). Remover botão de "marcar como aberto" da tabela. Tipos: importação CSV ainda aceita OPEN para retrocompatibilidade, mas formulário só oferece WIN/LOSS.
 
-### Detalhes técnicos
+### 3f. Observação visível
+- Na tabela de operações, adicionar nova coluna "Obs" mostrando `t.obs` truncado com `title` no hover (tooltip nativo). Em mobile, ícone de balão que abre um popover/`Dialog` simples com o texto completo.
 
-**Migração SQL:**
-```sql
-DROP POLICY "Users update own plan" ON public.user_plans;
-```
+## 4. `/scan` — botão "Registrar operação" no resultado
 
-**Arquivos a editar:**
-- `src/start.ts` — registrar `attachSupabaseAuth`
-- `src/lib/admin.functions.ts` — remover fallback do secret + `sameSite: "lax"`
-- `src/routes/api/ai-scan.ts` — auth + decremento server-side de `analyses_left`
-- `src/routes/api/ai-mind.ts` — auth obrigatória
-- `src/lib/cors.ts` — allowlist de origens (produção + previews lovable)
-- `src/routes/api/calendar.ts` — usar mesma allowlist
+**Arquivo:** `src/routes/_app/scan.tsx`
+- No `ResultView`, abaixo do botão "Nova análise", adicionar botão destacado **"Registrar operação"** (ícone `ClipboardList`, estilo `Button` primário com gradiente accent).
+- Ao clicar: abre `Dialog` (shadcn) com mini-formulário pré-preenchido a partir do `ScanResult`:
+  - Categoria (Cripto/Forex/Ações) + Ativo (dropdown da categoria — mesmas listas da Gestão; default tenta casar `r.ativo`).
+  - Direção (Compra/Venda) — default `r.direcao`.
+  - Valor com toggle $/% (usa banca de `localStorage`; se vazia, exibir aviso para definir na Gestão).
+  - Payout (auto pela categoria, editável).
+  - Resultado (Win/Loss).
+  - Observação.
+- Submit chama `addTrade(...)` do `useAppState` com `calcLucro` local; toast de sucesso; fecha dialog.
 
-**Secrets necessários:**
-- Garantir que `SESSION_SECRET` esteja setado (já existe na lista — só vou validar). Se não tiver 32+ chars, peço para regenerar.
+## Detalhes técnicos
 
-**Ação manual do usuário (painel Supabase):**
-- Ativar "Leaked Password Protection" em Auth → Policies.
-
-Posso aplicar as correções?
+- Extrair as listas de ativos e a função `payoutForCategoria` para `src/lib/assets.ts` (compartilhado entre Gestão e Scan).
+- Extrair `calcLucro` para `src/lib/assets.ts` também, para evitar duplicação entre Gestão e o dialog do Scan.
+- Banca: helper `getBanca()/setBanca()` em `src/lib/assets.ts` lendo `localStorage` com guards SSR.
+- Transcrição: usar modelo `gpt-4o-mini-transcribe` da OpenAI (mesma API key já existente `OPENAI_API_KEY`). Limite de tamanho de áudio: 25 MB; validar no servidor.
+- Não alterar schema do banco — `trades.obs` já existe e suporta observação.
+- Manter o visual atual (tokens, surfaces, accents); apenas adicionar componentes coerentes.
