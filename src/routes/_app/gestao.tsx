@@ -556,16 +556,64 @@ function OpsTab({
   trades,
   setRes,
   deleteTrade,
+  banca,
+  bancaInput,
+  setBancaInput,
+  saveBanca,
+  clearBanca,
 }: {
   form: Form;
-  setForm: (f: Form) => void;
+  setForm: React.Dispatch<React.SetStateAction<Form>>;
   submitTrade: (e: React.FormEvent) => void;
   trades: Trade[];
-  setRes: (id: string, res: Trade["res"]) => void;
+  setRes: (id: string, res: "WIN" | "LOSS") => void;
   deleteTrade: (id: string) => void;
+  banca: number | null;
+  bancaInput: string;
+  setBancaInput: (s: string) => void;
+  saveBanca: () => void;
+  clearBanca: () => void;
 }) {
+  const [obsOpen, setObsOpen] = useState<{ text: string; ativo: string } | null>(null);
+
+  if (banca === null || banca <= 0) {
+    return (
+      <div className="mx-auto max-w-md rounded-2xl border p-6 fade-up" style={{ background: "var(--surface)", borderColor: "var(--border-strong)" }}>
+        <div className="mb-1 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.25em] text-muted-foreground">
+          <Wallet className="h-3.5 w-3.5" /> Banca inicial
+        </div>
+        <h2 className="font-display text-xl font-bold tracking-tight">Defina sua banca</h2>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Antes de registrar operações, informe o valor da sua banca em USD. Você poderá ajustar depois.
+        </p>
+        <div className="mt-4 flex gap-2">
+          <Input
+            type="number"
+            step="0.01"
+            placeholder="Ex: 200"
+            value={bancaInput}
+            onChange={(e) => setBancaInput(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") saveBanca(); }}
+          />
+          <Button onClick={saveBanca}>Salvar</Button>
+        </div>
+      </div>
+    );
+  }
+
+  const ativos = ASSETS[form.categoria];
+
   return (
     <>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-xs">
+        <div className="inline-flex items-center gap-2 rounded-lg border px-3 py-1.5" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+          <Wallet className="h-3.5 w-3.5" style={{ color: "var(--accent)" }} />
+          <span className="text-muted-foreground">Banca:</span>
+          <span className="font-mono font-semibold tabular">${banca.toFixed(2)}</span>
+        </div>
+        <Button variant="outline" size="sm" onClick={clearBanca} className="text-xs">Editar banca</Button>
+      </div>
+
       <form
         onSubmit={submitTrade}
         className="mb-6 rounded-xl border p-4"
@@ -574,56 +622,111 @@ function OpsTab({
         <div className="mb-3 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
           Nova operação
         </div>
-        <div className="grid gap-2.5 md:grid-cols-7">
-          <Input
-            placeholder="Ativo (ex: EURUSD)"
-            value={form.ativo}
-            onChange={(e) => setForm({ ...form, ativo: e.target.value })}
-            className="md:col-span-2"
-          />
-          <Input
-            type="number"
-            step="0.01"
-            placeholder="Valor"
-            value={form.valor}
-            onChange={(e) => setForm({ ...form, valor: e.target.value })}
-          />
-          <Input
-            type="number"
-            placeholder="Payout %"
-            value={form.payout}
-            onChange={(e) => setForm({ ...form, payout: e.target.value })}
-          />
-          <select
-            className="flex h-9 rounded-md border bg-transparent px-3 text-sm shadow-sm"
-            style={{ borderColor: "var(--border-strong)", background: "var(--surface)" }}
-            value={form.dir}
-            onChange={(e) => setForm({ ...form, dir: e.target.value as Form["dir"] })}
-          >
-            <option value="COMPRA">Compra</option>
-            <option value="VENDA">Venda</option>
-          </select>
-          <select
-            className="flex h-9 rounded-md border bg-transparent px-3 text-sm shadow-sm"
-            style={{ borderColor: "var(--border-strong)", background: "var(--surface)" }}
-            value={form.res}
-            onChange={(e) => setForm({ ...form, res: e.target.value as Form["res"] })}
-          >
-            <option value="WIN">Win</option>
-            <option value="LOSS">Loss</option>
-            <option value="OPEN">Aberta</option>
-          </select>
-          <Button type="submit" className="gap-1.5">
-            <Plus className="h-4 w-4" strokeWidth={1.75} />
-            Adicionar
-          </Button>
+        <div className="grid gap-2.5 md:grid-cols-2 lg:grid-cols-3">
+          <div>
+            <label className="mb-1 block text-[10px] uppercase tracking-wider text-muted-foreground">Categoria</label>
+            <Select
+              value={form.categoria}
+              onValueChange={(v) => {
+                const cat = v as Categoria;
+                const list = ASSETS[cat];
+                setForm((f) => ({ ...f, categoria: cat, ativo: list[0], payout: String(payoutForCategoria(cat)) }));
+              }}
+            >
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {(Object.keys(ASSETS) as Categoria[]).map((c) => (
+                  <SelectItem key={c} value={c}>{CATEGORIA_LABEL[c]}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label className="mb-1 block text-[10px] uppercase tracking-wider text-muted-foreground">Ativo</label>
+            <Select value={form.ativo} onValueChange={(v) => setForm((f) => ({ ...f, ativo: v }))}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {ativos.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label className="mb-1 block text-[10px] uppercase tracking-wider text-muted-foreground">
+              Valor {form.valorMode === "PCT" ? "(% da banca)" : "(USD)"}
+            </label>
+            <div className="flex gap-1.5">
+              <Input
+                type="number"
+                step="0.01"
+                placeholder={form.valorMode === "PCT" ? "Ex: 2" : "Ex: 5.00"}
+                value={form.valor}
+                onChange={(e) => setForm((f) => ({ ...f, valor: e.target.value }))}
+              />
+              <div className="inline-flex rounded-md border p-0.5" style={{ borderColor: "var(--border-strong)", background: "var(--surface-2)" }}>
+                {(["VALOR", "PCT"] as const).map((m) => {
+                  const active = form.valorMode === m;
+                  return (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => { setForm((f) => ({ ...f, valorMode: m })); persistValorMode(m); }}
+                      className="rounded px-2 text-[11px] font-semibold smooth"
+                      style={active ? { background: "var(--accent)", color: "var(--accent-foreground)" } : { color: "var(--text-muted)" }}
+                    >
+                      {m === "VALOR" ? "$" : "%"}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            {form.valorMode === "PCT" && form.valor && isFinite(parseFloat(form.valor)) && (
+              <div className="mt-1 font-mono text-[10px] text-[color:var(--text-dim)]">
+                = ${(banca * (parseFloat(form.valor) / 100)).toFixed(2)}
+              </div>
+            )}
+          </div>
+          <div>
+            <label className="mb-1 block text-[10px] uppercase tracking-wider text-muted-foreground">Payout %</label>
+            <Input
+              type="number"
+              placeholder="Payout %"
+              value={form.payout}
+              onChange={(e) => setForm((f) => ({ ...f, payout: e.target.value }))}
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-[10px] uppercase tracking-wider text-muted-foreground">Direção</label>
+            <Select value={form.dir} onValueChange={(v) => setForm((f) => ({ ...f, dir: v as Form["dir"] }))}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="COMPRA">Compra</SelectItem>
+                <SelectItem value="VENDA">Venda</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label className="mb-1 block text-[10px] uppercase tracking-wider text-muted-foreground">Resultado</label>
+            <Select value={form.res} onValueChange={(v) => setForm((f) => ({ ...f, res: v as Form["res"] }))}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="WIN">Win</SelectItem>
+                <SelectItem value="LOSS">Loss</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
         <Input
           placeholder="Observação (opcional)"
           value={form.obs}
-          onChange={(e) => setForm({ ...form, obs: e.target.value })}
+          onChange={(e) => setForm((f) => ({ ...f, obs: e.target.value }))}
           className="mt-2.5"
         />
+        <div className="mt-3 flex justify-end">
+          <Button type="submit" className="gap-1.5">
+            <Plus className="h-4 w-4" strokeWidth={1.75} />
+            Adicionar operação
+          </Button>
+        </div>
       </form>
 
       {trades.length === 0 ? (
@@ -640,7 +743,7 @@ function OpsTab({
           <table className="w-full text-sm">
             <thead style={{ background: "var(--surface-2)" }}>
               <tr className="text-left text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-                {["Ativo", "Data", "Direção", "Valor", "Payout", "Resultado", "Lucro", ""].map((h) => (
+                {["Ativo", "Data", "Direção", "Valor", "Payout", "Resultado", "Lucro", "Obs", ""].map((h) => (
                   <th key={h} className="px-4 py-2.5">
                     {h}
                   </th>
@@ -709,6 +812,20 @@ function OpsTab({
                   >
                     {t.lucro >= 0 ? "+" : ""}${t.lucro.toFixed(2)}
                   </td>
+                  <td className="px-4 py-2.5 text-xs text-muted-foreground">
+                    {t.obs ? (
+                      <button
+                        type="button"
+                        title={t.obs}
+                        onClick={() => setObsOpen({ text: t.obs!, ativo: t.ativo })}
+                        className="inline-flex max-w-[180px] items-center gap-1 truncate text-left hover:text-[color:var(--accent)]"
+                      >
+                        <span className="truncate">{t.obs}</span>
+                      </button>
+                    ) : (
+                      <span className="text-[color:var(--text-dim)]">—</span>
+                    )}
+                  </td>
                   <td className="px-4 py-2.5">
                     <div className="flex justify-end gap-1">
                       <button
@@ -743,6 +860,15 @@ function OpsTab({
           </table>
         </div>
       )}
+
+      <Dialog open={!!obsOpen} onOpenChange={(o) => !o && setObsOpen(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Observação · {obsOpen?.ativo}</DialogTitle>
+          </DialogHeader>
+          <p className="whitespace-pre-wrap text-sm text-muted-foreground">{obsOpen?.text}</p>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
