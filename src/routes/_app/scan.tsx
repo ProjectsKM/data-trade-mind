@@ -497,6 +497,7 @@ function ResultView({ r, thumb, onReset }: { r: ScanResult; thumb: string; onRes
   const isCall = r.direcao === "COMPRA";
   const conf = Math.min(100, Math.max(0, Number(r.confianca) || 50));
   const confColor = conf >= 75 ? "var(--green)" : conf >= 50 ? "var(--gold)" : "var(--red)";
+  const [openReg, setOpenReg] = useState(false);
 
   return (
     <div className="space-y-4 fade-up">
@@ -647,7 +648,13 @@ function ResultView({ r, thumb, onReset }: { r: ScanResult; thumb: string; onRes
           <ImageIcon className="h-4 w-4" strokeWidth={1.75} />
           Nova análise
         </Button>
+        <Button onClick={() => setOpenReg(true)} className="flex-1 gap-2" style={{ background: "var(--gradient-primary)", color: "var(--accent-foreground)" }}>
+          <ClipboardList className="h-4 w-4" strokeWidth={1.75} />
+          Registrar operação
+        </Button>
       </div>
+
+      <RegisterTradeDialog open={openReg} onOpenChange={setOpenReg} scan={r} />
     </div>
   );
 }
