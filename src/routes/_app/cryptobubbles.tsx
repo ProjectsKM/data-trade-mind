@@ -19,7 +19,7 @@ function CryptoBubblesPage() {
       </div>
       <div className="mx-5 mb-5 flex-1 overflow-hidden rounded-xl border" style={{ background: "var(--surface)", borderColor: "var(--border)" }}>
         <iframe
-          src="https://cryptobubbles.net/"
+          src="https://cryptobubbles.net/#currencies=1,1027,52,1831,2,5426,1839"
           title="CryptoBubbles"
           className="h-full w-full border-0"
           loading="lazy"
