@@ -248,7 +248,10 @@ function validateCSV(text: string): ParsedRow[] {
 
 function GestaoPage() {
   const { state, addTrade, updateTrade, deleteTrade } = useAppState();
-  const [form, setForm] = useState<Form>(emptyForm);
+  const [form, setForm] = useState<Form>(() => makeEmptyForm());
+  const [banca, setBancaState] = useState<number | null>(null);
+  const [bancaInput, setBancaInput] = useState<string>("");
+  useEffect(() => { setBancaState(getBanca()); }, []);
   const fileRef = useRef<HTMLInputElement>(null);
   const [tab, setTab] = useState<"ops" | "report">("ops");
   const [importPreview, setImportPreview] = useState<ParsedRow[] | null>(null);
@@ -272,15 +275,27 @@ function GestaoPage() {
 
   async function submitTrade(e: React.FormEvent) {
     e.preventDefault();
-    const valor = parseFloat(form.valor);
+    const rawValor = parseFloat(form.valor);
     const payout = parseFloat(form.payout);
-    if (!form.ativo.trim() || isNaN(valor) || isNaN(payout)) {
+    if (!form.ativo.trim() || isNaN(rawValor) || isNaN(payout)) {
       toast.error("Preencha ativo, valor e payout para registrar.");
+      return;
+    }
+    let valor = rawValor;
+    if (form.valorMode === "PCT") {
+      if (!banca || banca <= 0) {
+        toast.error("Defina a banca inicial antes de operar em %.");
+        return;
+      }
+      valor = +(banca * (rawValor / 100)).toFixed(2);
+    }
+    if (valor <= 0) {
+      toast.error("Valor precisa ser maior que zero.");
       return;
     }
     try {
       await addTrade({
-        ativo: form.ativo.trim().toUpperCase(),
+        ativo: form.ativo.trim(),
         data: new Date().toISOString(),
         dir: form.dir,
         valor,
@@ -289,11 +304,23 @@ function GestaoPage() {
         lucro: calcLucro(valor, payout, form.res),
         obs: form.obs.trim() || undefined,
       });
-      setForm(emptyForm);
-      toast.success(`Trade ${form.ativo.toUpperCase()} adicionado.`);
+      setForm((f) => ({ ...makeEmptyForm(), categoria: f.categoria, ativo: f.ativo, payout: f.payout, valorMode: f.valorMode }));
+      toast.success(`Trade ${form.ativo} adicionado.`);
     } catch {
       toast.error("Não foi possível salvar o trade.");
     }
+  }
+
+  function saveBanca() {
+    const n = parseFloat(bancaInput);
+    if (!isFinite(n) || n <= 0) {
+      toast.error("Informe uma banca válida.");
+      return;
+    }
+    persistBanca(n);
+    setBancaState(n);
+    setBancaInput("");
+    toast.success(`Banca definida: $${n.toFixed(2)}.`);
   }
 
   function setRes(id: string, res: Trade["res"]) {
