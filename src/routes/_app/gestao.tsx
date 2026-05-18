@@ -323,11 +323,11 @@ function GestaoPage() {
     toast.success(`Banca definida: $${n.toFixed(2)}.`);
   }
 
-  function setRes(id: string, res: Trade["res"]) {
+  function setRes(id: string, res: "WIN" | "LOSS") {
     const t = trades.find((x) => x.id === id);
     if (!t) return;
     void updateTrade(id, { res, lucro: calcLucro(t.valor, t.payout, res) }).then(() =>
-      toast.success(`Marcado como ${res === "WIN" ? "Win" : res === "LOSS" ? "Loss" : "Aberto"}.`),
+      toast.success(`Marcado como ${res === "WIN" ? "Win" : "Loss"}.`),
     );
   }
 
@@ -472,6 +472,11 @@ function GestaoPage() {
           trades={trades}
           setRes={setRes}
           deleteTrade={removeTrade}
+          banca={banca}
+          bancaInput={bancaInput}
+          setBancaInput={setBancaInput}
+          saveBanca={saveBanca}
+          clearBanca={() => { persistBanca(0); setBancaState(null); }}
         />
       ) : (
         <ReportTab trades={trades} />
