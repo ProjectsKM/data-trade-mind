@@ -17,13 +17,29 @@ import {
   Clock,
   History,
   Trash2,
+  ClipboardList,
+  Plus,
 } from "lucide-react";
-import { useAppState, type ScanResult } from "@/lib/store";
+import { useAppState, type ScanResult, type Trade } from "@/lib/store";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/app/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  ASSETS,
+  CATEGORIA_LABEL,
+  type Categoria,
+  payoutForCategoria,
+  categoriaForAtivo,
+  getBanca,
+  getValorMode,
+  setValorMode as persistValorMode,
+  calcLucro,
+} from "@/lib/assets";
 import {
   loadScanHistory,
   addScanHistory,
