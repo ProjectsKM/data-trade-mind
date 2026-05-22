@@ -587,6 +587,7 @@ function OpsTab({
   bancaInput: string;
   setBancaInput: (s: string) => void;
   saveBanca: () => void;
+  onSaveBanca: (n: number) => void;
 }) {
   const [obsOpen, setObsOpen] = useState<{ text: string; ativo: string } | null>(null);
   const [editBancaOpen, setEditBancaOpen] = useState(false);
@@ -932,11 +933,9 @@ function OpsTab({
             <Button onClick={() => {
               const n = parseFloat(editBancaVal);
               if (!isFinite(n) || n <= 0) { toast.error("Valor inválido."); return; }
-              persistBanca(n);
+              onSaveBanca(n);
               setEditBancaOpen(false);
               toast.success(`Banca atualizada: $${n.toFixed(2)}.`);
-              // Force local refresh
-              window.location.reload();
             }}>Salvar</Button>
           </DialogFooter>
         </DialogContent>
