@@ -312,8 +312,24 @@ export const Route = createFileRoute("/api/ai-mind")({
         if (!apiKey) return jsonResponse({ ok: false, error: "API key não configurada." }, 500, request);
         try {
           // Chat Completions with tool calling. Loop until model returns plain text.
+          const ctxParts: string[] = [];
+          if (body.banca && body.banca > 0) {
+            ctxParts.push(`Banca inicial definida pelo usuário: $${body.banca.toFixed(2)}.`);
+          } else {
+            ctxParts.push(`O usuário AINDA NÃO definiu a banca inicial em /gestao. Se ele pedir para registrar uma operação, peça primeiro para ele definir a banca lá.`);
+          }
+          if (body.recentTrades && body.recentTrades.length > 0) {
+            const list = body.recentTrades.slice(0, 10).map((t) => {
+              const dt = new Date(t.data).toLocaleString("pt-BR");
+              return `- id=${t.id} | ${dt} | ${t.ativo} ${t.dir} $${t.valor} payout ${t.payout}% ${t.res} lucro $${t.lucro}${t.obs ? ` obs="${t.obs}"` : ""}`;
+            }).join("\n");
+            ctxParts.push(`Últimas operações do usuário (use o id exato para editar/excluir):\n${list}`);
+          } else {
+            ctxParts.push("O usuário ainda não tem operações registradas.");
+          }
           const messages: Array<Record<string, unknown>> = [
             { role: "system", content: SYSTEM },
+            { role: "system", content: ctxParts.join("\n\n") },
             ...body.messages.map((m) => ({ role: m.role, content: m.content })),
           ];
           let reply = "";
@@ -361,7 +377,15 @@ export const Route = createFileRoute("/api/ai-mind")({
                 if (tc.function.name === "register_trade") {
                   let args: unknown = {};
                   try { args = JSON.parse(tc.function.arguments || "{}"); } catch { args = {}; }
-                  result = await executeRegisterTrade(supabase, userId, args);
+                  result = await executeRegisterTrade(supabase, userId, args, body.banca ?? null);
+                } else if (tc.function.name === "update_trade") {
+                  let args: unknown = {};
+                  try { args = JSON.parse(tc.function.arguments || "{}"); } catch { args = {}; }
+                  result = await executeUpdateTrade(supabase, userId, args);
+                } else if (tc.function.name === "delete_trade") {
+                  let args: unknown = {};
+                  try { args = JSON.parse(tc.function.arguments || "{}"); } catch { args = {}; }
+                  result = await executeDeleteTrade(supabase, userId, args);
                 } else {
                   result = { ok: false, message: `Ferramenta desconhecida: ${tc.function.name}` };
                 }
