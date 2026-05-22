@@ -47,6 +47,9 @@ function MindPage() {
   const taRef = useRef<HTMLTextAreaElement>(null);
   const autoFollowRef = useRef(true);
   useEffect(() => { autoFollowRef.current = autoFollow; }, [autoFollow]);
+  // Threads created locally in this session — skip the DB reload effect for them
+  // (it would race with the streaming assistant message and wipe local state).
+  const skipLoadRef = useRef<Set<string>>(new Set());
 
   // Persist collapsed
   useEffect(() => {
@@ -85,6 +88,10 @@ function MindPage() {
   // Load messages for active thread
   useEffect(() => {
     if (!activeId) { setMessages([]); return; }
+    if (skipLoadRef.current.has(activeId)) {
+      skipLoadRef.current.delete(activeId);
+      return;
+    }
     let cancel = false;
     supabase
       .from("mind_messages")
@@ -131,6 +138,7 @@ function MindPage() {
   const display = useMemo<ChatMsg[]>(() => (messages.length === 0 ? [STARTER] : messages), [messages]);
 
   function newChat() {
+    if (typeof window !== "undefined") window.localStorage.removeItem("orion.mind.activeThreadId");
     setActiveId(null);
     setMessages([]);
     setInput("");
@@ -164,6 +172,7 @@ function MindPage() {
         .single();
       if (error || !data) { toast.error("Erro ao criar conversa."); return; }
       threadId = data.id;
+      skipLoadRef.current.add(threadId);
       setActiveId(threadId);
       setThreads([data, ...threads]);
     }

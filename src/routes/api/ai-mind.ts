@@ -2,9 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import "@tanstack/react-start";
 import { z } from "zod";
 import { corsHeaders, jsonResponse } from "@/lib/cors";
-import { verifySupabaseUser } from "@/lib/verify-supabase-jwt.server";
+import { createClient } from "@supabase/supabase-js";
+import { ASSETS, payoutForCategoria, categoriaForAtivo, calcLucro, type Categoria } from "@/lib/assets";
 
-const OPENAI_URL = "https://api.openai.com/v1/responses";
+const OPENAI_URL = "https://api.openai.com/v1/chat/completions";
 const MODEL = "gpt-4o-mini";
 
 const SYSTEM = `Você é o **OrionMind**, mentor digital oficial da **Orion Capital**. Responda SEMPRE em português brasileiro, de forma clara, simples, objetiva, humana, acolhedora, educativa e estratégica. Use **negrito** para termos importantes. Nunca seja robótico. Nunca prometa lucro garantido. Sempre reforce gerenciamento de risco, disciplina, leitura de contexto e controle emocional.
@@ -59,11 +60,122 @@ Use price action puro como base de leitura de mercado:
 ## REFORÇAR SEMPRE
 Paciência, gerenciamento, leitura de contexto, confirmação antes da entrada, disciplina, controle emocional, foco em consistência. Evitar overtrade, ansiedade e recuperação impulsiva.
 
-Você tem memória de toda a conversa e pode referenciar mensagens anteriores.`;
+Você tem memória de toda a conversa e pode referenciar mensagens anteriores.
+
+## REGISTRAR OPERAÇÕES NA PLANILHA (FERRAMENTA register_trade)
+Você tem uma ferramenta chamada **register_trade** que adiciona uma operação na planilha de gestão do usuário.
+- USE quando o usuário pedir claramente para "registrar", "anotar", "adicionar", "lançar" uma operação na planilha.
+- NÃO use sem pedido explícito.
+- Campos obrigatórios: **ativo**, **dir** (COMPRA ou VENDA), **valor** (em USD) e **res** (WIN ou LOSS).
+- Campos opcionais: **payout** (se omitido, usa o padrão da categoria: Cripto 86%, Forex 85%, Ações 83%) e **obs**.
+- Ativos válidos por categoria:
+  - Cripto: BTC/USD, XRP/USD, BCH/USD, LTC/USD, ETH/USD, BNB/USD, SOL/USD.
+  - Forex: GBP/AUD, EUR/NZD, AUD/CAD, AUD/NZD, AUD/JPY, CAD/CHF, CAD/JPY, CHF/JPY, EUR/CHF, EUR/AUD, EUR/CAD, EUR/GBP, EUR/USD, NZD/CHF, USD/JPY, NZD/CAD.
+  - Ações: Apple, Amazon, McDonalds, Microsoft, Tesla.
+- Se o usuário disser apenas "BTC", normalize para "BTC/USD". Se o ativo for desconhecido, **pergunte** antes de chamar.
+- Se faltar **qualquer** campo obrigatório (ativo, direção, valor ou resultado), **pergunte ao usuário** de forma breve e objetiva antes de chamar a ferramenta. Nunca invente valores.
+- Após registrar com sucesso, confirme em uma frase curta com os dados gravados (ativo, direção, valor, resultado, lucro/prejuízo).`;
 
 const Body = z.object({
   messages: z.array(z.object({ role: z.enum(["user", "assistant"]), content: z.string().min(1).max(8000) })).min(1).max(40),
 });
+
+const TOOLS = [
+  {
+    type: "function" as const,
+    function: {
+      name: "register_trade",
+      description: "Registra uma operação na planilha de gestão do usuário. Use somente quando o usuário pedir explicitamente, e somente quando tiver todos os campos obrigatórios.",
+      parameters: {
+        type: "object",
+        properties: {
+          ativo: { type: "string", description: "Nome do ativo. Ex: BTC/USD, EUR/USD, Apple." },
+          dir: { type: "string", enum: ["COMPRA", "VENDA"], description: "Direção da operação." },
+          valor: { type: "number", description: "Valor da entrada em USD. Número positivo." },
+          res: { type: "string", enum: ["WIN", "LOSS"], description: "Resultado da operação." },
+          payout: { type: "number", description: "Payout em %. Opcional — se omitido usa padrão da categoria." },
+          obs: { type: "string", description: "Observação opcional." },
+        },
+        required: ["ativo", "dir", "valor", "res"],
+        additionalProperties: false,
+      },
+    },
+  },
+];
+
+function normalizeAtivo(raw: string): { ativo: string; categoria: Categoria } | null {
+  const up = raw.trim().toUpperCase();
+  // exact match across all categories
+  for (const [cat, list] of Object.entries(ASSETS) as [Categoria, string[]][]) {
+    const hit = list.find((a) => a.toUpperCase() === up);
+    if (hit) return { ativo: hit, categoria: cat };
+  }
+  // try "BTC" -> "BTC/USD"
+  if (!up.includes("/")) {
+    const withUsd = `${up}/USD`;
+    for (const [cat, list] of Object.entries(ASSETS) as [Categoria, string[]][]) {
+      const hit = list.find((a) => a.toUpperCase() === withUsd);
+      if (hit) return { ativo: hit, categoria: cat };
+    }
+    // ações por nome partial
+    const acao = ASSETS.ACOES.find((a) => a.toUpperCase() === up);
+    if (acao) return { ativo: acao, categoria: "ACOES" };
+  }
+  // fallback: try categoriaForAtivo as-is
+  const cat = categoriaForAtivo(raw);
+  if (cat) return { ativo: raw, categoria: cat };
+  return null;
+}
+
+const TradeArgs = z.object({
+  ativo: z.string().min(1).max(40),
+  dir: z.enum(["COMPRA", "VENDA"]),
+  valor: z.number().positive().max(1_000_000),
+  res: z.enum(["WIN", "LOSS"]),
+  payout: z.number().min(1).max(1000).optional(),
+  obs: z.string().max(500).optional(),
+});
+
+async function executeRegisterTrade(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  userId: string,
+  rawArgs: unknown,
+): Promise<{ ok: boolean; message: string }> {
+  const parsed = TradeArgs.safeParse(rawArgs);
+  if (!parsed.success) {
+    return { ok: false, message: `Argumentos inválidos: ${parsed.error.issues.map(i => i.message).join("; ")}` };
+  }
+  const a = parsed.data;
+  const norm = normalizeAtivo(a.ativo);
+  if (!norm) {
+    return { ok: false, message: `Ativo "${a.ativo}" não reconhecido. Peça ao usuário um ativo válido.` };
+  }
+  const payout = a.payout ?? payoutForCategoria(norm.categoria);
+  const lucro = calcLucro(a.valor, payout, a.res);
+  const { data, error } = await supabase
+    .from("trades")
+    .insert({
+      user_id: userId,
+      ativo: norm.ativo,
+      data: new Date().toISOString(),
+      dir: a.dir,
+      valor: a.valor,
+      payout,
+      res: a.res,
+      lucro,
+      obs: a.obs ?? null,
+    } as never)
+    .select()
+    .single();
+  if (error || !data) {
+    return { ok: false, message: `Falha ao inserir no banco: ${error?.message ?? "desconhecido"}` };
+  }
+  return {
+    ok: true,
+    message: `Operação registrada: ${norm.ativo} ${a.dir} $${a.valor} payout ${payout}% ${a.res} → ${lucro >= 0 ? "+" : ""}$${lucro.toFixed(2)}`,
+  };
+}
 
 export const Route = createFileRoute("/api/ai-mind")({
   server: {
@@ -71,75 +183,92 @@ export const Route = createFileRoute("/api/ai-mind")({
       OPTIONS: async ({ request }: { request: Request }) =>
         new Response(null, { status: 204, headers: corsHeaders(request) }),
       POST: async ({ request }: { request: Request }) => {
-        const userId = await verifySupabaseUser(request);
-        if (!userId) return jsonResponse({ ok: false, error: "Não autorizado." }, 401, request);
+        const authHeader = request.headers.get("authorization");
+        const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7).trim() : null;
+        const supabaseUrl = process.env.SUPABASE_URL;
+        const supabaseKey = process.env.SUPABASE_PUBLISHABLE_KEY;
+        if (!token || !supabaseUrl || !supabaseKey) return jsonResponse({ ok: false, error: "Não autorizado." }, 401, request);
+        const supabase = createClient(supabaseUrl, supabaseKey, {
+          auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
+          global: { headers: { Authorization: `Bearer ${token}` } },
+        });
+        const { data: claims, error: claimsErr } = await supabase.auth.getClaims(token);
+        const userId = claims?.claims?.sub as string | undefined;
+        if (claimsErr || !userId) return jsonResponse({ ok: false, error: "Não autorizado." }, 401, request);
 
         let body: z.infer<typeof Body>;
         try { body = Body.parse(await request.json()); } catch { return jsonResponse({ ok: false, error: "Mensagens inválidas." }, 400, request); }
         const apiKey = process.env.OPENAI_API_KEY;
         if (!apiKey) return jsonResponse({ ok: false, error: "API key não configurada." }, 500, request);
         try {
-          const input = [
-            { role: "system" as const, content: SYSTEM },
+          // Chat Completions with tool calling. Loop until model returns plain text.
+          const messages: Array<Record<string, unknown>> = [
+            { role: "system", content: SYSTEM },
             ...body.messages.map((m) => ({ role: m.role, content: m.content })),
           ];
-          const r = await fetch(OPENAI_URL, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-            body: JSON.stringify({ model: MODEL, input, max_output_tokens: 1500, stream: true }),
-          });
-          if (!r.ok || !r.body) {
-            const txt = await r.text().catch(() => "");
-            console.error("ai-mind error", r.status, txt);
-            if (r.status === 429) return jsonResponse({ ok: false, error: "Muitas mensagens em sequência. Aguarde." }, 429, request);
-            return jsonResponse({ ok: false, error: "Falha ao consultar a IA." }, 502, request);
-          }
-          // Proxy SSE stream and re-emit only delta text as simple "data: <chunk>" lines.
-          const reader = r.body.getReader();
-          const decoder = new TextDecoder();
-          const encoder = new TextEncoder();
-          const stream = new ReadableStream<Uint8Array>({
-            async start(controller) {
-              let buffer = "";
-              try {
-                while (true) {
-                  const { value, done } = await reader.read();
-                  if (done) break;
-                  buffer += decoder.decode(value, { stream: true });
-                  const events = buffer.split("\n\n");
-                  buffer = events.pop() ?? "";
-                  for (const evt of events) {
-                    const line = evt.split("\n").find((l) => l.startsWith("data:"));
-                    if (!line) continue;
-                    const payload = line.slice(5).trim();
-                    if (!payload || payload === "[DONE]") continue;
-                    try {
-                      const j = JSON.parse(payload);
-                      if (j.type === "response.output_text.delta" && typeof j.delta === "string") {
-                        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ delta: j.delta })}\n\n`));
-                      } else if (j.type === "response.error") {
-                        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: j.error?.message || "Erro" })}\n\n`));
-                      }
-                    } catch { /* ignore */ }
-                  }
+          let reply = "";
+          for (let iter = 0; iter < 4; iter++) {
+            const r = await fetch(OPENAI_URL, {
+              method: "POST",
+              headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+              body: JSON.stringify({
+                model: MODEL,
+                messages,
+                tools: TOOLS,
+                tool_choice: "auto",
+                max_tokens: 1500,
+                temperature: 0.6,
+              }),
+            });
+            if (!r.ok) {
+              const txt = await r.text().catch(() => "");
+              console.error("ai-mind error", r.status, txt);
+              if (r.status === 429) return jsonResponse({ ok: false, error: "Muitas mensagens em sequência. Aguarde." }, 429, request);
+              return jsonResponse({ ok: false, error: "Falha ao consultar a IA." }, 502, request);
+            }
+            const j = (await r.json()) as {
+              choices?: Array<{
+                message?: {
+                  role: string;
+                  content?: string | null;
+                  tool_calls?: Array<{ id: string; type: "function"; function: { name: string; arguments: string } }>;
+                };
+                finish_reason?: string;
+              }>;
+            };
+            const msg = j.choices?.[0]?.message;
+            if (!msg) return jsonResponse({ ok: false, error: "Resposta vazia da IA." }, 502, request);
+
+            if (msg.tool_calls && msg.tool_calls.length > 0) {
+              // Push assistant message with tool calls, then execute each tool.
+              messages.push({
+                role: "assistant",
+                content: msg.content ?? "",
+                tool_calls: msg.tool_calls,
+              });
+              for (const tc of msg.tool_calls) {
+                let result: { ok: boolean; message: string };
+                if (tc.function.name === "register_trade") {
+                  let args: unknown = {};
+                  try { args = JSON.parse(tc.function.arguments || "{}"); } catch { args = {}; }
+                  result = await executeRegisterTrade(supabase, userId, args);
+                } else {
+                  result = { ok: false, message: `Ferramenta desconhecida: ${tc.function.name}` };
                 }
-                controller.enqueue(encoder.encode(`data: [DONE]\n\n`));
-              } catch (e) {
-                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: "Erro de stream." })}\n\n`));
-              } finally {
-                controller.close();
+                messages.push({
+                  role: "tool",
+                  tool_call_id: tc.id,
+                  content: JSON.stringify(result),
+                });
               }
-            },
-          });
-          return new Response(stream, {
-            status: 200,
-            headers: {
-              ...corsHeaders(request),
-              "Content-Type": "text/event-stream; charset=utf-8",
-              "Cache-Control": "no-cache, no-transform",
-              "Connection": "keep-alive",
-            },
-          });
+              continue; // loop to let the model summarize the result
+            }
+
+            reply = (msg.content ?? "").trim() || "Sem resposta.";
+            break;
+          }
+          if (!reply) reply = "Sem resposta.";
+          return jsonResponse({ ok: true, reply }, 200, request);
         } catch (e) {
           console.error("ai-mind exception", e);
           return jsonResponse({ ok: false, error: "Erro de conexão com a IA." }, 502, request);
