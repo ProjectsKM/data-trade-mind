@@ -75,9 +75,31 @@ Você tem uma ferramenta chamada **register_trade** que adiciona uma operação 
 - Se o usuário disser apenas "BTC", normalize para "BTC/USD". Se o ativo for desconhecido, **pergunte** antes de chamar.
 - Se faltar **qualquer** campo obrigatório (ativo, direção, valor ou resultado), **pergunte ao usuário** de forma breve e objetiva antes de chamar a ferramenta. Nunca invente valores.
 - Após registrar com sucesso, confirme em uma frase curta com os dados gravados (ativo, direção, valor, resultado, lucro/prejuízo).`;
+// ## EDITAR / EXCLUIR OPERAÇÕES (FERRAMENTAS update_trade / delete_trade)
+const SYSTEM_EDIT = `
+## EDITAR OU EXCLUIR OPERAÇÕES (update_trade / delete_trade)
+Você também pode editar (**update_trade**) ou excluir (**delete_trade**) operações que JÁ EXISTEM na planilha do usuário.
+- O contexto do sistema sempre traz as últimas operações com o **id** exato (uuid). Use esse id ao chamar a ferramenta.
+- Quando o usuário disser algo como "na verdade entrei com 60 e não 80", identifique a operação mais provável (geralmente a mais recente que bate com a descrição) e use **update_trade** com apenas os campos que mudam.
+- Se houver mais de uma operação que pode ser a referenciada, **pergunte** ao usuário qual delas antes de chamar a ferramenta.
+- Para **delete_trade**, peça **confirmação clara** antes de excluir.
+- Para **register_trade**: se a banca ainda não estiver definida, NÃO chame a ferramenta — peça primeiro para o usuário definir a banca em /gestao.
+`;
 
 const Body = z.object({
   messages: z.array(z.object({ role: z.enum(["user", "assistant"]), content: z.string().min(1).max(8000) })).min(1).max(40),
+  banca: z.number().positive().nullable().optional(),
+  recentTrades: z.array(z.object({
+    id: z.string(),
+    ativo: z.string(),
+    data: z.string(),
+    dir: z.string(),
+    valor: z.number(),
+    payout: z.number(),
+    res: z.string(),
+    lucro: z.number(),
+    obs: z.string().nullable().optional(),
+  })).max(50).optional(),
 });
 
 const TOOLS = [
@@ -97,6 +119,40 @@ const TOOLS = [
           obs: { type: "string", description: "Observação opcional." },
         },
         required: ["ativo", "dir", "valor", "res"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function" as const,
+    function: {
+      name: "update_trade",
+      description: "Edita uma operação existente na planilha. Use o id de uma das operações recentes listadas no contexto. Só envie os campos que devem mudar. Lucro e payout são recalculados automaticamente quando valor, payout ou resultado mudam.",
+      parameters: {
+        type: "object",
+        properties: {
+          id: { type: "string", description: "ID exato da operação (uuid) a editar." },
+          ativo: { type: "string" },
+          dir: { type: "string", enum: ["COMPRA", "VENDA"] },
+          valor: { type: "number" },
+          res: { type: "string", enum: ["WIN", "LOSS"] },
+          payout: { type: "number" },
+          obs: { type: "string" },
+        },
+        required: ["id"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function" as const,
+    function: {
+      name: "delete_trade",
+      description: "Exclui uma operação da planilha pelo id. Use somente após confirmação explícita do usuário.",
+      parameters: {
+        type: "object",
+        properties: { id: { type: "string" } },
+        required: ["id"],
         additionalProperties: false,
       },
     },
@@ -136,12 +192,28 @@ const TradeArgs = z.object({
   obs: z.string().max(500).optional(),
 });
 
+const UpdateArgs = z.object({
+  id: z.string().uuid(),
+  ativo: z.string().min(1).max(40).optional(),
+  dir: z.enum(["COMPRA", "VENDA"]).optional(),
+  valor: z.number().positive().max(1_000_000).optional(),
+  res: z.enum(["WIN", "LOSS"]).optional(),
+  payout: z.number().min(1).max(1000).optional(),
+  obs: z.string().max(500).optional(),
+});
+
+const DeleteArgs = z.object({ id: z.string().uuid() });
+
 async function executeRegisterTrade(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any,
   userId: string,
   rawArgs: unknown,
+  banca: number | null | undefined,
 ): Promise<{ ok: boolean; message: string }> {
+  if (!banca || banca <= 0) {
+    return { ok: false, message: "BANCA_NAO_DEFINIDA: O usuário ainda não definiu a banca inicial em /gestao. Peça para ele definir a banca antes de registrar operações." };
+  }
   const parsed = TradeArgs.safeParse(rawArgs);
   if (!parsed.success) {
     return { ok: false, message: `Argumentos inválidos: ${parsed.error.issues.map(i => i.message).join("; ")}` };
@@ -177,6 +249,54 @@ async function executeRegisterTrade(
   };
 }
 
+async function executeUpdateTrade(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  userId: string,
+  rawArgs: unknown,
+): Promise<{ ok: boolean; message: string }> {
+  const parsed = UpdateArgs.safeParse(rawArgs);
+  if (!parsed.success) return { ok: false, message: `Argumentos inválidos: ${parsed.error.issues.map(i => i.message).join("; ")}` };
+  const a = parsed.data;
+  const { data: existing, error: e1 } = await supabase
+    .from("trades").select("*").eq("id", a.id).eq("user_id", userId).maybeSingle();
+  if (e1 || !existing) return { ok: false, message: `Operação ${a.id} não encontrada.` };
+
+  let ativo = existing.ativo as string;
+  let categoria = categoriaForAtivo(ativo);
+  if (a.ativo) {
+    const norm = normalizeAtivo(a.ativo);
+    if (!norm) return { ok: false, message: `Ativo "${a.ativo}" não reconhecido.` };
+    ativo = norm.ativo;
+    categoria = norm.categoria;
+  }
+  const valor = a.valor ?? Number(existing.valor);
+  const res = (a.res ?? existing.res) as "WIN" | "LOSS";
+  const payout = a.payout ?? (a.ativo ? payoutForCategoria(categoria ?? "CRIPTO") : Number(existing.payout));
+  const lucro = calcLucro(valor, payout, res);
+
+  const patch: Record<string, unknown> = { ativo, valor, payout, res, lucro };
+  if (a.dir) patch.dir = a.dir;
+  if (a.obs !== undefined) patch.obs = a.obs;
+
+  const { error: e2 } = await supabase.from("trades").update(patch as never).eq("id", a.id).eq("user_id", userId);
+  if (e2) return { ok: false, message: `Falha ao atualizar: ${e2.message}` };
+  return { ok: true, message: `Operação atualizada: ${ativo} ${patch.dir ?? existing.dir} $${valor} payout ${payout}% ${res} → ${lucro >= 0 ? "+" : ""}$${lucro.toFixed(2)}` };
+}
+
+async function executeDeleteTrade(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  userId: string,
+  rawArgs: unknown,
+): Promise<{ ok: boolean; message: string }> {
+  const parsed = DeleteArgs.safeParse(rawArgs);
+  if (!parsed.success) return { ok: false, message: "ID inválido." };
+  const { error } = await supabase.from("trades").delete().eq("id", parsed.data.id).eq("user_id", userId);
+  if (error) return { ok: false, message: `Falha ao excluir: ${error.message}` };
+  return { ok: true, message: "Operação excluída com sucesso." };
+}
+
 export const Route = createFileRoute("/api/ai-mind")({
   server: {
     handlers: {
@@ -202,8 +322,25 @@ export const Route = createFileRoute("/api/ai-mind")({
         if (!apiKey) return jsonResponse({ ok: false, error: "API key não configurada." }, 500, request);
         try {
           // Chat Completions with tool calling. Loop until model returns plain text.
+          const ctxParts: string[] = [];
+          if (body.banca && body.banca > 0) {
+            ctxParts.push(`Banca inicial definida pelo usuário: $${body.banca.toFixed(2)}.`);
+          } else {
+            ctxParts.push(`O usuário AINDA NÃO definiu a banca inicial em /gestao. Se ele pedir para registrar uma operação, peça primeiro para ele definir a banca lá.`);
+          }
+          if (body.recentTrades && body.recentTrades.length > 0) {
+            const list = body.recentTrades.slice(0, 10).map((t) => {
+              const dt = new Date(t.data).toLocaleString("pt-BR");
+              return `- id=${t.id} | ${dt} | ${t.ativo} ${t.dir} $${t.valor} payout ${t.payout}% ${t.res} lucro $${t.lucro}${t.obs ? ` obs="${t.obs}"` : ""}`;
+            }).join("\n");
+            ctxParts.push(`Últimas operações do usuário (use o id exato para editar/excluir):\n${list}`);
+          } else {
+            ctxParts.push("O usuário ainda não tem operações registradas.");
+          }
           const messages: Array<Record<string, unknown>> = [
             { role: "system", content: SYSTEM },
+            { role: "system", content: SYSTEM_EDIT },
+            { role: "system", content: ctxParts.join("\n\n") },
             ...body.messages.map((m) => ({ role: m.role, content: m.content })),
           ];
           let reply = "";
@@ -251,7 +388,15 @@ export const Route = createFileRoute("/api/ai-mind")({
                 if (tc.function.name === "register_trade") {
                   let args: unknown = {};
                   try { args = JSON.parse(tc.function.arguments || "{}"); } catch { args = {}; }
-                  result = await executeRegisterTrade(supabase, userId, args);
+                  result = await executeRegisterTrade(supabase, userId, args, body.banca ?? null);
+                } else if (tc.function.name === "update_trade") {
+                  let args: unknown = {};
+                  try { args = JSON.parse(tc.function.arguments || "{}"); } catch { args = {}; }
+                  result = await executeUpdateTrade(supabase, userId, args);
+                } else if (tc.function.name === "delete_trade") {
+                  let args: unknown = {};
+                  try { args = JSON.parse(tc.function.arguments || "{}"); } catch { args = {}; }
+                  result = await executeDeleteTrade(supabase, userId, args);
                 } else {
                   result = { ok: false, message: `Ferramenta desconhecida: ${tc.function.name}` };
                 }

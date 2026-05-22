@@ -8,6 +8,7 @@ import { useUser, type ChatMsg } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { VoiceRecorder } from "@/components/app/VoiceRecorder";
+import { getBanca } from "@/lib/assets";
 
 export const Route = createFileRoute("/_app/mind")({
   head: () => ({ meta: [{ title: "OrionMind — OrionHub" }] }),
@@ -193,13 +194,21 @@ function MindPage() {
         setBusy(false);
         return;
       }
+      // Fetch the latest 15 trades so the AI can edit/delete by id when the user asks.
+      const { data: recentRows } = await supabase
+        .from("trades")
+        .select("id,ativo,data,dir,valor,payout,res,lucro,obs")
+        .eq("user_id", user.id)
+        .order("data", { ascending: false })
+        .limit(15);
+      const banca = getBanca();
       const r = await fetch("/api/ai-mind", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ messages: history }),
+        body: JSON.stringify({ messages: history, banca, recentTrades: recentRows ?? [] }),
       });
       const ctype = r.headers.get("content-type") || "";
       let replyText = "";

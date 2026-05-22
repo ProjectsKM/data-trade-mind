@@ -9,6 +9,7 @@ import {
   Check,
   X,
   Trash2,
+  Pencil,
   TrendingUp,
   TrendingDown,
   Wallet,
@@ -331,6 +332,15 @@ function GestaoPage() {
     );
   }
 
+  async function saveEditedTrade(id: string, patch: Partial<Trade>) {
+    const cur = trades.find((x) => x.id === id);
+    if (!cur) return;
+    const next: Trade = { ...cur, ...patch };
+    next.lucro = calcLucro(next.valor, next.payout, next.res);
+    await updateTrade(id, { ativo: next.ativo, dir: next.dir, valor: next.valor, payout: next.payout, res: next.res, lucro: next.lucro, obs: next.obs });
+    toast.success("Operação atualizada.");
+  }
+
   function removeTrade(id: string) {
     void deleteTrade(id).then(() => toast.success("Trade removido."));
   }
@@ -472,11 +482,13 @@ function GestaoPage() {
           trades={trades}
           setRes={setRes}
           deleteTrade={removeTrade}
+          editTrade={saveEditedTrade}
           banca={banca}
+          bancaAtual={(banca ?? 0) + stats.lucro}
           bancaInput={bancaInput}
           setBancaInput={setBancaInput}
           saveBanca={saveBanca}
-          clearBanca={() => { persistBanca(0); setBancaState(null); }}
+          onSaveBanca={(n) => { persistBanca(n); setBancaState(n); }}
         />
       ) : (
         <ReportTab trades={trades} />
@@ -556,11 +568,13 @@ function OpsTab({
   trades,
   setRes,
   deleteTrade,
+  editTrade,
   banca,
+  bancaAtual,
   bancaInput,
   setBancaInput,
   saveBanca,
-  clearBanca,
+  onSaveBanca,
 }: {
   form: Form;
   setForm: React.Dispatch<React.SetStateAction<Form>>;
@@ -568,13 +582,18 @@ function OpsTab({
   trades: Trade[];
   setRes: (id: string, res: "WIN" | "LOSS") => void;
   deleteTrade: (id: string) => void;
+  editTrade: (id: string, patch: Partial<Trade>) => Promise<void>;
   banca: number | null;
+  bancaAtual: number;
   bancaInput: string;
   setBancaInput: (s: string) => void;
   saveBanca: () => void;
-  clearBanca: () => void;
+  onSaveBanca: (n: number) => void;
 }) {
   const [obsOpen, setObsOpen] = useState<{ text: string; ativo: string } | null>(null);
+  const [editBancaOpen, setEditBancaOpen] = useState(false);
+  const [editBancaVal, setEditBancaVal] = useState("");
+  const [editTradeOpen, setEditTradeOpen] = useState<Trade | null>(null);
 
   if (banca === null || banca <= 0) {
     return (
@@ -606,12 +625,29 @@ function OpsTab({
   return (
     <>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-xs">
-        <div className="inline-flex items-center gap-2 rounded-lg border px-3 py-1.5" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
-          <Wallet className="h-3.5 w-3.5" style={{ color: "var(--accent)" }} />
-          <span className="text-muted-foreground">Banca:</span>
-          <span className="font-mono font-semibold tabular">${banca.toFixed(2)}</span>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="inline-flex items-center gap-2 rounded-lg border px-3 py-1.5" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+            <Wallet className="h-3.5 w-3.5" style={{ color: "var(--accent)" }} />
+            <span className="text-muted-foreground">Banca inicial:</span>
+            <span className="font-mono font-semibold tabular">${banca.toFixed(2)}</span>
+          </div>
+          <div className="inline-flex items-center gap-2 rounded-lg border px-3 py-1.5"
+            style={{
+              borderColor: bancaAtual >= banca
+                ? "color-mix(in oklab, var(--green) 30%, transparent)"
+                : "color-mix(in oklab, var(--red) 30%, transparent)",
+              background: "var(--surface)",
+            }}>
+            <TrendingUp className="h-3.5 w-3.5" style={{ color: bancaAtual >= banca ? "var(--green)" : "var(--red)" }} />
+            <span className="text-muted-foreground">Banca atual:</span>
+            <span className="font-mono font-semibold tabular" style={{ color: bancaAtual >= banca ? "var(--green)" : "var(--red)" }}>
+              ${bancaAtual.toFixed(2)}
+            </span>
+          </div>
         </div>
-        <Button variant="outline" size="sm" onClick={clearBanca} className="text-xs">Editar banca</Button>
+        <Button variant="outline" size="sm" onClick={() => { setEditBancaVal(String(banca)); setEditBancaOpen(true); }} className="gap-1.5 text-xs">
+          <Pencil className="h-3 w-3" /> Editar banca
+        </Button>
       </div>
 
       <form
@@ -845,6 +881,14 @@ function OpsTab({
                         <X className="h-3.5 w-3.5" strokeWidth={2} />
                       </button>
                       <button
+                        onClick={() => setEditTradeOpen(t)}
+                        title="Editar operação"
+                        className="flex h-7 w-7 items-center justify-center rounded-md border smooth hover:border-[color:var(--accent)] hover:text-[color:var(--accent)]"
+                        style={{ borderColor: "var(--border)", color: "var(--text-muted)" }}
+                      >
+                        <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />
+                      </button>
+                      <button
                         onClick={() => deleteTrade(t.id)}
                         title="Excluir"
                         className="flex h-7 w-7 items-center justify-center rounded-md border smooth hover:border-[color:var(--red)] hover:text-[color:var(--red)]"
@@ -869,7 +913,146 @@ function OpsTab({
           <p className="whitespace-pre-wrap text-sm text-muted-foreground">{obsOpen?.text}</p>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={editBancaOpen} onOpenChange={setEditBancaOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Editar banca inicial</DialogTitle>
+          </DialogHeader>
+          <p className="text-xs text-muted-foreground">
+            Esse valor é a base de cálculo para entradas em % e para a "banca atual" (banca + lucros).
+          </p>
+          <Input
+            type="number"
+            step="0.01"
+            value={editBancaVal}
+            onChange={(e) => setEditBancaVal(e.target.value)}
+            placeholder="Ex: 200"
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditBancaOpen(false)}>Cancelar</Button>
+            <Button onClick={() => {
+              const n = parseFloat(editBancaVal);
+              if (!isFinite(n) || n <= 0) { toast.error("Valor inválido."); return; }
+              onSaveBanca(n);
+              setEditBancaOpen(false);
+              toast.success(`Banca atualizada: $${n.toFixed(2)}.`);
+            }}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <EditTradeDialog
+        trade={editTradeOpen}
+        onClose={() => setEditTradeOpen(null)}
+        onSave={async (patch) => {
+          if (!editTradeOpen) return;
+          await editTrade(editTradeOpen.id, patch);
+          setEditTradeOpen(null);
+        }}
+      />
     </>
+  );
+}
+
+function EditTradeDialog({
+  trade, onClose, onSave,
+}: {
+  trade: Trade | null;
+  onClose: () => void;
+  onSave: (patch: Partial<Trade>) => Promise<void>;
+}) {
+  const [ativo, setAtivo] = useState("");
+  const [dir, setDir] = useState<"COMPRA" | "VENDA">("COMPRA");
+  const [valor, setValor] = useState("");
+  const [payout, setPayout] = useState("");
+  const [res, setRes] = useState<"WIN" | "LOSS">("WIN");
+  const [obs, setObs] = useState("");
+
+  useEffect(() => {
+    if (!trade) return;
+    setAtivo(trade.ativo);
+    setDir(trade.dir);
+    setValor(String(trade.valor));
+    setPayout(String(trade.payout));
+    setRes(trade.res === "OPEN" ? "WIN" : trade.res);
+    setObs(trade.obs ?? "");
+  }, [trade?.id]);
+
+  const cat = trade ? categoriaForAtivo(trade.ativo) : null;
+  const ativos = cat ? ASSETS[cat] : null;
+
+  return (
+    <Dialog open={!!trade} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Editar operação</DialogTitle>
+        </DialogHeader>
+        <div className="grid gap-2.5">
+          <div>
+            <label className="mb-1 block text-[10px] uppercase tracking-wider text-muted-foreground">Ativo</label>
+            {ativos ? (
+              <Select value={ativo} onValueChange={setAtivo}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {ativos.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            ) : (
+              <Input value={ativo} onChange={(e) => setAtivo(e.target.value)} />
+            )}
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="mb-1 block text-[10px] uppercase tracking-wider text-muted-foreground">Direção</label>
+              <Select value={dir} onValueChange={(v) => setDir(v as "COMPRA" | "VENDA")}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="COMPRA">Compra</SelectItem>
+                  <SelectItem value="VENDA">Venda</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="mb-1 block text-[10px] uppercase tracking-wider text-muted-foreground">Resultado</label>
+              <Select value={res} onValueChange={(v) => setRes(v as "WIN" | "LOSS")}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="WIN">Win</SelectItem>
+                  <SelectItem value="LOSS">Loss</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="mb-1 block text-[10px] uppercase tracking-wider text-muted-foreground">Valor (USD)</label>
+              <Input type="number" step="0.01" value={valor} onChange={(e) => setValor(e.target.value)} />
+            </div>
+            <div>
+              <label className="mb-1 block text-[10px] uppercase tracking-wider text-muted-foreground">Payout %</label>
+              <Input type="number" step="0.01" value={payout} onChange={(e) => setPayout(e.target.value)} />
+            </div>
+          </div>
+          <div>
+            <label className="mb-1 block text-[10px] uppercase tracking-wider text-muted-foreground">Observação</label>
+            <Input value={obs} onChange={(e) => setObs(e.target.value)} />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancelar</Button>
+          <Button onClick={() => {
+            const v = parseFloat(valor);
+            const p = parseFloat(payout);
+            if (!ativo.trim() || !isFinite(v) || v <= 0 || !isFinite(p) || p < 0) {
+              toast.error("Verifique os campos.");
+              return;
+            }
+            void onSave({ ativo: ativo.trim(), dir, valor: v, payout: p, res, obs: obs.trim() || undefined });
+          }}>Salvar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
