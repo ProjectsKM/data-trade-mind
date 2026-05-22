@@ -574,6 +574,7 @@ function OpsTab({
   bancaInput,
   setBancaInput,
   saveBanca,
+  onSaveBanca,
 }: {
   form: Form;
   setForm: React.Dispatch<React.SetStateAction<Form>>;
