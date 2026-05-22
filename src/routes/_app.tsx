@@ -12,6 +12,7 @@ import {
   CircleDot,
 } from "lucide-react";
 import { logout, useAppState, useUser } from "@/lib/store";
+import { PremiumGate } from "@/components/app/PremiumGate";
 
 export const Route = createFileRoute("/_app")({
   component: AppLayout,
@@ -62,6 +63,16 @@ function AppLayout() {
 
   const isFullHeightRoute =
     loc.pathname.startsWith("/mind") || loc.pathname.startsWith("/cryptobubbles");
+
+  const GATED: Record<string, string> = {
+    "/scan": "Scan",
+    "/mind": "OrionMind",
+    "/gestao": "Gestão",
+    "/noticias": "Notícias",
+    "/cryptobubbles": "CryptoBubbles",
+  };
+  const gatedFeature = Object.keys(GATED).find((p) => loc.pathname.startsWith(p));
+  const isGated = !!gatedFeature && !state.isPro;
 
   return (
     <div data-orion-app-shell="true" className="relative flex h-dvh overflow-hidden flex-col" style={{ background: "var(--background)" }}>
@@ -186,7 +197,13 @@ function AppLayout() {
         <main
           className={`relative min-h-0 flex-1 pb-16 sm:pb-0 ${isFullHeightRoute ? "overflow-hidden" : "overflow-y-auto"}`}
         >
-          <Outlet />
+          {isGated ? (
+            <PremiumGate feature={GATED[gatedFeature!]}>
+              <Outlet />
+            </PremiumGate>
+          ) : (
+            <Outlet />
+          )}
         </main>
       </div>
     </div>
