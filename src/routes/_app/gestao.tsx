@@ -332,6 +332,15 @@ function GestaoPage() {
     );
   }
 
+  async function saveEditedTrade(id: string, patch: Partial<Trade>) {
+    const cur = trades.find((x) => x.id === id);
+    if (!cur) return;
+    const next: Trade = { ...cur, ...patch };
+    next.lucro = calcLucro(next.valor, next.payout, next.res);
+    await updateTrade(id, { ativo: next.ativo, dir: next.dir, valor: next.valor, payout: next.payout, res: next.res, lucro: next.lucro, obs: next.obs });
+    toast.success("Operação atualizada.");
+  }
+
   function removeTrade(id: string) {
     void deleteTrade(id).then(() => toast.success("Trade removido."));
   }
