@@ -878,6 +878,14 @@ function OpsTab({
                         <X className="h-3.5 w-3.5" strokeWidth={2} />
                       </button>
                       <button
+                        onClick={() => setEditTradeOpen(t)}
+                        title="Editar operação"
+                        className="flex h-7 w-7 items-center justify-center rounded-md border smooth hover:border-[color:var(--accent)] hover:text-[color:var(--accent)]"
+                        style={{ borderColor: "var(--border)", color: "var(--text-muted)" }}
+                      >
+                        <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />
+                      </button>
+                      <button
                         onClick={() => deleteTrade(t.id)}
                         title="Excluir"
                         className="flex h-7 w-7 items-center justify-center rounded-md border smooth hover:border-[color:var(--red)] hover:text-[color:var(--red)]"
