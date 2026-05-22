@@ -263,14 +263,23 @@ function GestaoPage() {
     const closed = trades.filter((t) => t.res !== "OPEN");
     const wins = closed.filter((t) => t.res === "WIN").length;
     const lucro = trades.reduce((a, t) => a + t.lucro, 0);
-    const best = trades.reduce((a, t) => (t.lucro > a ? t.lucro : a), 0);
-    const worst = trades.reduce((a, t) => (t.lucro < a ? t.lucro : a), 0);
+    const winsByAsset = new Map<string, number>();
+    for (const t of closed) {
+      if (t.res === "WIN") {
+        winsByAsset.set(t.ativo, (winsByAsset.get(t.ativo) ?? 0) + 1);
+      }
+    }
+    let topAtivo = "—";
+    let topWins = 0;
+    for (const [ativo, n] of winsByAsset) {
+      if (n > topWins) { topWins = n; topAtivo = ativo; }
+    }
     return {
       total: trades.length,
       winrate: closed.length ? Math.round((wins / closed.length) * 100) : 0,
       lucro,
-      best,
-      worst,
+      topAtivo,
+      topWins,
     };
   }, [trades]);
 
@@ -468,8 +477,8 @@ function GestaoPage() {
           tone={stats.lucro >= 0 ? "success" : "danger"}
         />
         <StatCard
-          label="Melhor / Pior"
-          value={`+$${stats.best.toFixed(0)} / $${stats.worst.toFixed(0)}`}
+          label="Ativo com mais wins"
+          value={stats.topWins > 0 ? `${stats.topAtivo} (${stats.topWins})` : "—"}
           icon={<Trophy className="h-4 w-4" strokeWidth={1.75} />}
         />
       </div>
