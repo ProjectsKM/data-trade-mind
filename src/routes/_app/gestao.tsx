@@ -910,7 +910,148 @@ function OpsTab({
           <p className="whitespace-pre-wrap text-sm text-muted-foreground">{obsOpen?.text}</p>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={editBancaOpen} onOpenChange={setEditBancaOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Editar banca inicial</DialogTitle>
+          </DialogHeader>
+          <p className="text-xs text-muted-foreground">
+            Esse valor é a base de cálculo para entradas em % e para a "banca atual" (banca + lucros).
+          </p>
+          <Input
+            type="number"
+            step="0.01"
+            value={editBancaVal}
+            onChange={(e) => setEditBancaVal(e.target.value)}
+            placeholder="Ex: 200"
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditBancaOpen(false)}>Cancelar</Button>
+            <Button onClick={() => {
+              const n = parseFloat(editBancaVal);
+              if (!isFinite(n) || n <= 0) { toast.error("Valor inválido."); return; }
+              persistBanca(n);
+              setEditBancaOpen(false);
+              toast.success(`Banca atualizada: $${n.toFixed(2)}.`);
+              // Force local refresh
+              window.location.reload();
+            }}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <EditTradeDialog
+        trade={editTradeOpen}
+        onClose={() => setEditTradeOpen(null)}
+        onSave={async (patch) => {
+          if (!editTradeOpen) return;
+          await editTrade(editTradeOpen.id, patch);
+          setEditTradeOpen(null);
+        }}
+      />
     </>
+  );
+}
+
+function EditTradeDialog({
+  trade, onClose, onSave,
+}: {
+  trade: Trade | null;
+  onClose: () => void;
+  onSave: (patch: Partial<Trade>) => Promise<void>;
+}) {
+  const [ativo, setAtivo] = useState("");
+  const [dir, setDir] = useState<"COMPRA" | "VENDA">("COMPRA");
+  const [valor, setValor] = useState("");
+  const [payout, setPayout] = useState("");
+  const [res, setRes] = useState<"WIN" | "LOSS">("WIN");
+  const [obs, setObs] = useState("");
+
+  useEffect(() => {
+    if (!trade) return;
+    setAtivo(trade.ativo);
+    setDir(trade.dir);
+    setValor(String(trade.valor));
+    setPayout(String(trade.payout));
+    setRes(trade.res === "OPEN" ? "WIN" : trade.res);
+    setObs(trade.obs ?? "");
+  }, [trade?.id]);
+
+  const cat = trade ? categoriaForAtivo(trade.ativo) : null;
+  const ativos = cat ? ASSETS[cat] : null;
+
+  return (
+    <Dialog open={!!trade} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Editar operação</DialogTitle>
+        </DialogHeader>
+        <div className="grid gap-2.5">
+          <div>
+            <label className="mb-1 block text-[10px] uppercase tracking-wider text-muted-foreground">Ativo</label>
+            {ativos ? (
+              <Select value={ativo} onValueChange={setAtivo}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {ativos.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            ) : (
+              <Input value={ativo} onChange={(e) => setAtivo(e.target.value)} />
+            )}
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="mb-1 block text-[10px] uppercase tracking-wider text-muted-foreground">Direção</label>
+              <Select value={dir} onValueChange={(v) => setDir(v as "COMPRA" | "VENDA")}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="COMPRA">Compra</SelectItem>
+                  <SelectItem value="VENDA">Venda</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="mb-1 block text-[10px] uppercase tracking-wider text-muted-foreground">Resultado</label>
+              <Select value={res} onValueChange={(v) => setRes(v as "WIN" | "LOSS")}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="WIN">Win</SelectItem>
+                  <SelectItem value="LOSS">Loss</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="mb-1 block text-[10px] uppercase tracking-wider text-muted-foreground">Valor (USD)</label>
+              <Input type="number" step="0.01" value={valor} onChange={(e) => setValor(e.target.value)} />
+            </div>
+            <div>
+              <label className="mb-1 block text-[10px] uppercase tracking-wider text-muted-foreground">Payout %</label>
+              <Input type="number" step="0.01" value={payout} onChange={(e) => setPayout(e.target.value)} />
+            </div>
+          </div>
+          <div>
+            <label className="mb-1 block text-[10px] uppercase tracking-wider text-muted-foreground">Observação</label>
+            <Input value={obs} onChange={(e) => setObs(e.target.value)} />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancelar</Button>
+          <Button onClick={() => {
+            const v = parseFloat(valor);
+            const p = parseFloat(payout);
+            if (!ativo.trim() || !isFinite(v) || v <= 0 || !isFinite(p) || p < 0) {
+              toast.error("Verifique os campos.");
+              return;
+            }
+            void onSave({ ativo: ativo.trim(), dir, valor: v, payout: p, res, obs: obs.trim() || undefined });
+          }}>Salvar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
