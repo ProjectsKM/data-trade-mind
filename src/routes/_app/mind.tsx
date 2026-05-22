@@ -8,6 +8,7 @@ import { useUser, type ChatMsg } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { VoiceRecorder } from "@/components/app/VoiceRecorder";
+import { getBanca } from "@/lib/assets";
 
 export const Route = createFileRoute("/_app/mind")({
   head: () => ({ meta: [{ title: "OrionMind — OrionHub" }] }),
