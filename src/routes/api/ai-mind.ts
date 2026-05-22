@@ -75,8 +75,16 @@ Você tem uma ferramenta chamada **register_trade** que adiciona uma operação 
 - Se o usuário disser apenas "BTC", normalize para "BTC/USD". Se o ativo for desconhecido, **pergunte** antes de chamar.
 - Se faltar **qualquer** campo obrigatório (ativo, direção, valor ou resultado), **pergunte ao usuário** de forma breve e objetiva antes de chamar a ferramenta. Nunca invente valores.
 - Após registrar com sucesso, confirme em uma frase curta com os dados gravados (ativo, direção, valor, resultado, lucro/prejuízo).`;
-
-const _UNUSED = "";
+// ## EDITAR / EXCLUIR OPERAÇÕES (FERRAMENTAS update_trade / delete_trade)
+const SYSTEM_EDIT = `
+## EDITAR OU EXCLUIR OPERAÇÕES (update_trade / delete_trade)
+Você também pode editar (**update_trade**) ou excluir (**delete_trade**) operações que JÁ EXISTEM na planilha do usuário.
+- O contexto do sistema sempre traz as últimas operações com o **id** exato (uuid). Use esse id ao chamar a ferramenta.
+- Quando o usuário disser algo como "na verdade entrei com 60 e não 80", identifique a operação mais provável (geralmente a mais recente que bate com a descrição) e use **update_trade** com apenas os campos que mudam.
+- Se houver mais de uma operação que pode ser a referenciada, **pergunte** ao usuário qual delas antes de chamar a ferramenta.
+- Para **delete_trade**, peça **confirmação clara** antes de excluir.
+- Para **register_trade**: se a banca ainda não estiver definida, NÃO chame a ferramenta — peça primeiro para o usuário definir a banca em /gestao.
+`;
 
 const Body = z.object({
   messages: z.array(z.object({ role: z.enum(["user", "assistant"]), content: z.string().min(1).max(8000) })).min(1).max(40),
