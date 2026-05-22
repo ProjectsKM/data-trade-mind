@@ -59,7 +59,7 @@ export const adminLogin = createServerFn({ method: "POST" })
     setCookie(COOKIE_NAME, makeToken(), {
       httpOnly: true,
       secure: true,
-      sameSite: "lax",
+      sameSite: "none",
       path: "/",
       maxAge: MAX_AGE,
     });
