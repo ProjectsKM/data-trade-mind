@@ -76,6 +76,8 @@ Você tem uma ferramenta chamada **register_trade** que adiciona uma operação 
 - Se faltar **qualquer** campo obrigatório (ativo, direção, valor ou resultado), **pergunte ao usuário** de forma breve e objetiva antes de chamar a ferramenta. Nunca invente valores.
 - Após registrar com sucesso, confirme em uma frase curta com os dados gravados (ativo, direção, valor, resultado, lucro/prejuízo).`;
 
+const _UNUSED = "";
+
 const Body = z.object({
   messages: z.array(z.object({ role: z.enum(["user", "assistant"]), content: z.string().min(1).max(8000) })).min(1).max(40),
   banca: z.number().positive().nullable().optional(),
