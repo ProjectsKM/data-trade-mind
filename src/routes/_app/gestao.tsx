@@ -488,6 +488,7 @@ function GestaoPage() {
           bancaInput={bancaInput}
           setBancaInput={setBancaInput}
           saveBanca={saveBanca}
+          onSaveBanca={(n) => { persistBanca(n); setBancaState(n); }}
         />
       ) : (
         <ReportTab trades={trades} />
