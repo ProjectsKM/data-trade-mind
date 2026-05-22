@@ -247,9 +247,8 @@ function Panel({ onLogout }: { onLogout: () => void }) {
       <div className="overflow-hidden rounded-2xl border" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
         <div className="grid grid-cols-12 gap-3 border-b px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground" style={{ borderColor: "var(--border)" }}>
           <div className="col-span-5">Usuário</div>
-          <div className="col-span-2">Plano</div>
-          <div className="col-span-2">Análises</div>
-          <div className="col-span-3 text-right">Ações</div>
+          <div className="col-span-3">Plano</div>
+          <div className="col-span-4 text-right">Ações</div>
         </div>
         {loading && (
           <div className="px-4 py-10 text-center text-xs text-muted-foreground">Carregando usuários…</div>
@@ -266,7 +265,7 @@ function Panel({ onLogout }: { onLogout: () => void }) {
                 <span className="truncate">{r.email || "(sem email)"}</span>
               </button>
             </div>
-            <div className="col-span-2">
+            <div className="col-span-3">
               {r.is_pro ? (
                 <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider"
                   style={{ background: "color-mix(in oklab, var(--accent) 18%, transparent)", color: "var(--accent)" }}>
@@ -279,10 +278,7 @@ function Panel({ onLogout }: { onLogout: () => void }) {
                 </span>
               )}
             </div>
-            <div className="col-span-2 tabular text-xs text-muted-foreground">
-              {r.analyses_left} <span className="opacity-60">restantes</span>
-            </div>
-            <div className="col-span-3 flex justify-end gap-2">
+            <div className="col-span-4 flex justify-end gap-2">
               {r.is_pro ? (
                 <button disabled={busy === r.user_id} onClick={() => doDemote(r.user_id)}
                   className="rounded-md border px-2.5 py-1 text-[11px] font-semibold smooth press hover:border-[color:var(--red)] hover:text-[color:var(--red)] disabled:opacity-50"
