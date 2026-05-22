@@ -339,6 +339,7 @@ export const Route = createFileRoute("/api/ai-mind")({
           }
           const messages: Array<Record<string, unknown>> = [
             { role: "system", content: SYSTEM },
+            { role: "system", content: SYSTEM_EDIT },
             { role: "system", content: ctxParts.join("\n\n") },
             ...body.messages.map((m) => ({ role: m.role, content: m.content })),
           ];
