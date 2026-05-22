@@ -9,6 +9,7 @@ import {
   Check,
   X,
   Trash2,
+  Pencil,
   TrendingUp,
   TrendingDown,
   Wallet,
