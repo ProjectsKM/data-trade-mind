@@ -136,10 +136,9 @@ const TradeArgs = z.object({
   obs: z.string().max(500).optional(),
 });
 
-type SupabaseAuthedClient = ReturnType<typeof createClient>;
-
 async function executeRegisterTrade(
-  supabase: SupabaseAuthedClient,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
   userId: string,
   rawArgs: unknown,
 ): Promise<{ ok: boolean; message: string }> {
