@@ -482,11 +482,12 @@ function GestaoPage() {
           trades={trades}
           setRes={setRes}
           deleteTrade={removeTrade}
+          editTrade={saveEditedTrade}
           banca={banca}
+          bancaAtual={(banca ?? 0) + stats.lucro}
           bancaInput={bancaInput}
           setBancaInput={setBancaInput}
           saveBanca={saveBanca}
-          clearBanca={() => { persistBanca(0); setBancaState(null); }}
         />
       ) : (
         <ReportTab trades={trades} />
