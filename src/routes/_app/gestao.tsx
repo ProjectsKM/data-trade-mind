@@ -622,12 +622,29 @@ function OpsTab({
   return (
     <>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-xs">
-        <div className="inline-flex items-center gap-2 rounded-lg border px-3 py-1.5" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
-          <Wallet className="h-3.5 w-3.5" style={{ color: "var(--accent)" }} />
-          <span className="text-muted-foreground">Banca:</span>
-          <span className="font-mono font-semibold tabular">${banca.toFixed(2)}</span>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="inline-flex items-center gap-2 rounded-lg border px-3 py-1.5" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+            <Wallet className="h-3.5 w-3.5" style={{ color: "var(--accent)" }} />
+            <span className="text-muted-foreground">Banca inicial:</span>
+            <span className="font-mono font-semibold tabular">${banca.toFixed(2)}</span>
+          </div>
+          <div className="inline-flex items-center gap-2 rounded-lg border px-3 py-1.5"
+            style={{
+              borderColor: bancaAtual >= banca
+                ? "color-mix(in oklab, var(--green) 30%, transparent)"
+                : "color-mix(in oklab, var(--red) 30%, transparent)",
+              background: "var(--surface)",
+            }}>
+            <TrendingUp className="h-3.5 w-3.5" style={{ color: bancaAtual >= banca ? "var(--green)" : "var(--red)" }} />
+            <span className="text-muted-foreground">Banca atual:</span>
+            <span className="font-mono font-semibold tabular" style={{ color: bancaAtual >= banca ? "var(--green)" : "var(--red)" }}>
+              ${bancaAtual.toFixed(2)}
+            </span>
+          </div>
         </div>
-        <Button variant="outline" size="sm" onClick={clearBanca} className="text-xs">Editar banca</Button>
+        <Button variant="outline" size="sm" onClick={() => { setEditBancaVal(String(banca)); setEditBancaOpen(true); }} className="gap-1.5 text-xs">
+          <Pencil className="h-3 w-3" /> Editar banca
+        </Button>
       </div>
 
       <form
