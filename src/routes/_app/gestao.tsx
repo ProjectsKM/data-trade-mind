@@ -567,11 +567,12 @@ function OpsTab({
   trades,
   setRes,
   deleteTrade,
+  editTrade,
   banca,
+  bancaAtual,
   bancaInput,
   setBancaInput,
   saveBanca,
-  clearBanca,
 }: {
   form: Form;
   setForm: React.Dispatch<React.SetStateAction<Form>>;
@@ -579,13 +580,17 @@ function OpsTab({
   trades: Trade[];
   setRes: (id: string, res: "WIN" | "LOSS") => void;
   deleteTrade: (id: string) => void;
+  editTrade: (id: string, patch: Partial<Trade>) => Promise<void>;
   banca: number | null;
+  bancaAtual: number;
   bancaInput: string;
   setBancaInput: (s: string) => void;
   saveBanca: () => void;
-  clearBanca: () => void;
 }) {
   const [obsOpen, setObsOpen] = useState<{ text: string; ativo: string } | null>(null);
+  const [editBancaOpen, setEditBancaOpen] = useState(false);
+  const [editBancaVal, setEditBancaVal] = useState("");
+  const [editTradeOpen, setEditTradeOpen] = useState<Trade | null>(null);
 
   if (banca === null || banca <= 0) {
     return (
