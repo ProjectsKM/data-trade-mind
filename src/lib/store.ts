@@ -153,10 +153,10 @@ export function useAppState() {
       if (cancelled) return;
       const plan = planRes.data;
       const trialStart = plan?.trial_started_at ?? new Date().toISOString();
-      const trialDaysLeft = plan?.is_pro ? 999 : Math.max(0, 7 - Math.floor((Date.now() - new Date(trialStart).getTime()) / 86400000));
+      const trialDaysLeft = plan?.is_pro ? 999 : (plan?.trial_days_left ?? 0);
       setState({
         isPro: plan?.is_pro ?? false,
-        analysesLeft: plan?.analyses_left ?? 5,
+        analysesLeft: plan?.analyses_left ?? 0,
         trialDaysLeft,
         trialStartedAt: trialStart,
         tradeList: (tradesRes.data ?? []).map((t) => ({

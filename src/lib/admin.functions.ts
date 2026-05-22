@@ -165,8 +165,8 @@ export const demoteUser = createServerFn({ method: "POST" })
       .from("user_plans")
       .update({
         is_pro: false,
-        analyses_left: 5,
-        trial_days_left: 7,
+        analyses_left: 0,
+        trial_days_left: 0,
         trial_started_at: new Date().toISOString(),
       })
       .eq("user_id", data.userId);
