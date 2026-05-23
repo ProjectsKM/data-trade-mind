@@ -3,6 +3,7 @@ import "@tanstack/react-start";
 import { z } from "zod";
 import { corsHeaders, jsonResponse } from "@/lib/cors";
 import { createClient } from "@supabase/supabase-js";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { ASSETS, payoutForCategoria, categoriaForAtivo, calcLucro, type Categoria } from "@/lib/assets";
 
 const OPENAI_URL = "https://api.openai.com/v1/chat/completions";
@@ -323,6 +324,11 @@ export const Route = createFileRoute("/api/ai-mind")({
         const { data: claims, error: claimsErr } = await supabase.auth.getClaims(token);
         const userId = claims?.claims?.sub as string | undefined;
         if (claimsErr || !userId) return jsonResponse({ ok: false, error: "Não autorizado." }, 401, request);
+
+        // Premium Anual obrigatório.
+        const { data: plan } = await supabaseAdmin
+          .from("user_plans").select("is_pro").eq("user_id", userId).maybeSingle();
+        if (!plan?.is_pro) return jsonResponse({ ok: false, error: "Recurso exclusivo do Premium Anual." }, 402, request);
 
         let body: z.infer<typeof Body>;
         try { body = Body.parse(await request.json()); } catch { return jsonResponse({ ok: false, error: "Mensagens inválidas." }, 400, request); }
