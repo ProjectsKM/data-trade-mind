@@ -12,7 +12,7 @@ import {
   CircleDot,
 } from "lucide-react";
 import { logout, useAppState, useUser } from "@/lib/store";
-import { PremiumGate } from "@/components/app/PremiumGate";
+import { PremiumGate, type GateKey } from "@/components/app/PremiumGate";
 
 export const Route = createFileRoute("/_app")({
   component: AppLayout,
@@ -64,12 +64,12 @@ function AppLayout() {
   const isFullHeightRoute =
     loc.pathname.startsWith("/mind") || loc.pathname.startsWith("/cryptobubbles");
 
-  const GATED: Record<string, string> = {
-    "/scan": "Scan",
-    "/mind": "OrionMind",
-    "/gestao": "Gestão",
-    "/noticias": "Notícias",
-    "/cryptobubbles": "CryptoBubbles",
+  const GATED: Record<string, GateKey> = {
+    "/scan": "scan",
+    "/mind": "mind",
+    "/gestao": "gestao",
+    "/noticias": "noticias",
+    "/cryptobubbles": "cryptobubbles",
   };
   const gatedFeature = Object.keys(GATED).find((p) => loc.pathname.startsWith(p));
   const isGated = !!gatedFeature && !state.isPro;
