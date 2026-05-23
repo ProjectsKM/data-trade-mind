@@ -1,0 +1,1 @@
+revoke execute on function public.require_premium() from public, anon, authenticated;
