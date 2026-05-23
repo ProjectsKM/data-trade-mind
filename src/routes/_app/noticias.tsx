@@ -4,6 +4,7 @@ import { Newspaper, RefreshCw, Loader2 } from "lucide-react";
 import { PageHeader } from "@/components/app/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_app/noticias")({
   head: () => ({ meta: [{ title: "Notícias — OrionHub" }] }),
@@ -46,7 +47,12 @@ function NoticiasPage() {
     setLoading(true);
     setErr("");
     try {
-      const r = await fetch("/api/calendar", { cache: "no-store" });
+      const { data: sess } = await supabase.auth.getSession();
+      const token = sess.session?.access_token;
+      const r = await fetch("/api/calendar", {
+        cache: "no-store",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       const data = await r.json();
       if (!Array.isArray(data)) throw new Error("Resposta inválida");
       setItems(data as CalendarItem[]);

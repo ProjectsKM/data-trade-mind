@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { corsHeaders } from "@/lib/cors";
+import { verifySupabaseUser } from "@/lib/verify-supabase-jwt.server";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 export const Route = createFileRoute("/api/calendar")({
   server: {
@@ -8,6 +10,19 @@ export const Route = createFileRoute("/api/calendar")({
         new Response(null, { status: 204, headers: corsHeaders(request) }),
       GET: async ({ request }: { request: Request }) => {
         const CORS = corsHeaders(request);
+        const userId = await verifySupabaseUser(request);
+        if (!userId) {
+          return new Response(JSON.stringify({ ok: false, error: "Não autorizado." }), {
+            status: 401, headers: { "Content-Type": "application/json", ...CORS },
+          });
+        }
+        const { data: plan } = await supabaseAdmin
+          .from("user_plans").select("is_pro").eq("user_id", userId).maybeSingle();
+        if (!plan?.is_pro) {
+          return new Response(JSON.stringify({ ok: false, error: "Recurso exclusivo do Premium Anual." }), {
+            status: 402, headers: { "Content-Type": "application/json", ...CORS },
+          });
+        }
         try {
           const r = await fetch("https://nfs.faireconomy.media/ff_calendar_thisweek.json", {
             headers: { Accept: "application/json", "User-Agent": "OrionHub/1.0" },
