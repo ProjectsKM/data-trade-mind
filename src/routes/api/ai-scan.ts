@@ -45,25 +45,12 @@ export const Route = createFileRoute("/api/ai-scan")({
         if (!apiKey) return jsonResponse({ ok: false, error: "API key não configurada no servidor." }, 500, request);
         if (body.imageBase64.length > 7_000_000) return jsonResponse({ ok: false, error: "Imagem muito grande (máx ~5 MB)." }, 413, request);
 
-        // Server-side quota: PRO bypassa, free decrementa atomico.
+        // Premium Anual obrigatório.
         const { data: plan, error: planErr } = await supabaseAdmin
-          .from("user_plans")
-          .select("is_pro, analyses_left")
-          .eq("user_id", userId)
-          .maybeSingle();
+          .from("user_plans").select("is_pro").eq("user_id", userId).maybeSingle();
         if (planErr) return jsonResponse({ ok: false, error: "Falha ao validar plano." }, 500, request);
-        const isPro = plan?.is_pro ?? false;
-        const left = plan?.analyses_left ?? 0;
-        if (!isPro) {
-          if (left <= 0) {
-            return jsonResponse({ ok: false, error: "Você usou suas análises do trial. Ative o acesso anual para continuar." }, 402, request);
-          }
-          const { error: updErr } = await supabaseAdmin
-            .from("user_plans")
-            .update({ analyses_left: left - 1 })
-            .eq("user_id", userId)
-            .eq("analyses_left", left);
-          if (updErr) return jsonResponse({ ok: false, error: "Falha ao consumir crédito." }, 500, request);
+        if (!plan?.is_pro) {
+          return jsonResponse({ ok: false, error: "Recurso exclusivo do Premium Anual." }, 402, request);
         }
 
         const prompt = buildPrompt(body.durationMin, new Date());
