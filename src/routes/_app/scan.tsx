@@ -49,7 +49,7 @@ import {
 } from "@/lib/scanHistory";
 
 export const Route = createFileRoute("/_app/scan")({
-  head: () => ({ meta: [{ title: "TraderScan — OrionHub" }] }),
+  head: () => ({ meta: [{ title: "OrionScan — OrionHub" }] }),
   component: ScanPage,
 });
 
@@ -238,7 +238,7 @@ function ScanPage() {
   return (
     <div className="mx-auto w-full max-w-3xl px-5 py-8">
       <PageHeader
-        title="TraderScan"
+        title="OrionScan"
         description="Envie um print do gráfico para análise técnica assistida por IA."
         icon={<LineChart className="h-5 w-5" strokeWidth={1.75} />}
         actions={planBadge}

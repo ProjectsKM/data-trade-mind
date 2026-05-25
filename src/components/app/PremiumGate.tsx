@@ -6,7 +6,7 @@ export type GateKey = "scan" | "mind" | "gestao" | "noticias" | "cryptobubbles";
 
 const COPY: Record<GateKey, { title: string; tagline: string; description: string; Icon: LucideIcon; perks: string[] }> = {
   scan: {
-    title: "TraderScan IA",
+    title: "OrionScan IA",
     tagline: "Análise de gráficos com IA",
     description: "Envie o print do gráfico e receba direção, suporte, resistência, padrões e horário de entrada calculado.",
     Icon: LineChart,
