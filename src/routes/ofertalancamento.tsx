@@ -10,7 +10,7 @@ export const Route = createFileRoute("/ofertalancamento")({
   head: () => ({
     meta: [
       { title: "Oferta de Lançamento — OrionHub" },
-      { name: "description", content: "Acesso anual ao OrionHub: TraderScan IA, OrionMind, calendário econômico, CryptoBubbles e mais. Preço de lançamento." },
+      { name: "description", content: "Acesso anual ao OrionHub: OrionScan IA, OrionMind, calendário econômico, CryptoBubbles e mais. Preço de lançamento." },
       { property: "og:title", content: "OrionHub — Oferta de Lançamento" },
       { property: "og:description", content: "Garanta 12 meses de acesso completo à plataforma de trading com IA do mentor Gabriel Dutra." },
       { property: "og:type", content: "website" },
@@ -153,7 +153,7 @@ function Hero() {
 }
 
 const COMPARE_ROWS: Array<{ label: string; free: boolean | string; pro: boolean | string }> = [
-  { label: "Análises de gráfico (TraderScan IA)", free: "5 / mês", pro: "Ilimitadas" },
+  { label: "Análises de gráfico (OrionScan IA)", free: "5 / mês", pro: "Ilimitadas" },
   { label: "Mentor IA OrionMind", free: "Limitado", pro: "Sem restrição" },
   { label: "Histórico de scans com thumbnail", free: false, pro: true },
   { label: "Calendário econômico (Notícias)", free: false, pro: true },
@@ -202,7 +202,7 @@ function Compare() {
 }
 
 const MODULES = [
-  { Icon: LineChart, name: "TraderScan IA", desc: "Envie o gráfico, receba direção, suporte/resistência, padrões e horário de entrada calculado." },
+  { Icon: LineChart, name: "OrionScan IA", desc: "Envie o gráfico, receba direção, suporte/resistência, padrões e horário de entrada calculado." },
   { Icon: BrainCircuit, name: "OrionMind", desc: "Mentor IA 24/7 com memória estendida, treinado nos princípios do Gabriel Dutra." },
   { Icon: Newspaper, name: "Notícias & Calendário", desc: "Eventos macro do dia separados por impacto (alto, médio, baixo)." },
   { Icon: Bitcoin, name: "CryptoBubbles", desc: "Radar do mercado cripto em tempo real direto na plataforma." },
@@ -265,7 +265,7 @@ function Pricing() {
           <ul className="mt-6 grid gap-2 text-left text-sm">
             {[
               "Acesso por 12 meses a todos os módulos",
-              "Análises ilimitadas no TraderScan IA",
+              "Análises ilimitadas no OrionScan IA",
               "OrionMind sem restrição de uso",
               "Bônus: aulas e materiais exclusivos do Gabriel Dutra",
               "Suporte humano prioritário",
@@ -319,7 +319,7 @@ const FAQS = [
   ["O acesso é vitalício?", "Não. É um pagamento único que libera 12 meses de acesso completo. Sem renovação automática."],
   ["Tenho garantia?", "Sim. Você tem 7 dias para testar a plataforma. Não gostou, devolvemos 100% do valor."],
   ["Funciona em qualquer corretora?", "A plataforma é independente da corretora. Você analisa o gráfico de qualquer ativo e executa onde preferir."],
-  ["Preciso de conhecimento prévio?", "Não. O OrionMind te orienta passo a passo, e o TraderScan entrega análises prontas para iniciantes e avançados."],
+  ["Preciso de conhecimento prévio?", "Não. O OrionMind te orienta passo a passo, e o OrionScan entrega análises prontas para iniciantes e avançados."],
   ["Como recebo o acesso?", "Após a compra, liberamos seu acesso anual em até alguns minutos no e-mail cadastrado."],
 ];
 

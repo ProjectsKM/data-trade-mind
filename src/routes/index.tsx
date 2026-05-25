@@ -184,7 +184,7 @@ function ToolsSection() {
     <section id="tools" className="mx-auto max-w-6xl px-6 py-24">
       <SectionHeader tag="FERRAMENTAS" title="Tudo que você precisa para operar com mais clareza" sub="Quatro módulos integrados, alimentados por IA." />
       <div className="grid grid-cols-1 gap-4 stagger md:grid-cols-2">
-        <ToolCard tone="blue" Icon={LineChart} title="TraderScan"
+        <ToolCard tone="blue" Icon={LineChart} title="OrionScan"
           desc="Cole ou arraste a print de qualquer gráfico. A IA identifica padrões, indicadores, suporte/resistência e devolve direção, confiança e horários de entrada e proteção."
           feats={["Vision Claude para análise visual", "Funciona em qualquer broker", "Saída estruturada (CALL/PUT)"]} />
         <ToolCard tone="cyan" Icon={BrainCircuit} title="OrionMind"
@@ -279,7 +279,7 @@ function PricingSection() {
       <div className="mx-auto grid max-w-md grid-cols-1 gap-4">
         <Plan name="Acesso Anual" price="497" period="pagamento único · 12 meses de acesso completo"
           feats={[
-            "Análises ilimitadas no TraderScan",
+            "Análises ilimitadas no OrionScan",
             "OrionMind ilimitado",
             "Notícias & Calendário econômico",
             "CryptoBubbles em tempo real",

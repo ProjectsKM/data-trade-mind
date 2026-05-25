@@ -12,7 +12,7 @@ export const Route = createFileRoute("/_app/upgrade")({
 });
 
 const BENEFITS = [
-  { Icon: InfinityIcon, title: "Análises ilimitadas", desc: "Sem limite no TraderScan — analise quantos gráficos quiser por dia." },
+  { Icon: InfinityIcon, title: "Análises ilimitadas", desc: "Sem limite no OrionScan — analise quantos gráficos quiser por dia." },
   { Icon: BrainCircuit, title: "OrionMind sem restrição", desc: "Mentor IA 24/7 com memória estendida das suas operações." },
   { Icon: LineChart, title: "Relatórios avançados", desc: "Métricas profissionais e exportação de gráficos em PNG e PDF." },
   { Icon: Newspaper, title: "Notícias & Calendário", desc: "Eventos econômicos por impacto (alto, médio, baixo) em tempo real." },
@@ -23,7 +23,7 @@ const BENEFITS = [
 ];
 
 const HIGHLIGHTS = [
-  { Icon: LineChart, title: "TraderScan IA", desc: "Envie o gráfico, receba direção, suporte/resistência, padrões e horário de entrada calculado." },
+  { Icon: LineChart, title: "OrionScan IA", desc: "Envie o gráfico, receba direção, suporte/resistência, padrões e horário de entrada calculado." },
   { Icon: BrainCircuit, title: "OrionMind", desc: "Converse com o mentor IA treinado nos princípios do Gabriel Dutra." },
   { Icon: Newspaper, title: "Notícias + CryptoBubbles", desc: "Calendário macro e radar cripto, lado a lado com sua análise." },
 ];
@@ -32,7 +32,7 @@ const FAQS: Array<[string, string]> = [
   ["O acesso é vitalício?", "Não. É um pagamento único que libera 12 meses de acesso completo. Sem renovação automática — você decide se quer renovar."],
   ["Tenho garantia?", "Sim. Você tem 7 dias para testar a plataforma. Não gostou, devolvemos 100% do valor."],
   ["Como funciona o suporte?", "Suporte humano por chat com prioridade na fila. Respostas tipicamente em poucas horas."],
-  ["Preciso de conhecimento prévio?", "Não. O OrionMind te orienta passo a passo e o TraderScan entrega análises prontas para iniciantes e avançados."],
+  ["Preciso de conhecimento prévio?", "Não. O OrionMind te orienta passo a passo e o OrionScan entrega análises prontas para iniciantes e avançados."],
   ["Quais formas de pagamento?", "Cartão (até 12x), Pix à vista e boleto. Acesso liberado em poucos minutos após confirmação."],
 ];
 
