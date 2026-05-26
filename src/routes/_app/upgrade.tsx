@@ -1,10 +1,12 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import {
   Infinity as InfinityIcon, BrainCircuit, LineChart, Newspaper, Bitcoin, Zap, Gem,
   ShieldCheck, Crown, Check, Sparkles, ArrowRight, PartyPopper,
 } from "lucide-react";
 import { useAppState } from "@/lib/store";
+
+const TELEGRAM_URL = "https://t.me/suporte_orioncapital";
 
 export const Route = createFileRoute("/_app/upgrade")({
   head: () => ({ meta: [{ title: "Acesso Anual — OrionHub" }] }),
@@ -30,24 +32,15 @@ const HIGHLIGHTS = [
 
 const FAQS: Array<[string, string]> = [
   ["O acesso é vitalício?", "Não. É um pagamento único que libera 12 meses de acesso completo. Sem renovação automática — você decide se quer renovar."],
-  ["Tenho garantia?", "Sim. Você tem 7 dias para testar a plataforma. Não gostou, devolvemos 100% do valor."],
-  ["Como funciona o suporte?", "Suporte humano por chat com prioridade na fila. Respostas tipicamente em poucas horas."],
+  ["Tenho garantia?", "Sim. Você tem 7 dias após a compra como garantia de devolução. Se não gostou, devolvemos 100% do valor."],
+  ["Como funciona o suporte?", "Suporte humano via Telegram oficial com prioridade na fila. Respostas tipicamente em poucas horas."],
   ["Preciso de conhecimento prévio?", "Não. O OrionMind te orienta passo a passo e o OrionScan entrega análises prontas para iniciantes e avançados."],
   ["Quais formas de pagamento?", "Cartão (até 12x), Pix à vista e boleto. Acesso liberado em poucos minutos após confirmação."],
 ];
 
 function UpgradePage() {
-  const { state, update } = useAppState();
-  const nav = useNavigate();
+  const { state } = useAppState();
   const [openFaq, setOpenFaq] = useState<number | null>(0);
-
-  function activate() {
-    update({ isPro: true, analysesLeft: 9999, trialDaysLeft: 999 });
-    setTimeout(() => nav({ to: "/scan" }), 300);
-  }
-  function deactivate() {
-    update({ isPro: false, analysesLeft: 5, trialDaysLeft: 7, trialStartedAt: new Date().toISOString() });
-  }
 
   return (
     <div className="mx-auto w-full max-w-4xl px-5 py-10 pb-28">
@@ -77,9 +70,6 @@ function UpgradePage() {
           <PartyPopper className="mx-auto h-9 w-9" style={{ color: "var(--green)" }} />
           <div className="mt-2 font-display text-2xl font-extrabold" style={{ color: "var(--green)" }}>Acesso Anual ativo!</div>
           <div className="mt-1 text-sm text-muted-foreground">Aproveite todos os recursos sem limites por 12 meses.</div>
-          <button onClick={deactivate} className="mt-5 rounded-lg border px-4 py-2 text-xs text-muted-foreground smooth hover:text-[color:var(--red)] hover:border-[color:var(--red)]" style={{ borderColor: "var(--border)" }}>
-            Desativar (demo)
-          </button>
         </div>
       ) : (
         <div className="mb-10 rounded-3xl border p-7 fade-up card-glow"
@@ -95,26 +85,21 @@ function UpgradePage() {
                 <Crown className="h-3 w-3" /> Acesso PRO Anual
               </div>
               <div className="mt-3 flex items-end gap-3">
-                <span className="text-base text-muted-foreground line-through">R$ 997</span>
-                <span className="font-display text-5xl font-black gradient-text">R$ 497</span>
+                <span className="font-display text-5xl font-black gradient-text">R$ 2.500</span>
               </div>
-              <div className="mt-1 text-xs text-muted-foreground">/ano · pagamento único · ou 12x no cartão</div>
-              <div className="mt-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider"
-                style={{ background: "color-mix(in oklab, var(--green) 18%, transparent)", color: "var(--green)" }}>
-                economize 50%
-              </div>
+              <div className="mt-1 text-xs text-muted-foreground">/ano · pagamento único · 12 meses de acesso completo</div>
             </div>
-            <button onClick={activate}
+            <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer"
               className="group inline-flex items-center gap-2 rounded-2xl px-7 py-4 text-sm font-bold smooth press hover:-translate-y-0.5 pulse-glow"
               style={{ background: "var(--gradient-primary)", color: "var(--accent-foreground)" }}>
-              Ativar acesso anual
+              Comprar acesso anual
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-            </button>
+            </a>
           </div>
           <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
-            <span className="inline-flex items-center gap-1"><ShieldCheck className="h-3 w-3" /> Garantia de 7 dias</span>
+            <span className="inline-flex items-center gap-1"><ShieldCheck className="h-3 w-3" /> Garantia de 7 dias · 100% do valor</span>
             <span>·</span>
-            <span>Status atual: <span className="font-bold text-foreground">TRIAL</span> · {state.analysesLeft} análises restantes</span>
+            <span>Acesso liberado após confirmação do pagamento</span>
           </div>
         </div>
       )}
@@ -195,12 +180,12 @@ function UpgradePage() {
 
       {/* Mobile floating CTA */}
       {!state.isPro && (
-        <div className="fixed inset-x-3 bottom-20 z-30 sm:hidden">
-          <button onClick={activate}
+        <div className="fixed inset-x-3 bottom-24 z-30 sm:hidden">
+          <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer"
             className="flex w-full items-center justify-center gap-2 rounded-2xl px-5 py-3.5 text-sm font-bold smooth press pulse-glow"
             style={{ background: "var(--gradient-primary)", color: "var(--accent-foreground)" }}>
-            <Check className="h-4 w-4" /> Ativar acesso anual · R$ 497
-          </button>
+            <Check className="h-4 w-4" /> Comprar acesso anual · R$ 2.500
+          </a>
         </div>
       )}
     </div>

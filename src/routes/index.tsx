@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { LineChart, BrainCircuit, ClipboardList, Calculator, Zap, ShieldCheck, Target, Smartphone, BarChart3, Languages, type LucideIcon } from "lucide-react";
+import { LineChart, BrainCircuit, ClipboardList, Calculator, Zap, ShieldCheck, Target, Languages, Menu, X, type LucideIcon } from "lucide-react";
 import { useUser, type User } from "@/lib/store";
 import { useReveal } from "@/lib/useReveal";
 
@@ -31,6 +31,7 @@ function LandingPage() {
       <Reveal><MockupSection /></Reveal>
       <Reveal><ToolsSection /></Reveal>
       <Reveal><FeaturesSection /></Reveal>
+      <Reveal><MentorSection /></Reveal>
       <Reveal><HowSection /></Reveal>
       <Reveal><PricingSection /></Reveal>
       <Reveal><FaqSection /></Reveal>
@@ -41,6 +42,8 @@ function LandingPage() {
 }
 
 function Nav({ user }: { user: User | null }) {
+  const [open, setOpen] = useState(false);
+  const links: Array<[string, string]> = [["#tools","Ferramentas"],["#how","Como funciona"],["#pricing","Planos"],["#faq","FAQ"]];
   return (
     <nav className="fixed inset-x-0 top-0 z-50 flex items-center justify-between px-6 py-4 backdrop-blur-xl fade-down md:px-12"
       style={{ background: "color-mix(in oklab, var(--background) 85%, transparent)", borderBottom: "1px solid color-mix(in oklab, var(--accent) 8%, transparent)" }}>
@@ -48,25 +51,57 @@ function Nav({ user }: { user: User | null }) {
         Orion<span style={{ color: "var(--electric)" }}>Hub</span>
       </Link>
       <div className="hidden items-center gap-8 md:flex">
-        {[["#tools","Ferramentas"],["#how","Como funciona"],["#pricing","Planos"],["#faq","FAQ"]].map(([h,l]) => (
+        {links.map(([h,l]) => (
           <a key={h} href={h} className="text-sm font-medium text-muted-foreground smooth hover:text-foreground hover:-translate-y-0.5 inline-block">{l}</a>
         ))}
       </div>
       <div className="flex items-center gap-3">
         {user ? (
-          <Link to="/scan" className="rounded-full px-5 py-2.5 text-sm font-bold text-white smooth press hover:-translate-y-0.5 pulse-glow" style={{ background: "var(--accent)" }}>
+          <Link to="/dashboard" className="rounded-full px-5 py-2.5 text-sm font-bold text-white smooth press hover:-translate-y-0.5 pulse-glow" style={{ background: "var(--accent)" }}>
             Abrir App →
           </Link>
         ) : (
           <>
-            <Link to="/login" className="text-sm font-medium text-muted-foreground smooth hover:text-foreground">Entrar</Link>
-            <Link to="/signup" className="rounded-full px-5 py-2.5 text-sm font-bold text-white smooth press hover:-translate-y-0.5"
+            <Link to="/login" className="hidden text-sm font-medium text-muted-foreground smooth hover:text-foreground sm:inline">Entrar</Link>
+            <Link to="/signup" className="hidden rounded-full px-5 py-2.5 text-sm font-bold text-white smooth press hover:-translate-y-0.5 sm:inline-flex"
               style={{ background: "var(--accent)", boxShadow: "0 0 30px color-mix(in oklab, var(--accent) 25%, transparent)" }}>
-              Criar Conta
+              Comprar acesso
             </Link>
           </>
         )}
+        <button
+          onClick={() => setOpen((v) => !v)}
+          aria-label={open ? "Fechar menu" : "Abrir menu"}
+          className="flex h-10 w-10 items-center justify-center rounded-lg border smooth md:hidden"
+          style={{ borderColor: "var(--border-strong)", background: "var(--surface)" }}>
+          {open ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+        </button>
       </div>
+
+      {open && (
+        <div
+          onClick={() => setOpen(false)}
+          className="absolute inset-x-3 top-[calc(100%+8px)] z-40 rounded-2xl border p-4 backdrop-blur-xl shadow-2xl md:hidden fade-down"
+          style={{ background: "color-mix(in oklab, var(--surface) 96%, transparent)", borderColor: "var(--border-strong)" }}>
+          <div className="flex flex-col gap-1">
+            {links.map(([h,l]) => (
+              <a key={h} href={h} className="rounded-lg px-4 py-3 text-sm font-medium text-muted-foreground smooth hover:bg-[color:var(--surface-2)] hover:text-foreground">
+                {l}
+              </a>
+            ))}
+            <div className="mt-2 flex flex-col gap-2 border-t pt-3" style={{ borderColor: "var(--border)" }}>
+              {user ? (
+                <Link to="/dashboard" className="rounded-full px-5 py-2.5 text-center text-sm font-bold text-white" style={{ background: "var(--accent)" }}>Abrir App →</Link>
+              ) : (
+                <>
+                  <Link to="/login" className="rounded-lg px-4 py-2.5 text-center text-sm font-medium text-muted-foreground hover:text-foreground">Entrar</Link>
+                  <Link to="/signup" className="rounded-full px-5 py-2.5 text-center text-sm font-bold text-white" style={{ background: "var(--accent)" }}>Comprar acesso</Link>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </nav>
   );
 }
@@ -84,7 +119,7 @@ function Hero({ user }: { user: User | null }) {
         <div className="mb-7 inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-semibold uppercase tracking-wider"
           style={{ background: "color-mix(in oklab, var(--accent) 7%, transparent)", border: "1px solid color-mix(in oklab, var(--accent) 18%, transparent)", color: "var(--electric)" }}>
           <span className="h-1.5 w-1.5 rounded-full blink-dot" style={{ background: "var(--electric)" }} />
-          IA · Trading · Tempo Real
+          Pela metodologia <span className="font-bold tracking-normal normal-case" style={{ color: "var(--foreground)" }}>Gabriel Dutra</span> · Orion Capital
         </div>
         <h1 className="max-w-4xl text-[clamp(40px,6.5vw,84px)] font-black leading-[1.0] tracking-tighter">
           Sua mente de trader,<br />
@@ -94,21 +129,34 @@ function Hero({ user }: { user: User | null }) {
           Analise gráficos, gerencie sua planilha, converse com seu mentor IA e descubra padrões. Tudo em um só lugar.
         </p>
         <div className="mt-11 flex flex-wrap items-center justify-center gap-3.5">
-          <Link to={user ? "/scan" : "/signup"}
-            className="rounded-full px-9 py-4 text-base font-bold text-white smooth press hover:-translate-y-0.5 pulse-glow"
+          <Link to={user ? "/dashboard" : "/signup"}
+            className="rounded-full px-9 py-4 text-base font-bold text-white smooth press hover:-translate-y-0.5 pulse-glow ring-2 ring-[color:var(--accent)]/30"
             style={{ background: "var(--accent)" }}>
-            {user ? "Abrir App →" : "Começar grátis"}
+            {user ? "Abrir App →" : "Quero acesso anual"}
           </Link>
-          <a href="#tools" className="rounded-full border px-8 py-4 text-base font-semibold text-muted-foreground smooth hover:text-foreground hover:-translate-y-0.5"
+          <a href="#tools" className="rounded-full border px-8 py-4 text-base font-semibold text-muted-foreground/80 smooth hover:text-foreground"
             style={{ borderColor: "var(--border-strong)" }}>
             Ver ferramentas
           </a>
         </div>
+        <div className="mt-5 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[11px] uppercase tracking-wider text-muted-foreground">
+          <span className="inline-flex items-center gap-1.5">
+            <ShieldCheck className="h-3 w-3" style={{ color: "var(--green)" }} />
+            Garantia 7 dias
+          </span>
+          <span className="opacity-40">·</span>
+          <span>Pagamento único</span>
+          <span className="opacity-40">·</span>
+          <span>Suporte humano</span>
+        </div>
         <div className="mt-16 flex flex-wrap justify-center gap-12">
-          <Stat num="92%" label="Precisão da IA" />
+          <Stat num="92%*" label="Precisão da IA" />
           <Stat num="<2s" label="Tempo de análise" />
           <Stat num="24/7" label="Mentor disponível" />
         </div>
+        <p className="mt-4 text-center text-[10px] text-muted-foreground/70">
+          *Baseado em backtests internos. Resultados passados não garantem performance futura.
+        </p>
       </div>
     </section>
   );
@@ -125,11 +173,17 @@ function Stat({ num, label }: { num: string; label: string }) {
 function MockupSection() {
   return (
     <section className="mx-auto max-w-5xl px-6 pb-24">
-      <div className="overflow-hidden rounded-3xl border" style={{ background: "var(--surface)", borderColor: "var(--border-strong)", boxShadow: "0 40px 100px rgba(0,0,0,.5)" }}>
+      <div className="mb-4 flex items-center justify-center gap-2 text-[10px] font-semibold uppercase tracking-[0.3em] text-muted-foreground">
+        <span className="h-px w-8" style={{ background: "color-mix(in oklab, var(--accent) 30%, transparent)" }} />
+        Exemplo de análise gerada pela IA
+        <span className="h-px w-8" style={{ background: "color-mix(in oklab, var(--accent) 30%, transparent)" }} />
+      </div>
+      <div className="overflow-hidden rounded-3xl border" style={{ background: "var(--surface)", borderColor: "var(--border-strong)", boxShadow: "0 50px 120px -20px rgba(0,0,0,.55), 0 0 80px -20px color-mix(in oklab, var(--accent) 25%, transparent)" }}>
         <div className="flex items-center gap-2 border-b px-5 py-3.5" style={{ background: "var(--surface-2)", borderColor: "var(--border)" }}>
           <span className="h-3 w-3 rounded-full" style={{ background: "#ff5f57" }} />
           <span className="h-3 w-3 rounded-full" style={{ background: "#febc2e" }} />
           <span className="h-3 w-3 rounded-full" style={{ background: "#28c840" }} />
+          <span className="ml-3 text-[10px] font-mono text-muted-foreground">orionmindhub · scan #2491</span>
         </div>
         <div className="grid gap-0 p-8 md:grid-cols-[200px_1fr]" style={{ minHeight: 420 }}>
           <div className="border-r pr-5" style={{ borderColor: "var(--border)" }}>
@@ -224,15 +278,15 @@ function ToolCard({ tone, Icon, title, desc, feats }: { tone: "blue" | "cyan" | 
 function FeaturesSection() {
   return (
     <section className="mx-auto max-w-6xl px-6 py-24">
-      <SectionHeader tag="POR QUE ORIONHUB" title="Pensado para o trader real" sub="Não é mais um indicador. É um copiloto." />
+      <SectionHeader tag="POR QUE ORIONHUB" title="Pensado para o trader real" sub="Não é mais um indicador. É um copiloto operacional completo." />
       <div className="grid grid-cols-1 gap-4 stagger md:grid-cols-3">
         {[
-          { Icon: Zap, title: "Análise em < 2s", desc: "Cole o print e em segundos a IA devolve direção, confiança e padrões identificados." },
-          { Icon: ShieldCheck, title: "Privacidade", desc: "Suas imagens não são armazenadas. Conversas e trades ficam só no seu navegador." },
-          { Icon: Target, title: "Sem ruído", desc: "Sinais objetivos, sem prometer milagres. Sempre com gestão de risco em primeiro lugar." },
-          { Icon: Smartphone, title: "Funciona no celular", desc: "Cole o print direto da corretora. Funciona em qualquer dispositivo." },
-          { Icon: BarChart3, title: "Dados que evoluem", desc: "Quanto mais você opera, melhor seu relatório. Diagnóstico real do que funciona." },
-          { Icon: Languages, title: "100% em português", desc: "IA treinada para responder de forma simples e direta, sem termos confusos." },
+          { Icon: Zap, title: "Análise em segundos", desc: "Cole o print do gráfico e a IA devolve direção, suporte/resistência, padrões e horário sugerido de entrada." },
+          { Icon: BrainCircuit, title: "Mentor IA 24/7", desc: "Tire dúvidas sobre price action, gestão e mentalidade. Memória estendida do seu histórico de trades." },
+          { Icon: Target, title: "Metodologia Orion", desc: "Gerenciamento padrão Orion configurado: 1% por entrada, 2 proteções máximas, stop loss/win diário." },
+          { Icon: ClipboardList, title: "Planilha automatizada", desc: "Registre trades por chat de voz. Win rate, drawdown, melhor ativo, melhor horário — tudo calculado." },
+          { Icon: ShieldCheck, title: "Sem promessas falsas", desc: "Sinais objetivos com gestão de risco em primeiro lugar. Nenhuma garantia de lucro — só ferramenta séria." },
+          { Icon: Languages, title: "100% em português", desc: "IA treinada para responder simples e direto, sem jargão. Pensada para o trader brasileiro." },
         ].map((f) => (
           <div key={f.title} className="rounded-2xl border p-7 hover-lift hover-glow" style={{ background: "var(--surface)", borderColor: "var(--border)" }}>
             <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl"
@@ -248,9 +302,60 @@ function FeaturesSection() {
   );
 }
 
+function MentorSection() {
+  return (
+    <section className="mx-auto max-w-5xl px-6 py-24">
+      <div className="grid items-center gap-8 md:grid-cols-[1fr_1.2fr] md:gap-12">
+        <div className="relative mx-auto md:mx-0">
+          <div className="relative flex h-44 w-44 items-center justify-center rounded-3xl border md:h-56 md:w-56"
+            style={{
+              background: "linear-gradient(160deg, color-mix(in oklab, var(--accent) 14%, var(--surface)), color-mix(in oklab, var(--electric) 8%, var(--surface)))",
+              borderColor: "color-mix(in oklab, var(--accent) 35%, transparent)",
+              boxShadow: "0 30px 80px -20px color-mix(in oklab, var(--accent) 40%, transparent)",
+            }}>
+            <span className="font-display text-6xl font-black gradient-text">GD</span>
+            <span
+              className="absolute -bottom-2 -right-2 flex h-9 w-9 items-center justify-center rounded-2xl border text-[10px] font-black uppercase tracking-wider"
+              style={{ background: "var(--surface)", borderColor: "color-mix(in oklab, var(--accent) 40%, transparent)", color: "var(--accent)" }}>
+              ✓
+            </span>
+          </div>
+          <div className="mt-4 text-center md:text-left">
+            <div className="font-display text-lg font-extrabold">Gabriel Dutra</div>
+            <div className="text-xs text-muted-foreground">Trader oficial · Orion Capital</div>
+          </div>
+        </div>
+
+        <div>
+          <div className="mb-3 inline-flex items-center gap-2 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-widest"
+            style={{ background: "color-mix(in oklab, var(--accent) 10%, transparent)", borderColor: "color-mix(in oklab, var(--accent) 25%, transparent)", border: "1px solid", color: "var(--electric)" }}>
+            O Mentor
+          </div>
+          <h2 className="font-display text-3xl font-black tracking-tight md:text-4xl">
+            Construído com a metodologia de quem <span className="gradient-text">opera de verdade</span>.
+          </h2>
+          <p className="mt-4 text-[15px] leading-relaxed text-muted-foreground">
+            Gabriel Dutra é o trader oficial e mentor responsável pela <strong className="text-foreground">Orion Capital</strong> — referência em
+            price action, gestão profissional de banca e disciplina operacional. Cada regra, indicador e fluxo do OrionHub
+            traduz a metodologia que ele ensina diariamente aos alunos.
+          </p>
+          <blockquote className="mt-6 rounded-2xl border p-5 text-sm italic leading-relaxed text-muted-foreground"
+            style={{ background: "var(--surface)", borderColor: "var(--border)" }}>
+            “O OrionHub é a tradução prática do que ensino dentro da Orion Capital — agora com IA pra acelerar a leitura
+            do gráfico e a gestão da banca.”
+            <div className="mt-3 not-italic text-[11px] font-bold uppercase tracking-wider" style={{ color: "var(--accent)" }}>
+              — Gabriel Dutra
+            </div>
+          </blockquote>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function HowSection() {
   const steps = [
-    ["01", "Crie sua conta", "Grátis. Sem cartão. 7 dias de trial completo."],
+    ["01", "Adquira seu acesso", "R$ 2.500 · 12 meses · garantia de 7 dias."],
     ["02", "Carregue seu gráfico", "Print, drag&drop ou Ctrl+V. Qualquer broker."],
     ["03", "IA analisa", "Padrões, indicadores e contexto, em segundos."],
     ["04", "Opere com clareza", "Sinal + horários + gestão recomendada."],
@@ -273,11 +378,16 @@ function HowSection() {
 }
 
 function PricingSection() {
+  const guarantees = [
+    { Icon: ShieldCheck, label: "Garantia 7 dias", desc: "Devolução de 100% do valor" },
+    { Icon: Zap, label: "Acesso imediato", desc: "Liberado em poucos minutos" },
+    { Icon: Target, label: "Pagamento único", desc: "Sem mensalidade ou renovação" },
+  ];
   return (
     <section id="pricing" className="mx-auto max-w-6xl px-6 py-24">
-      <SectionHeader tag="ACESSO ANUAL" title="Um único acesso. 12 meses completos." sub="Pagamento único. Sem mensalidade, sem renovação automática." />
+      <SectionHeader tag="ACESSO ANUAL" title="Um único acesso. 12 meses completos." sub="Pagamento único. Sem mensalidade, sem renovação automática. Garantia de 7 dias." />
       <div className="mx-auto grid max-w-md grid-cols-1 gap-4">
-        <Plan name="Acesso Anual" price="497" period="pagamento único · 12 meses de acesso completo"
+        <Plan name="Acesso Anual" price="2.500" period="pagamento único · 12 meses de acesso completo"
           feats={[
             "Análises ilimitadas no OrionScan",
             "OrionMind ilimitado",
@@ -286,7 +396,22 @@ function PricingSection() {
             "Calculadora avançada",
             "Suporte prioritário",
           ]}
-          cta="Ativar acesso anual" featured />
+          cta="Comprar acesso anual" featured />
+      </div>
+      <div className="mx-auto mt-8 grid max-w-3xl grid-cols-1 gap-3 sm:grid-cols-3">
+        {guarantees.map(({ Icon, label, desc }) => (
+          <div key={label} className="flex items-center gap-3 rounded-xl border px-4 py-3"
+            style={{ background: "var(--surface)", borderColor: "var(--border)" }}>
+            <div className="flex h-9 w-9 flex-none items-center justify-center rounded-lg"
+              style={{ background: "color-mix(in oklab, var(--green) 12%, transparent)", color: "var(--green)" }}>
+              <Icon className="h-4 w-4" strokeWidth={1.75} />
+            </div>
+            <div>
+              <div className="text-[13px] font-bold">{label}</div>
+              <div className="text-[11px] text-muted-foreground">{desc}</div>
+            </div>
+          </div>
+        ))}
       </div>
     </section>
   );
@@ -328,11 +453,14 @@ function Plan({ name, price, period, feats, cta, featured }: { name: string; pri
 
 function FaqSection() {
   const items = [
+    ["Quem é Gabriel Dutra?", "Gabriel Dutra é o trader oficial e mentor da Orion Capital. Toda a metodologia (price action, gerenciamento padrão Orion, regras de proteção) embarcada no OrionHub foi construída a partir do que ele ensina aos alunos."],
     ["A IA realmente funciona com qualquer broker?", "Sim. Como a análise é feita visualmente sobre a imagem do gráfico, basta tirar um print de qualquer plataforma (IQ Option, Quotex, MT5, TradingView, etc)."],
     ["Vocês garantem lucros?", "Não. Nenhuma ferramenta séria garante lucros em trading. O OrionHub é um copiloto que entrega análise objetiva — a decisão e o gerenciamento são sempre seus."],
-    ["Meus dados ficam armazenados?", "Trades, conversas e histórico ficam apenas no seu navegador (localStorage). Imagens enviadas para análise não são salvas no servidor."],
-    ["Posso cancelar a qualquer momento?", "Sim, sem fidelidade. Cancele direto pela aba de assinatura."],
+    ["Meus dados ficam armazenados?", "Suas operações e conversas com o OrionMind ficam guardadas com segurança na sua conta — sincronizadas entre dispositivos. As imagens enviadas para análise não são armazenadas após o processamento."],
+    ["O acesso renova automaticamente?", "Não. É um pagamento único que libera 12 meses de acesso completo. Sem renovação automática — você decide se quer renovar depois desse período."],
+    ["Tenho garantia se não gostar?", "Sim. Você tem 7 dias após a compra como garantia de devolução. Se não gostou, devolvemos 100% do valor pago, sem perguntas."],
     ["Funciona em opções binárias e em forex?", "Sim. A análise é sobre o gráfico — funciona para qualquer ativo: forex, índices, ações, cripto, commodities."],
+    ["Como recebo o acesso após o pagamento?", "Em poucos minutos após a confirmação, liberamos seu acesso anual no e-mail cadastrado. Em horário comercial, geralmente em até 30 minutos."],
   ];
   const [open, setOpen] = useState<number | null>(0);
   return (
@@ -359,16 +487,16 @@ function CtaSection() {
       <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse 70% 50% at 50% 50%, color-mix(in oklab, var(--accent) 8%, transparent) 0%, transparent 70%)" }} />
       <div className="relative z-10 mx-auto inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold"
         style={{ background: "color-mix(in oklab, var(--green) 7%, transparent)", border: "1px solid color-mix(in oklab, var(--green) 18%, transparent)", color: "var(--green)" }}>
-        ● 7 dias grátis · sem cartão
+        ● Garantia de 7 dias · 100% do valor
       </div>
       <h2 className="relative z-10 mt-6 text-[clamp(32px,5vw,60px)] font-black leading-tight tracking-tighter">
         Comece a operar com<br />
         <span style={{ color: "var(--electric)" }}>clareza</span> hoje.
       </h2>
-      <p className="relative z-10 mx-auto mt-4 max-w-md text-base text-muted-foreground">Crie sua conta em 30 segundos e teste tudo sem custo.</p>
-      <Link to="/signup" className="relative z-10 mt-9 inline-block rounded-full px-10 py-4 text-base font-bold text-white smooth press hover:-translate-y-0.5 pulse-glow"
+      <p className="relative z-10 mx-auto mt-4 max-w-md text-base text-muted-foreground">Acesso anual completo por R$ 2.500. Garantia de 7 dias.</p>
+      <Link to="/signup" className="relative z-10 mt-9 inline-block rounded-full px-10 py-4 text-base font-bold text-white smooth press hover:-translate-y-0.5 pulse-glow ring-2 ring-[color:var(--accent)]/30"
         style={{ background: "var(--accent)", boxShadow: "0 0 80px color-mix(in oklab, var(--accent) 35%, transparent)" }}>
-        Criar conta grátis
+        Quero meu acesso anual
       </Link>
     </section>
   );

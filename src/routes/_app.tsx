@@ -65,9 +65,11 @@ function AppLayout() {
     loc.pathname.startsWith("/mind") || loc.pathname.startsWith("/cryptobubbles");
 
   const GATED: Record<string, GateKey> = {
+    "/dashboard": "dashboard",
     "/scan": "scan",
     "/mind": "mind",
     "/gestao": "gestao",
+    "/calculadora": "calculadora",
     "/noticias": "noticias",
     "/cryptobubbles": "cryptobubbles",
   };
@@ -100,7 +102,7 @@ function AppLayout() {
                 : { background: "var(--surface)", color: "var(--text-muted)", borderColor: "var(--border-strong)" }
             }
           >
-            {state.isPro ? "Acesso Anual" : `Trial · ${state.analysesLeft} · Ativar`}
+            {state.isPro ? "Acesso Anual" : "Comprar acesso"}
           </Link>
           <button
             onClick={() => { logout(); nav({ to: "/" }); }}

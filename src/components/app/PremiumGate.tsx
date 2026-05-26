@@ -1,8 +1,8 @@
 import { Link } from "@tanstack/react-router";
-import { Lock, Sparkles, LineChart, Brain, ClipboardList, Newspaper, CircleDot, type LucideIcon } from "lucide-react";
+import { Lock, Sparkles, LineChart, Brain, ClipboardList, Newspaper, CircleDot, LayoutDashboard, Calculator, type LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
-export type GateKey = "scan" | "mind" | "gestao" | "noticias" | "cryptobubbles";
+export type GateKey = "scan" | "mind" | "gestao" | "noticias" | "cryptobubbles" | "dashboard" | "calculadora";
 
 const COPY: Record<GateKey, { title: string; tagline: string; description: string; Icon: LucideIcon; perks: string[] }> = {
   scan: {
@@ -39,6 +39,20 @@ const COPY: Record<GateKey, { title: string; tagline: string; description: strin
     description: "Visualize em tempo real as maiores altas, quedas e volume do mercado cripto, integrado direto na plataforma.",
     Icon: CircleDot,
     perks: ["Bubbles atualizados ao vivo", "Top altas e quedas", "Foco rápido em oportunidades"],
+  },
+  dashboard: {
+    title: "Dashboard OrionHub",
+    tagline: "Sua visão geral de operações",
+    description: "Acompanhe sua banca, performance, métricas-chave e o panorama completo das suas operações num único lugar.",
+    Icon: LayoutDashboard,
+    perks: ["Visão consolidada da banca", "Indicadores em tempo real", "Painéis personalizáveis"],
+  },
+  calculadora: {
+    title: "Calculadora Orion",
+    tagline: "Gestão de banca profissional",
+    description: "Calcule entradas, proteções, payouts e stop loss/win usando a metodologia padrão Orion para preservar sua banca.",
+    Icon: Calculator,
+    perks: ["Cálculo automático de proteções", "Padrão Orion configurado", "Simulação por payout e ativo"],
   },
 };
 
@@ -104,12 +118,12 @@ export function PremiumGate({ children, feature }: { children: ReactNode; featur
             className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold smooth press hover:-translate-y-0.5"
             style={{
               background: "var(--gradient-primary)",
-              color: "var(--background)",
+              color: "var(--accent-foreground)",
               boxShadow: "0 10px 30px -10px color-mix(in oklab, var(--accent) 70%, transparent)",
             }}
           >
             <Sparkles className="h-4 w-4" strokeWidth={2} />
-            Ativar Premium Anual
+            Ver acesso anual · R$ 2.500
           </Link>
           <div className="mt-3 text-[11px] text-muted-foreground">
             Pagamento único · 12 meses de acesso · Garantia de 7 dias

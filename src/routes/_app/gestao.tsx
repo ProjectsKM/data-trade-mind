@@ -45,11 +45,11 @@ import {
   payoutForCategoria,
   categoriaForAtivo,
   getBanca,
-  setBanca as persistBanca,
   getValorMode,
   setValorMode as persistValorMode,
   calcLucro as calcLucroShared,
 } from "@/lib/assets";
+import { hydrateBancaFromCloud, setBancaSynced } from "@/lib/banca-sync";
 import { PageHeader } from "@/components/app/PageHeader";
 import { StatCard } from "@/components/app/StatCard";
 import { EmptyState } from "@/components/app/EmptyState";
@@ -252,7 +252,10 @@ function GestaoPage() {
   const [form, setForm] = useState<Form>(() => makeEmptyForm());
   const [banca, setBancaState] = useState<number | null>(null);
   const [bancaInput, setBancaInput] = useState<string>("");
-  useEffect(() => { setBancaState(getBanca()); }, []);
+  useEffect(() => {
+    setBancaState(getBanca());
+    void hydrateBancaFromCloud().then((v) => { if (v !== null) setBancaState(v); });
+  }, []);
   const fileRef = useRef<HTMLInputElement>(null);
   const [tab, setTab] = useState<"ops" | "report">("ops");
   const [importPreview, setImportPreview] = useState<ParsedRow[] | null>(null);
@@ -321,16 +324,20 @@ function GestaoPage() {
     }
   }
 
-  function saveBanca() {
+  async function saveBanca() {
     const n = parseFloat(bancaInput);
     if (!isFinite(n) || n <= 0) {
       toast.error("Informe uma banca válida.");
       return;
     }
-    persistBanca(n);
     setBancaState(n);
     setBancaInput("");
-    toast.success(`Banca definida: $${n.toFixed(2)}.`);
+    try {
+      await setBancaSynced(n);
+      toast.success(`Banca definida: $${n.toFixed(2)}.`);
+    } catch {
+      toast.error("Banca salva localmente, falha ao sincronizar.");
+    }
   }
 
   function setRes(id: string, res: "WIN" | "LOSS") {
@@ -497,7 +504,7 @@ function GestaoPage() {
           bancaInput={bancaInput}
           setBancaInput={setBancaInput}
           saveBanca={saveBanca}
-          onSaveBanca={(n) => { persistBanca(n); setBancaState(n); }}
+          onSaveBanca={(n) => { setBancaState(n); void setBancaSynced(n); }}
         />
       ) : (
         <ReportTab trades={trades} />
@@ -876,7 +883,7 @@ function OpsTab({
                       <button
                         onClick={() => setRes(t.id, "WIN")}
                         title="Marcar como Win"
-                        className="flex h-7 w-7 items-center justify-center rounded-md border smooth hover:border-[color:var(--green)] hover:text-[color:var(--green)]"
+                        className="flex h-9 w-9 sm:h-7 sm:w-7 items-center justify-center rounded-md border smooth hover:border-[color:var(--green)] hover:text-[color:var(--green)]"
                         style={{ borderColor: "var(--border)", color: "var(--text-muted)" }}
                       >
                         <Check className="h-3.5 w-3.5" strokeWidth={2} />
@@ -884,7 +891,7 @@ function OpsTab({
                       <button
                         onClick={() => setRes(t.id, "LOSS")}
                         title="Marcar como Loss"
-                        className="flex h-7 w-7 items-center justify-center rounded-md border smooth hover:border-[color:var(--red)] hover:text-[color:var(--red)]"
+                        className="flex h-9 w-9 sm:h-7 sm:w-7 items-center justify-center rounded-md border smooth hover:border-[color:var(--red)] hover:text-[color:var(--red)]"
                         style={{ borderColor: "var(--border)", color: "var(--text-muted)" }}
                       >
                         <X className="h-3.5 w-3.5" strokeWidth={2} />
@@ -892,7 +899,7 @@ function OpsTab({
                       <button
                         onClick={() => setEditTradeOpen(t)}
                         title="Editar operação"
-                        className="flex h-7 w-7 items-center justify-center rounded-md border smooth hover:border-[color:var(--accent)] hover:text-[color:var(--accent)]"
+                        className="flex h-9 w-9 sm:h-7 sm:w-7 items-center justify-center rounded-md border smooth hover:border-[color:var(--accent)] hover:text-[color:var(--accent)]"
                         style={{ borderColor: "var(--border)", color: "var(--text-muted)" }}
                       >
                         <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />
@@ -900,7 +907,7 @@ function OpsTab({
                       <button
                         onClick={() => deleteTrade(t.id)}
                         title="Excluir"
-                        className="flex h-7 w-7 items-center justify-center rounded-md border smooth hover:border-[color:var(--red)] hover:text-[color:var(--red)]"
+                        className="flex h-9 w-9 sm:h-7 sm:w-7 items-center justify-center rounded-md border smooth hover:border-[color:var(--red)] hover:text-[color:var(--red)]"
                         style={{ borderColor: "var(--border)", color: "var(--text-dim)" }}
                       >
                         <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} />

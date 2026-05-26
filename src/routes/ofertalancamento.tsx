@@ -19,7 +19,9 @@ export const Route = createFileRoute("/ofertalancamento")({
   component: OfertaPage,
 });
 
-const WHATSAPP_URL = "https://wa.me/5500000000000?text=Quero%20garantir%20o%20acesso%20anual%20ao%20OrionHub";
+const TELEGRAM_URL = "https://t.me/suporte_orioncapital";
+const OFFER_DEADLINE_KEY = "orion.offer.deadline";
+const OFFER_DURATION_MS = 1000 * 60 * 60 * 24 * 3; // 3 days
 
 function Reveal({ children, className = "", delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
   const ref = useReveal<HTMLDivElement>();
@@ -58,12 +60,21 @@ function ExpiringBar() {
   const targetRef = useRef<number | null>(null);
   const [now, setNow] = useState<number | null>(null);
   useEffect(() => {
-    targetRef.current = Date.now() + 1000 * 60 * 60 * 24 * 3;
+    if (typeof window !== "undefined") {
+      const saved = window.localStorage.getItem(OFFER_DEADLINE_KEY);
+      const target = saved ? Number(saved) : Date.now() + OFFER_DURATION_MS;
+      if (!saved || Number.isNaN(target)) {
+        window.localStorage.setItem(OFFER_DEADLINE_KEY, String(target));
+      }
+      targetRef.current = target;
+    } else {
+      targetRef.current = Date.now() + OFFER_DURATION_MS;
+    }
     setNow(Date.now());
     const i = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(i);
   }, []);
-  const diff = now && targetRef.current ? Math.max(0, targetRef.current - now) : 1000 * 60 * 60 * 24 * 3;
+  const diff = now && targetRef.current ? Math.max(0, targetRef.current - now) : OFFER_DURATION_MS;
   const d = Math.floor(diff / 86400000);
   const h = Math.floor((diff % 86400000) / 3600000);
   const m = Math.floor((diff % 3600000) / 60000);
@@ -91,12 +102,21 @@ function Countdown() {
   const targetRef = useRef<number | null>(null);
   const [now, setNow] = useState<number | null>(null);
   useEffect(() => {
-    targetRef.current = Date.now() + 1000 * 60 * 60 * 24 * 3;
+    if (typeof window !== "undefined") {
+      const saved = window.localStorage.getItem(OFFER_DEADLINE_KEY);
+      const target = saved ? Number(saved) : Date.now() + OFFER_DURATION_MS;
+      if (!saved || Number.isNaN(target)) {
+        window.localStorage.setItem(OFFER_DEADLINE_KEY, String(target));
+      }
+      targetRef.current = target;
+    } else {
+      targetRef.current = Date.now() + OFFER_DURATION_MS;
+    }
     setNow(Date.now());
     const i = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(i);
   }, []);
-  const diff = now && targetRef.current ? Math.max(0, targetRef.current - now) : 1000 * 60 * 60 * 24 * 3;
+  const diff = now && targetRef.current ? Math.max(0, targetRef.current - now) : OFFER_DURATION_MS;
   const d = Math.floor(diff / 86400000);
   const h = Math.floor((diff % 86400000) / 3600000);
   const m = Math.floor((diff % 3600000) / 60000);
@@ -137,12 +157,15 @@ function Hero() {
         </p>
         <div className="mt-7 flex flex-col items-center gap-4 fade-up" style={{ animationDelay: ".25s" }}>
           <Countdown />
-          <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer"
+          <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer"
             className="group inline-flex items-center gap-2 rounded-full px-7 py-4 text-sm font-bold smooth press hover:-translate-y-0.5 pulse-glow"
             style={{ background: "var(--gradient-primary)", color: "var(--accent-foreground)", boxShadow: "0 20px 60px -20px color-mix(in oklab, var(--accent) 60%, transparent)" }}>
             Garantir meu acesso anual
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
           </a>
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+            Você será redirecionado ao Telegram oficial
+          </div>
           <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
             Pagamento único · Sem renovação automática · Suporte humano
           </div>
@@ -153,13 +176,13 @@ function Hero() {
 }
 
 const COMPARE_ROWS: Array<{ label: string; free: boolean | string; pro: boolean | string }> = [
-  { label: "Análises de gráfico (OrionScan IA)", free: "5 / mês", pro: "Ilimitadas" },
-  { label: "Mentor IA OrionMind", free: "Limitado", pro: "Sem restrição" },
+  { label: "Análises de gráfico (OrionScan IA)", free: false, pro: "Ilimitadas" },
+  { label: "Mentor IA OrionMind", free: false, pro: "Sem restrição" },
   { label: "Histórico de scans com thumbnail", free: false, pro: true },
   { label: "Calendário econômico (Notícias)", free: false, pro: true },
   { label: "Radar CryptoBubbles", free: false, pro: true },
-  { label: "Calculadora de banca avançada", free: true, pro: true },
-  { label: "Gestão de trades & métricas", free: "Básico", pro: "Completo + export" },
+  { label: "Calculadora de banca avançada", free: false, pro: true },
+  { label: "Gestão de trades & métricas", free: false, pro: "Completo + export" },
   { label: "Prioridade no processamento", free: false, pro: true },
   { label: "Acesso antecipado a novidades", free: false, pro: true },
   { label: "Suporte prioritário", free: false, pro: true },
@@ -177,15 +200,15 @@ function Compare() {
     <section className="relative z-10 px-6 py-16 md:px-12">
       <div className="mx-auto max-w-5xl">
         <h2 className="text-center font-display text-3xl font-black tracking-tight md:text-4xl">
-          Free vs <span className="gradient-text">PRO Anual</span>
+          Sem acesso vs <span className="gradient-text">PRO Anual</span>
         </h2>
         <p className="mx-auto mt-3 max-w-xl text-center text-sm text-muted-foreground">
-          Compare lado a lado o que muda quando você libera o OrionHub completo.
+          Compare lado a lado o que você desbloqueia ao adquirir o OrionHub completo.
         </p>
         <div className="mt-8 overflow-hidden rounded-3xl border" style={{ background: "var(--surface)", borderColor: "var(--border-strong)" }}>
           <div className="grid grid-cols-12 border-b px-5 py-4 text-[11px] font-bold uppercase tracking-wider" style={{ borderColor: "var(--border)" }}>
             <div className="col-span-6 text-muted-foreground">Recurso</div>
-            <div className="col-span-3 text-center text-muted-foreground">Free</div>
+            <div className="col-span-3 text-center text-muted-foreground">Sem acesso</div>
             <div className="col-span-3 text-center" style={{ color: "var(--accent)" }}>PRO Anual</div>
           </div>
           {COMPARE_ROWS.map((r) => (
@@ -253,13 +276,12 @@ function Pricing() {
           </div>
           <h3 className="mt-4 font-display text-2xl font-extrabold tracking-tight">12 meses, pagamento único</h3>
           <div className="mt-5 flex items-end justify-center gap-3">
-            <span className="text-base text-muted-foreground line-through">R$ 997</span>
-            <span className="font-display text-6xl font-black gradient-text">R$ 497</span>
+            <span className="font-display text-6xl font-black gradient-text">R$ 2.500</span>
           </div>
           <div className="mt-1 text-xs text-muted-foreground">à vista · ou parcelado em até 12x no cartão</div>
           <div className="mt-2 inline-flex items-center gap-1.5 rounded-full px-3 py-0.5 text-[11px] font-bold"
             style={{ background: "color-mix(in oklab, var(--green) 18%, transparent)", color: "var(--green)" }}>
-            economize 50% no lote de lançamento
+            12 meses de acesso completo
           </div>
 
           <ul className="mt-6 grid gap-2 text-left text-sm">
@@ -276,7 +298,7 @@ function Pricing() {
             ))}
           </ul>
 
-          <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer"
+          <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer"
             className="mt-7 inline-flex w-full items-center justify-center gap-2 rounded-2xl px-6 py-4 text-sm font-bold smooth press hover:-translate-y-0.5"
             style={{ background: "var(--gradient-primary)", color: "var(--accent-foreground)" }}>
             Quero garantir meu acesso <ArrowRight className="h-4 w-4" />
@@ -360,11 +382,14 @@ function FinalCta() {
         <p className="mx-auto mt-2 max-w-lg text-sm text-muted-foreground">
           O lote de lançamento tem vagas limitadas. Garanta seu acesso anual agora.
         </p>
-        <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer"
+        <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer"
           className="mt-6 inline-flex items-center gap-2 rounded-full px-8 py-4 text-sm font-bold smooth press hover:-translate-y-0.5"
           style={{ background: "var(--gradient-primary)", color: "var(--accent-foreground)" }}>
-          Garantir acesso por R$ 497 <ArrowRight className="h-4 w-4" />
+          Garantir acesso por R$ 2.500 <ArrowRight className="h-4 w-4" />
         </a>
+        <div className="mt-3 text-[10px] uppercase tracking-wider text-muted-foreground">
+          Você será redirecionado ao Telegram oficial
+        </div>
       </div>
     </section>
   );

@@ -341,7 +341,7 @@ function ScanPage() {
                           </div>
                         </div>
                       </button>
-                      <button onClick={() => deleteHistoryItem(h.id)} className="absolute right-1.5 top-1.5 hidden text-muted-foreground hover:text-[color:var(--red)] group-hover:block">
+                      <button onClick={() => deleteHistoryItem(h.id)} aria-label="Excluir análise" className="absolute right-1.5 top-1.5 text-muted-foreground transition-opacity hover:text-[color:var(--red)] sm:opacity-0 sm:group-hover:opacity-100">
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
                     </div>
