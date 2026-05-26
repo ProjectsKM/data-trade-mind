@@ -7,4 +7,11 @@
   "observability": {
     "enabled": true,
   },
+  // Variáveis públicas (não-secretas) disponíveis em process.env no Workers.
+  // Secrets reais (SUPABASE_SERVICE_ROLE_KEY, OPENAI_API_KEY) devem ser definidos
+  // via `wrangler secret put` ou no painel do Cloudflare — NUNCA aqui.
+  "vars": {
+    "SUPABASE_URL": "https://ccjfmgfyndyhvfqbceed.supabase.co",
+    "SUPABASE_PUBLISHABLE_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNjamZtZ2Z5bmR5aHZmcWJjZWVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1NTk4ODUsImV4cCI6MjA5NDEzNTg4NX0.gd9YKLFR41JYA1XGkRQ-nWRdl74oD6wAt7kFXu7i1nQ",
+  },
 }

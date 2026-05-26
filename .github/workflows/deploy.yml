@@ -38,3 +38,16 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           packageManager: bun
+
+      # Sincroniza secrets sensíveis no Cloudflare Workers.
+      # Configure os segredos abaixo em:
+      #   GitHub → Settings → Secrets and variables → Actions
+      # Valores necessários: OPENAI_API_KEY e SUPABASE_SERVICE_ROLE_KEY.
+      - name: Sync Cloudflare secrets
+        if: ${{ secrets.OPENAI_API_KEY != '' && secrets.SUPABASE_SERVICE_ROLE_KEY != '' }}
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          echo "${{ secrets.OPENAI_API_KEY }}" | bunx wrangler secret put OPENAI_API_KEY
+          echo "${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" | bunx wrangler secret put SUPABASE_SERVICE_ROLE_KEY
