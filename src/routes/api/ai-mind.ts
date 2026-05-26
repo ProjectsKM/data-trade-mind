@@ -334,104 +334,168 @@ export const Route = createFileRoute("/api/ai-mind")({
         try { body = Body.parse(await request.json()); } catch { return jsonResponse({ ok: false, error: "Mensagens inválidas." }, 400, request); }
         const apiKey = process.env.OPENAI_API_KEY;
         if (!apiKey) return jsonResponse({ ok: false, error: "API key não configurada." }, 500, request);
-        try {
-          // Chat Completions with tool calling. Loop until model returns plain text.
-          const ctxParts: string[] = [];
-          if (body.banca && body.banca > 0) {
-            ctxParts.push(`Banca inicial definida pelo usuário: $${body.banca.toFixed(2)}.`);
-          } else {
-            ctxParts.push(`O usuário AINDA NÃO definiu a banca inicial em /gestao. Se ele pedir para registrar uma operação, peça primeiro para ele definir a banca lá.`);
-          }
-          if (body.recentTrades && body.recentTrades.length > 0) {
-            const list = body.recentTrades.slice(0, 10).map((t) => {
-              const dt = new Date(t.data).toLocaleString("pt-BR");
-              return `- id=${t.id} | ${dt} | ${t.ativo} ${t.dir} $${t.valor} payout ${t.payout}% ${t.res} lucro $${t.lucro}${t.obs ? ` obs="${t.obs}"` : ""}`;
-            }).join("\n");
-            ctxParts.push(`Últimas operações do usuário (use o id exato para editar/excluir):\n${list}`);
-          } else {
-            ctxParts.push("O usuário ainda não tem operações registradas.");
-          }
-          const messages: Array<Record<string, unknown>> = [
-            { role: "system", content: SYSTEM },
-            { role: "system", content: SYSTEM_EDIT },
-            { role: "system", content: ctxParts.join("\n\n") },
-            ...body.messages.map((m) => ({ role: m.role, content: m.content })),
-          ];
-          let reply = "";
-          for (let iter = 0; iter < 4; iter++) {
-            const r = await fetch(OPENAI_URL, {
-              method: "POST",
-              headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-              body: JSON.stringify({
-                model: MODEL,
-                messages,
-                tools: TOOLS,
-                tool_choice: "auto",
-                max_tokens: 1500,
-                temperature: 0.6,
-              }),
-            });
-            if (!r.ok) {
-              const txt = await r.text().catch(() => "");
-              console.error("ai-mind error", r.status, txt);
-              if (r.status === 429) return jsonResponse({ ok: false, error: "Muitas mensagens em sequência. Aguarde." }, 429, request);
-              return jsonResponse({ ok: false, error: "Falha ao consultar a IA." }, 502, request);
-            }
-            const j = (await r.json()) as {
-              choices?: Array<{
-                message?: {
-                  role: string;
-                  content?: string | null;
-                  tool_calls?: Array<{ id: string; type: "function"; function: { name: string; arguments: string } }>;
-                };
-                finish_reason?: string;
-              }>;
-            };
-            const msg = j.choices?.[0]?.message;
-            if (!msg) return jsonResponse({ ok: false, error: "Resposta vazia da IA." }, 502, request);
 
-            if (msg.tool_calls && msg.tool_calls.length > 0) {
-              // Push assistant message with tool calls, then execute each tool.
-              messages.push({
-                role: "assistant",
-                content: msg.content ?? "",
-                tool_calls: msg.tool_calls,
-              });
-              for (const tc of msg.tool_calls) {
-                let result: { ok: boolean; message: string };
-                if (tc.function.name === "register_trade") {
-                  let args: unknown = {};
-                  try { args = JSON.parse(tc.function.arguments || "{}"); } catch { args = {}; }
-                  result = await executeRegisterTrade(supabase, userId, args, body.banca ?? null);
-                } else if (tc.function.name === "update_trade") {
-                  let args: unknown = {};
-                  try { args = JSON.parse(tc.function.arguments || "{}"); } catch { args = {}; }
-                  result = await executeUpdateTrade(supabase, userId, args);
-                } else if (tc.function.name === "delete_trade") {
-                  let args: unknown = {};
-                  try { args = JSON.parse(tc.function.arguments || "{}"); } catch { args = {}; }
-                  result = await executeDeleteTrade(supabase, userId, args);
-                } else {
-                  result = { ok: false, message: `Ferramenta desconhecida: ${tc.function.name}` };
-                }
-                messages.push({
-                  role: "tool",
-                  tool_call_id: tc.id,
-                  content: JSON.stringify(result),
-                });
-              }
-              continue; // loop to let the model summarize the result
-            }
-
-            reply = (msg.content ?? "").trim() || "Sem resposta.";
-            break;
-          }
-          if (!reply) reply = "Sem resposta.";
-          return jsonResponse({ ok: true, reply }, 200, request);
-        } catch (e) {
-          console.error("ai-mind exception", e);
-          return jsonResponse({ ok: false, error: "Erro de conexão com a IA." }, 502, request);
+        const ctxParts: string[] = [];
+        if (body.banca && body.banca > 0) {
+          ctxParts.push(`Banca inicial definida pelo usuário: $${body.banca.toFixed(2)}.`);
+        } else {
+          ctxParts.push(`O usuário AINDA NÃO definiu a banca inicial em /gestao. Se ele pedir para registrar uma operação, peça primeiro para ele definir a banca lá.`);
         }
+        if (body.recentTrades && body.recentTrades.length > 0) {
+          const list = body.recentTrades.slice(0, 10).map((t) => {
+            const dt = new Date(t.data).toLocaleString("pt-BR");
+            return `- id=${t.id} | ${dt} | ${t.ativo} ${t.dir} $${t.valor} payout ${t.payout}% ${t.res} lucro $${t.lucro}${t.obs ? ` obs="${t.obs}"` : ""}`;
+          }).join("\n");
+          ctxParts.push(`Últimas operações do usuário (use o id exato para editar/excluir):\n${list}`);
+        } else {
+          ctxParts.push("O usuário ainda não tem operações registradas.");
+        }
+        const messages: Array<Record<string, unknown>> = [
+          { role: "system", content: SYSTEM },
+          { role: "system", content: SYSTEM_EDIT },
+          { role: "system", content: ctxParts.join("\n\n") },
+          ...body.messages.map((m) => ({ role: m.role, content: m.content })),
+        ];
+
+        const encoder = new TextEncoder();
+        const stream = new ReadableStream<Uint8Array>({
+          async start(controller) {
+            const send = (obj: unknown) =>
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify(obj)}\n\n`));
+            const sendDone = () => controller.enqueue(encoder.encode(`data: [DONE]\n\n`));
+            try {
+              for (let iter = 0; iter < 4; iter++) {
+                const r = await fetch(OPENAI_URL, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+                  body: JSON.stringify({
+                    model: MODEL,
+                    messages,
+                    tools: TOOLS,
+                    tool_choice: "auto",
+                    max_tokens: 1500,
+                    temperature: 0.6,
+                    stream: true,
+                  }),
+                });
+                if (!r.ok || !r.body) {
+                  const txt = !r.ok ? await r.text().catch(() => "") : "";
+                  console.error("ai-mind error", r.status, txt);
+                  send({ error: r.status === 429 ? "Muitas mensagens em sequência. Aguarde." : "Falha ao consultar a IA." });
+                  break;
+                }
+
+                const reader = r.body.getReader();
+                const decoder = new TextDecoder();
+                let buf = "";
+                let assistantContent = "";
+                const toolCalls = new Map<number, { id: string; type: "function"; function: { name: string; arguments: string } }>();
+                let finishReason: string | undefined;
+
+                streamLoop: while (true) {
+                  const { value, done } = await reader.read();
+                  if (done) break;
+                  buf += decoder.decode(value, { stream: true });
+                  const parts = buf.split("\n\n");
+                  buf = parts.pop() ?? "";
+                  for (const p of parts) {
+                    const line = p.split("\n").find((l) => l.startsWith("data:"));
+                    if (!line) continue;
+                    const payload = line.slice(5).trim();
+                    if (payload === "[DONE]") break streamLoop;
+                    try {
+                      const j = JSON.parse(payload) as {
+                        choices?: Array<{
+                          delta?: {
+                            content?: string;
+                            tool_calls?: Array<{
+                              index: number;
+                              id?: string;
+                              type?: "function";
+                              function?: { name?: string; arguments?: string };
+                            }>;
+                          };
+                          finish_reason?: string;
+                        }>;
+                      };
+                      const choice = j.choices?.[0];
+                      if (!choice) continue;
+                      const delta = choice.delta;
+                      if (delta?.content) {
+                        assistantContent += delta.content;
+                        send({ delta: delta.content });
+                      }
+                      if (delta?.tool_calls) {
+                        for (const tcDelta of delta.tool_calls) {
+                          const idx = tcDelta.index;
+                          let tc = toolCalls.get(idx);
+                          if (!tc) {
+                            tc = {
+                              id: tcDelta.id ?? "",
+                              type: "function",
+                              function: { name: tcDelta.function?.name ?? "", arguments: "" },
+                            };
+                            toolCalls.set(idx, tc);
+                          } else {
+                            if (tcDelta.id) tc.id = tcDelta.id;
+                            if (tcDelta.function?.name) tc.function.name = tcDelta.function.name;
+                          }
+                          if (tcDelta.function?.arguments) tc.function.arguments += tcDelta.function.arguments;
+                        }
+                      }
+                      if (choice.finish_reason) finishReason = choice.finish_reason;
+                    } catch { /* ignore malformed chunk */ }
+                  }
+                }
+
+                if (finishReason === "tool_calls" && toolCalls.size > 0) {
+                  const accumulated = Array.from(toolCalls.values());
+                  messages.push({ role: "assistant", content: assistantContent, tool_calls: accumulated });
+                  for (const tc of accumulated) {
+                    let result: { ok: boolean; message: string };
+                    if (tc.function.name === "register_trade") {
+                      let args: unknown = {};
+                      try { args = JSON.parse(tc.function.arguments || "{}"); } catch { args = {}; }
+                      result = await executeRegisterTrade(supabase, userId, args, body.banca ?? null);
+                    } else if (tc.function.name === "update_trade") {
+                      let args: unknown = {};
+                      try { args = JSON.parse(tc.function.arguments || "{}"); } catch { args = {}; }
+                      result = await executeUpdateTrade(supabase, userId, args);
+                    } else if (tc.function.name === "delete_trade") {
+                      let args: unknown = {};
+                      try { args = JSON.parse(tc.function.arguments || "{}"); } catch { args = {}; }
+                      result = await executeDeleteTrade(supabase, userId, args);
+                    } else {
+                      result = { ok: false, message: `Ferramenta desconhecida: ${tc.function.name}` };
+                    }
+                    messages.push({ role: "tool", tool_call_id: tc.id, content: JSON.stringify(result) });
+                  }
+                  continue;
+                }
+
+                break;
+              }
+              sendDone();
+            } catch (e) {
+              console.error("ai-mind stream exception", e);
+              send({ error: "Erro de conexão com a IA." });
+              sendDone();
+            } finally {
+              try { controller.close(); } catch { /* already closed */ }
+            }
+          },
+        });
+
+        return new Response(stream, {
+          status: 200,
+          headers: {
+            "Content-Type": "text/event-stream; charset=utf-8",
+            "Cache-Control": "no-cache, no-transform",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+            ...corsHeaders(request),
+          },
+        });
       },
     },
   },
