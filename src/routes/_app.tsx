@@ -115,7 +115,7 @@ function AppLayout() {
           <Link
             to="/perfil"
             aria-label="Perfil"
-            className="flex h-8 w-8 items-center justify-center rounded-md border text-[11px] font-semibold smooth hover:border-[color:var(--accent)] hover:text-[color:var(--accent)]"
+            className="flex h-10 w-10 sm:h-8 sm:w-8 items-center justify-center rounded-md border text-[11px] font-semibold smooth hover:border-[color:var(--accent)] hover:text-[color:var(--accent)]"
             style={{ background: "var(--surface-2)", borderColor: "var(--border-strong)", color: "var(--foreground)" }}
           >
             {user.email.slice(0, 2).toUpperCase()}
@@ -173,7 +173,7 @@ function AppLayout() {
 
         <nav
           className="fixed inset-x-0 bottom-0 z-40 flex justify-around border-t py-2 backdrop-blur-xl sm:hidden fade-up"
-          style={{ background: "color-mix(in oklab, var(--surface) 88%, transparent)", borderColor: "var(--border)" }}
+          style={{ background: "color-mix(in oklab, var(--surface) 88%, transparent)", borderColor: "var(--border)", paddingBottom: "calc(0.5rem + env(safe-area-inset-bottom, 0px))" }}
         >
           {tabs
             .filter(({ to }) => ["/dashboard", "/scan", "/mind", "/gestao", "/noticias"].includes(to))
@@ -185,7 +185,7 @@ function AppLayout() {
                   to={to}
                   preload="intent"
                   viewTransition
-                  className="flex min-w-[56px] flex-col items-center gap-1 px-3 py-2 text-[11px] font-medium smooth press"
+                  className="flex flex-1 flex-col items-center gap-0.5 px-1 py-2 text-[10px] font-medium smooth press"
                   style={{
                     color: active ? "var(--accent)" : "var(--text-dim)",
                     filter: active ? "drop-shadow(0 0 6px color-mix(in oklab, var(--accent) 60%, transparent))" : "none",
@@ -199,7 +199,8 @@ function AppLayout() {
         </nav>
 
         <main
-          className={`relative min-h-0 flex-1 pb-16 sm:pb-0 ${isFullHeightRoute ? "overflow-hidden" : "overflow-y-auto"}`}
+          className={`relative min-h-0 flex-1 sm:!pb-0 ${isFullHeightRoute ? "overflow-hidden" : "overflow-y-auto"}`}
+          style={{ paddingBottom: "calc(4.5rem + env(safe-area-inset-bottom, 0px))" }}
         >
           {isGated ? (
             <PremiumGate feature={GATED[gatedFeature!]}>

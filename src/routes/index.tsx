@@ -73,7 +73,7 @@ function Nav({ user }: { user: User | null }) {
         <button
           onClick={() => setOpen((v) => !v)}
           aria-label={open ? "Fechar menu" : "Abrir menu"}
-          className="flex h-10 w-10 items-center justify-center rounded-lg border smooth md:hidden"
+          className="flex h-11 w-11 items-center justify-center rounded-lg border smooth md:hidden"
           style={{ borderColor: "var(--border-strong)", background: "var(--surface)" }}>
           {open ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
         </button>
@@ -131,11 +131,11 @@ function Hero({ user }: { user: User | null }) {
         </p>
         <div className="mt-11 flex flex-wrap items-center justify-center gap-3.5">
           <Link to={user ? "/dashboard" : "/signup"}
-            className="rounded-full px-9 py-4 text-base font-bold text-white smooth press hover:-translate-y-0.5 pulse-glow ring-2 ring-[color:var(--accent)]/30"
+            className="rounded-full px-6 py-3.5 text-sm sm:px-9 sm:py-4 sm:text-base font-bold text-white smooth press hover:-translate-y-0.5 pulse-glow ring-2 ring-[color:var(--accent)]/30"
             style={{ background: "var(--accent)" }}>
             {user ? "Abrir App →" : "Quero acesso anual"}
           </Link>
-          <a href="#tools" className="rounded-full border px-8 py-4 text-base font-semibold text-muted-foreground/80 smooth hover:text-foreground"
+          <a href="#tools" className="rounded-full border px-5 py-3.5 text-sm sm:px-8 sm:py-4 sm:text-base font-semibold text-muted-foreground/80 smooth hover:text-foreground"
             style={{ borderColor: "var(--border-strong)" }}>
             Ver ferramentas
           </a>
@@ -186,7 +186,7 @@ function MockupSection() {
           <span className="h-3 w-3 rounded-full" style={{ background: "#28c840" }} />
           <span className="ml-3 text-[10px] font-mono text-muted-foreground">orionmindhub · scan #2491</span>
         </div>
-        <div className="grid gap-0 p-8 md:grid-cols-[200px_1fr]" style={{ minHeight: 420 }}>
+        <div className="grid gap-0 p-4 sm:p-8 md:grid-cols-[200px_1fr]">
           <div className="border-r pr-5" style={{ borderColor: "var(--border)" }}>
             <div className="mb-5 text-[15px] font-black">Orion<span style={{ color: "var(--electric)" }}>Hub</span></div>
             {[

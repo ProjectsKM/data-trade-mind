@@ -53,7 +53,7 @@ function CardShell({
 
   return (
     <div
-      className={`orion-mind-card ${entryClass} card-glow w-full max-w-md overflow-hidden rounded-2xl border`}
+      className={`orion-mind-card ${entryClass} card-glow w-full max-w-[min(28rem,calc(100vw-5rem))] overflow-hidden rounded-2xl border`}
       style={{
         "--card-accent": accentVar,
         background: `linear-gradient(160deg, color-mix(in oklab, ${accentVar} 14%, var(--surface)), var(--surface))`,

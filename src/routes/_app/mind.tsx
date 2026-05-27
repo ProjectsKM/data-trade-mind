@@ -396,7 +396,7 @@ function MindPage() {
                 </button>
                 <button
                   onClick={() => void deleteThread(t.id)}
-                  className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-[color:var(--red)]"
+                  className="text-muted-foreground transition-opacity hover:text-[color:var(--red)] sm:opacity-0 sm:group-hover:opacity-100"
                   aria-label="Excluir"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
@@ -440,7 +440,7 @@ function MindPage() {
           </div>
         </header>
 
-        <div ref={scrollRef} className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-6 pb-8">
+        <div ref={scrollRef} className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-6 pb-20 sm:px-5">
           <div className="mx-auto flex max-w-3xl flex-col gap-4">
             {display.map((m, i) => <Bubble key={i} m={m} initials={initials} />)}
             {busy && !streaming && (
@@ -473,7 +473,7 @@ function MindPage() {
           </button>
         )}
 
-        <div className="flex-none border-t px-5 py-3" style={{ borderColor: "var(--border)", background: "color-mix(in oklab, var(--background) 92%, transparent)", backdropFilter: "blur(14px)" }}>
+        <div className="flex-none border-t px-4 py-3 sm:px-5" style={{ borderColor: "var(--border)", background: "color-mix(in oklab, var(--background) 92%, transparent)", backdropFilter: "blur(14px)", paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom, 0px))" }}>
           <div className="mx-auto max-w-3xl">
             <div className="flex items-end gap-2 rounded-xl border p-2 smooth focus-within:border-[color:var(--accent)]"
               style={{ background: "var(--surface)", borderColor: "var(--border-strong)" }}>

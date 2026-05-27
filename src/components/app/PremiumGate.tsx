@@ -73,7 +73,7 @@ export function PremiumGate({ children, feature }: { children: ReactNode; featur
         style={{ background: "color-mix(in oklab, var(--background) 62%, transparent)", backdropFilter: "blur(3px)" }}
       >
         <div
-          className="flex max-w-md flex-col items-center rounded-2xl border px-7 py-8 text-center shadow-2xl fade-up"
+          className="flex w-full max-w-md flex-col items-center rounded-2xl border px-5 py-7 text-center shadow-2xl fade-up sm:px-7 sm:py-8"
           style={{
             background: "color-mix(in oklab, var(--surface) 92%, transparent)",
             borderColor: "color-mix(in oklab, var(--accent) 40%, var(--border-strong))",

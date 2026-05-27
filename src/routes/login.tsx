@@ -79,7 +79,7 @@ function LoginPage() {
       </div>
 
       {/* Right form panel */}
-      <div className="relative flex flex-1 items-center justify-center px-6 py-12 lg:flex-none lg:w-[480px]">
+      <div className="relative flex flex-1 items-start justify-center overflow-y-auto px-6 pt-16 pb-12 lg:items-center lg:pt-12 lg:flex-none lg:w-[480px]">
         <div className={`w-full max-w-sm fade-up ${shake ? "shake" : ""}`}>
           {/* Mobile logo */}
           <div className="mb-8 text-center lg:hidden">
@@ -98,8 +98,8 @@ function LoginPage() {
             <p className="mt-1 text-[13px] text-muted-foreground">Entre com sua conta para continuar</p>
 
             <form onSubmit={submit} className="mt-7 space-y-4">
-              <IconField icon={<Mail className="h-4 w-4" />} label="EMAIL" type="email" value={email} onChange={setEmail} placeholder="seu@email.com" required />
-              <IconField icon={<Lock className="h-4 w-4" />} label="SENHA" type="password" value={pw} onChange={setPw} placeholder="Sua senha" required />
+              <IconField icon={<Mail className="h-4 w-4" />} label="EMAIL" type="email" value={email} onChange={setEmail} placeholder="seu@email.com" required autoComplete="email" />
+              <IconField icon={<Lock className="h-4 w-4" />} label="SENHA" type="password" value={pw} onChange={setPw} placeholder="Sua senha" required autoComplete="current-password" />
 
               {err && (
                 <div className="rounded-xl border px-3.5 py-2.5 text-[13px] fade-in"
@@ -148,7 +148,7 @@ function LoginPage() {
   );
 }
 
-function IconField({ icon, label, type = "text", value, onChange, placeholder, required }: {
+function IconField({ icon, label, type = "text", value, onChange, placeholder, required, autoComplete }: {
   icon: React.ReactNode;
   label: string;
   type?: string;
@@ -156,15 +156,17 @@ function IconField({ icon, label, type = "text", value, onChange, placeholder, r
   onChange: (v: string) => void;
   placeholder?: string;
   required?: boolean;
+  autoComplete?: string;
 }) {
+  const fieldId = `login-${label.toLowerCase().replace(/\s+/g, "-")}`;
   return (
     <div>
-      <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</label>
+      <label htmlFor={fieldId} className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</label>
       <div className="flex items-center gap-2 rounded-xl border px-3.5 transition-all focus-within:border-[color:var(--accent)] focus-within:shadow-[0_0_0_3px_color-mix(in_oklab,var(--accent)_15%,transparent)]"
         style={{ background: "var(--surface-2)", borderColor: "var(--border-strong)" }}>
         <span className="flex-none text-muted-foreground">{icon}</span>
-        <input type={type} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} required={required}
-          className="flex-1 bg-transparent py-3 text-[13px] outline-none placeholder:text-muted-foreground/50" />
+        <input id={fieldId} type={type} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} required={required} autoComplete={autoComplete}
+          className="flex-1 bg-transparent py-3.5 text-sm outline-none placeholder:text-muted-foreground/50" />
       </div>
     </div>
   );

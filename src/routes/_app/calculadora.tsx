@@ -224,6 +224,7 @@ function Field({
       <span className="mb-1.5 block text-xs font-medium text-muted-foreground">{label}</span>
       <Input
         type="number"
+        inputMode="decimal"
         step={step}
         value={value}
         onChange={(e) => onChange(Number(e.target.value) || 0)}

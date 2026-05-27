@@ -94,7 +94,7 @@ function SignupPage() {
       </div>
 
       {/* Right form panel */}
-      <div className="relative flex flex-1 items-center justify-center px-6 py-12 lg:flex-none lg:w-[480px]">
+      <div className="relative flex flex-1 items-start justify-center overflow-y-auto px-6 pt-12 pb-12 lg:items-center lg:pt-12 lg:flex-none lg:w-[480px]">
         <div className={`w-full max-w-sm fade-up ${shake ? "shake" : ""}`}>
           {/* Mobile logo + badge */}
           <div className="mb-8 text-center lg:hidden">
@@ -117,16 +117,16 @@ function SignupPage() {
             <p className="mt-1 text-[13px] text-muted-foreground">Garantia de 7 dias · 100% do valor</p>
 
             <form onSubmit={submit} className="mt-7 space-y-4">
-              <IconField icon={<User className="h-4 w-4" />} label="COMO GOSTARIA DE SER CHAMADO?" value={name} onChange={setName} placeholder="Ex: João" required />
-              <IconField icon={<Mail className="h-4 w-4" />} label="EMAIL" type="email" value={email} onChange={setEmail} placeholder="seu@email.com" required />
-              <IconField icon={<Lock className="h-4 w-4" />} label="SENHA" type="password" value={pw} onChange={setPw} placeholder="Mínimo 6 caracteres" required />
+              <IconField icon={<User className="h-4 w-4" />} label="COMO GOSTARIA DE SER CHAMADO?" value={name} onChange={setName} placeholder="Ex: João" required autoComplete="name" />
+              <IconField icon={<Mail className="h-4 w-4" />} label="EMAIL" type="email" value={email} onChange={setEmail} placeholder="seu@email.com" required autoComplete="email" />
+              <IconField icon={<Lock className="h-4 w-4" />} label="SENHA" type="password" value={pw} onChange={setPw} placeholder="Mínimo 6 caracteres" required autoComplete="new-password" />
               <div>
-                <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">PAÍS</label>
+                <label htmlFor="signup-pais" className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">PAÍS</label>
                 <div className="flex items-center gap-2 rounded-xl border px-3.5 transition-all focus-within:border-[color:var(--accent)] focus-within:shadow-[0_0_0_3px_color-mix(in_oklab,var(--accent)_15%,transparent)]"
                   style={{ background: "var(--surface-2)", borderColor: "var(--border-strong)" }}>
                   <Globe className="h-4 w-4 flex-none text-muted-foreground" />
-                  <select value={country} onChange={(e) => setCountry(e.target.value)}
-                    className="flex-1 bg-transparent py-3 text-[13px] outline-none">
+                  <select id="signup-pais" value={country} onChange={(e) => setCountry(e.target.value)} autoComplete="country-name"
+                    className="flex-1 appearance-none bg-transparent py-3.5 text-sm outline-none">
                     {["Brasil", "Portugal", "Angola", "Moçambique", "Outro"].map((c) => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
@@ -181,7 +181,7 @@ function SignupPage() {
   );
 }
 
-function IconField({ icon, label, type = "text", value, onChange, placeholder, required }: {
+function IconField({ icon, label, type = "text", value, onChange, placeholder, required, autoComplete }: {
   icon: React.ReactNode;
   label: string;
   type?: string;
@@ -189,15 +189,17 @@ function IconField({ icon, label, type = "text", value, onChange, placeholder, r
   onChange: (v: string) => void;
   placeholder?: string;
   required?: boolean;
+  autoComplete?: string;
 }) {
+  const fieldId = `signup-${label.toLowerCase().replace(/[^a-z0-9]/g, "-").slice(0, 20)}`;
   return (
     <div>
-      <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</label>
+      <label htmlFor={fieldId} className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</label>
       <div className="flex items-center gap-2 rounded-xl border px-3.5 transition-all focus-within:border-[color:var(--accent)] focus-within:shadow-[0_0_0_3px_color-mix(in_oklab,var(--accent)_15%,transparent)]"
         style={{ background: "var(--surface-2)", borderColor: "var(--border-strong)" }}>
         <span className="flex-none text-muted-foreground">{icon}</span>
-        <input type={type} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} required={required}
-          className="flex-1 bg-transparent py-3 text-[13px] outline-none placeholder:text-muted-foreground/50" />
+        <input id={fieldId} type={type} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} required={required} autoComplete={autoComplete}
+          className="flex-1 bg-transparent py-3.5 text-sm outline-none placeholder:text-muted-foreground/50" />
       </div>
     </div>
   );

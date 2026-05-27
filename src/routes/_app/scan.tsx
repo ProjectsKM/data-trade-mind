@@ -115,6 +115,11 @@ function ScanPage() {
   }
 
   async function pasteFromClipboard() {
+    if (!navigator.clipboard?.read) {
+      setErr("Seu navegador não suporta colar imagens. Use o botão de upload.");
+      setStage("error");
+      return;
+    }
     try {
       const items = await navigator.clipboard.read();
       for (const it of items) {
@@ -129,7 +134,7 @@ function ScanPage() {
       setErr("Nenhuma imagem na área de transferência.");
       setStage("error");
     } catch {
-      setErr("Use Ctrl+V com uma imagem copiada.");
+      setErr("Não foi possível colar. No celular, use o botão de upload ou tire uma foto.");
       setStage("error");
     }
   }
@@ -293,7 +298,7 @@ function ScanPage() {
             </div>
             <div className="font-display text-base font-semibold">Solte ou clique para enviar o gráfico</div>
             <div className="mt-1 text-sm text-muted-foreground">PNG, JPG ou WEBP · até 5 MB</div>
-            <div className="mt-3 font-mono text-[10px] uppercase tracking-wider text-[color:var(--text-dim)]">
+            <div className="mt-3 hidden font-mono text-[10px] uppercase tracking-wider text-[color:var(--text-dim)] sm:block">
               ou pressione Ctrl + V
             </div>
             <input
