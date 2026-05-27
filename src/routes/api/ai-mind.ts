@@ -600,6 +600,7 @@ export const Route = createFileRoute("/api/ai-mind")({
             const send = (obj: unknown) =>
               controller.enqueue(encoder.encode(`data: ${JSON.stringify(obj)}\n\n`));
             const sendDone = () => controller.enqueue(encoder.encode(`data: [DONE]\n\n`));
+            const pendingCards: MindCard[] = [];
             try {
               for (let iter = 0; iter < 4; iter++) {
                 const r = await fetch(OPENAI_URL, {
@@ -705,10 +706,8 @@ export const Route = createFileRoute("/api/ai-mind")({
                     } else {
                       result = { ok: false, message: `Ferramenta desconhecida: ${tc.function.name}` };
                     }
-                    // Emite o card no SSE assim que a ferramenta executar com sucesso —
-                    // o frontend vai renderizá-lo antes mesmo da resposta textual final.
                     if (result.ok && result.card) {
-                      send({ card: result.card });
+                      pendingCards.push(result.card);
                     }
                     // Para o modelo, mandamos apenas o status sem o card (evita repetição).
                     messages.push({ role: "tool", tool_call_id: tc.id, content: JSON.stringify({ ok: result.ok, message: result.message }) });
@@ -717,6 +716,11 @@ export const Route = createFileRoute("/api/ai-mind")({
                 }
 
                 break;
+              }
+              // Emite cards acumulados DEPOIS de todo o texto,
+              // logo antes do [DONE] — evita buffering do CF Workers.
+              for (const card of pendingCards) {
+                send({ card });
               }
               sendDone();
             } catch (e) {
