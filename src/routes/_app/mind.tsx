@@ -189,21 +189,22 @@ function MindPage() {
     autoFollowRef.current = true;
     try {
       const history = [...(messages.length ? messages : []), userMsg].map((m) => ({ role: m.role, content: m.content }));
-      // Token resolver com refresh defensivo (mobile/Safari pode ter sessão stale).
-      const { data: sess } = await supabase.auth.getSession();
-      let token = sess.session?.access_token ?? null;
-      const exp = sess.session?.expires_at;
-      const isStale = !token || (exp ? exp * 1000 - Date.now() < 60_000 : true);
-      if (isStale) {
+      // SEMPRE faz refresh antes de enviar — garante token fresh mesmo após
+      // longo tempo na mesma sessão de chat (JWT expira em ~1h).
+      async function getFreshToken(): Promise<string | null> {
         const { data: refreshed } = await supabase.auth.refreshSession();
-        token = refreshed.session?.access_token ?? token;
+        if (refreshed.session?.access_token) return refreshed.session.access_token;
+        const { data: sess } = await supabase.auth.getSession();
+        return sess.session?.access_token ?? null;
       }
+
+      let token = await getFreshToken();
       if (!token) {
         toast.error("Sessão expirada. Faça login novamente.");
         setBusy(false);
         return;
       }
-      // Fetch the latest 15 trades so the AI can edit/delete by id when the user asks.
+
       const { data: recentRows } = await supabase
         .from("trades")
         .select("id,ativo,data,dir,valor,payout,res,lucro,obs")
@@ -211,14 +212,32 @@ function MindPage() {
         .order("data", { ascending: false })
         .limit(15);
       const banca = getBanca();
-      const r = await fetch("/api/ai-mind", {
+
+      const doFetch = (tk: string) => fetch("/api/ai-mind", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${tk}`,
         },
         body: JSON.stringify({ messages: history, banca, recentTrades: recentRows ?? [] }),
       });
+
+      let r = await doFetch(token);
+      // Retry uma vez se 401 (token pode ter expirado entre refresh e fetch)
+      if (r.status === 401) {
+        token = await getFreshToken();
+        if (!token) {
+          toast.error("Sessão expirada. Faça login novamente.");
+          setBusy(false);
+          return;
+        }
+        r = await doFetch(token);
+      }
+      if (r.status === 401) {
+        toast.error("Sessão expirada. Faça login novamente.");
+        setBusy(false);
+        return;
+      }
       const ctype = r.headers.get("content-type") || "";
       let replyText = "";
       let errored = false;
