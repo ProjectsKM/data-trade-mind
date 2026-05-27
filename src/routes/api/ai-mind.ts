@@ -2,8 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import "@tanstack/react-start";
 import { z } from "zod";
 import { corsHeaders, jsonResponse } from "@/lib/cors";
-import { createClient } from "@supabase/supabase-js";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { verifySupabaseUser } from "@/lib/verify-supabase-jwt.server";
 import { ASSETS, payoutForCategoria, categoriaForAtivo, calcLucro, type Categoria } from "@/lib/assets";
 import type { MindCard, MonthlyReportData, ReportByCategory, WinReportData, WinReportPeriod } from "@/lib/mind-cards";
 
@@ -559,18 +559,8 @@ export const Route = createFileRoute("/api/ai-mind")({
       OPTIONS: async ({ request }: { request: Request }) =>
         new Response(null, { status: 204, headers: corsHeaders(request) }),
       POST: async ({ request }: { request: Request }) => {
-        const authHeader = request.headers.get("authorization");
-        const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7).trim() : null;
-        const supabaseUrl = process.env.SUPABASE_URL;
-        const supabaseKey = process.env.SUPABASE_PUBLISHABLE_KEY;
-        if (!token || !supabaseUrl || !supabaseKey) return jsonResponse({ ok: false, error: "Não autorizado." }, 401, request);
-        const supabase = createClient(supabaseUrl, supabaseKey, {
-          auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
-          global: { headers: { Authorization: `Bearer ${token}` } },
-        });
-        const { data: claims, error: claimsErr } = await supabase.auth.getClaims(token);
-        const userId = claims?.claims?.sub as string | undefined;
-        if (claimsErr || !userId) return jsonResponse({ ok: false, error: "Não autorizado." }, 401, request);
+        const userId = await verifySupabaseUser(request);
+        if (!userId) return jsonResponse({ ok: false, error: "Não autorizado." }, 401, request);
 
         // Premium Anual obrigatório.
         const { data: plan } = await supabaseAdmin
@@ -703,15 +693,15 @@ export const Route = createFileRoute("/api/ai-mind")({
                     let args: unknown = {};
                     try { args = JSON.parse(tc.function.arguments || "{}"); } catch { args = {}; }
                     if (tc.function.name === "register_trade") {
-                      result = await executeRegisterTrade(supabase, userId, args, body.banca ?? null);
+                      result = await executeRegisterTrade(supabaseAdmin, userId, args, body.banca ?? null);
                     } else if (tc.function.name === "update_trade") {
-                      result = await executeUpdateTrade(supabase, userId, args);
+                      result = await executeUpdateTrade(supabaseAdmin, userId, args);
                     } else if (tc.function.name === "delete_trade") {
-                      result = await executeDeleteTrade(supabase, userId, args);
+                      result = await executeDeleteTrade(supabaseAdmin, userId, args);
                     } else if (tc.function.name === "get_monthly_report") {
-                      result = await executeMonthlyReport(supabase, userId, args);
+                      result = await executeMonthlyReport(supabaseAdmin, userId, args);
                     } else if (tc.function.name === "get_win_report") {
-                      result = await executeWinReport(supabase, userId, args);
+                      result = await executeWinReport(supabaseAdmin, userId, args);
                     } else {
                       result = { ok: false, message: `Ferramenta desconhecida: ${tc.function.name}` };
                     }
