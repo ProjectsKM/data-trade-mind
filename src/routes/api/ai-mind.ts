@@ -688,7 +688,7 @@ export const Route = createFileRoute("/api/ai-mind")({
 
                 if (finishReason === "tool_calls" && toolCalls.size > 0) {
                   const accumulated = Array.from(toolCalls.values());
-                  messages.push({ role: "assistant", content: assistantContent, tool_calls: accumulated });
+                  messages.push({ role: "assistant", content: assistantContent || null, tool_calls: accumulated });
                   for (const tc of accumulated) {
                     let result: ToolResult;
                     let args: unknown = {};

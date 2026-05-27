@@ -188,7 +188,9 @@ function MindPage() {
     setAutoFollow(true);
     autoFollowRef.current = true;
     try {
-      const history = [...(messages.length ? messages : []), userMsg].map((m) => ({ role: m.role, content: m.content }));
+      const history = [...(messages.length ? messages : []), userMsg]
+        .filter((m) => !m.content.startsWith(CARD_PREFIX))
+        .map((m) => ({ role: m.role, content: m.content }));
       // SEMPRE faz refresh antes de enviar — garante token fresh mesmo após
       // longo tempo na mesma sessão de chat (JWT expira em ~1h).
       async function getFreshToken(): Promise<string | null> {

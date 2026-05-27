@@ -170,7 +170,7 @@
   position: relative;
   transition: transform .18s, box-shadow .18s, border-color .18s;
 }
-.card-glow:hover {
+.card-glow:not(.orion-mind-card):hover {
   transform: translateY(-1px);
   box-shadow: var(--shadow-elevated);
   border-color: color-mix(in oklab, var(--accent) 28%, var(--border));
@@ -252,6 +252,8 @@ button, a, [role="button"] { transition: background-color .15s ease, color .15s 
   }
   .stagger > * { animation-delay: 0ms !important; }
   .reveal { opacity: 1; transform: none; }
+  .stripe-shimmer { animation: none; background-position: center; }
+  .win-rate-bar-anim { animation: none; width: var(--bar-target, 0%); }
 }
 
 /* OrionMind: thinking dots */
@@ -320,13 +322,13 @@ button, a, [role="button"] { transition: background-color .15s ease, color .15s 
 
 /* 5. checkDraw: SVG check animado pra WIN */
 @keyframes checkDraw {
-  0%   { stroke-dashoffset: 30; opacity: 0; }
+  0%   { stroke-dashoffset: 12; opacity: 0; }
   30%  { opacity: 1; }
   100% { stroke-dashoffset: 0; opacity: 1; }
 }
 .check-draw {
-  stroke-dasharray: 30;
-  stroke-dashoffset: 30;
+  stroke-dasharray: 12;
+  stroke-dashoffset: 12;
   animation: checkDraw .4s cubic-bezier(.4,0,.2,1) .18s both;
 }
 
@@ -372,6 +374,12 @@ button, a, [role="button"] { transition: background-color .15s ease, color .15s 
   60%  { opacity: 1; transform: translateY(-4px) scale(1.012); filter: brightness(1.08); }
   100% { opacity: 1; transform: translateY(0) scale(1); filter: brightness(1); }
 }
+@keyframes cardEnterLoss {
+  0%   { opacity: 0; transform: translateY(18px) scale(.95) translateX(-4px); filter: brightness(0.75); }
+  55%  { opacity: 1; filter: brightness(0.95); }
+  75%  { transform: translateY(-2px) scale(1.006) translateX(0); }
+  100% { opacity: 1; transform: translateY(0) scale(1); filter: brightness(1); }
+}
 @keyframes cardEnterDelete {
   0%   { opacity: 0; transform: translateX(-14px) scale(.97); }
   100% { opacity: 1; transform: translateX(0) scale(1); }
@@ -382,7 +390,7 @@ button, a, [role="button"] { transition: background-color .15s ease, color .15s 
   100% { opacity: 1; transform: translateY(0) scale(1); }
 }
 .card-enter-win    { animation: cardEnterWin    .48s cubic-bezier(.2,.9,.3,1) both; }
-.card-enter-loss   { animation: cardReveal      .38s cubic-bezier(.2,.7,.2,1) both; }
+.card-enter-loss   { animation: cardEnterLoss   .42s cubic-bezier(.2,.9,.3,1) both; }
 .card-enter-delete { animation: cardEnterDelete .32s cubic-bezier(.2,.7,.2,1) both; }
 .card-enter-report { animation: cardEnterReport .52s cubic-bezier(.2,.8,.2,1) both; }
 

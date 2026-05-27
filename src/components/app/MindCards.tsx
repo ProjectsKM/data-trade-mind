@@ -1,4 +1,4 @@
-import { CheckCircle2, XCircle, TrendingUp, TrendingDown, Pencil, Trash2, PieChart as PieIcon, Trophy, Calendar, Activity, Crown, Flame, Shield } from "lucide-react";
+import { CheckCircle2, TrendingUp, TrendingDown, Pencil, Trash2, PieChart as PieIcon, Trophy, Calendar, Activity, Crown, Flame, Shield } from "lucide-react";
 import { PieChart, Pie, Cell as PieCell, ResponsiveContainer } from "recharts";
 import type { MindCard, TradeCardData, MonthlyReportData, WinReportData, ReportByCategory } from "@/lib/mind-cards";
 
@@ -207,7 +207,8 @@ function TradeAddedCard({ trade }: { trade: TradeCardData }) {
 function TradeUpdatedCard({ trade }: { trade: TradeCardData }) {
   return (
     <CardShell
-      accentVar="var(--accent)"
+      accentVar={trade.res === "WIN" ? "var(--green)" : "var(--red)"}
+      variant={trade.res === "WIN" ? "win" : "loss"}
       icon={<Pencil className="h-5 w-5" strokeWidth={1.75} />}
       tag="Operação atualizada"
       title={`${trade.ativo} · ${trade.dir}`}
@@ -302,12 +303,6 @@ function PieDonutLabel({ cx, cy, totalOps }: { cx?: number; cy?: number; totalOp
 
 function MonthlyReportCard({ report }: { report: MonthlyReportData }) {
   const positivo = report.lucroTotal >= 0;
-  const pieData = report.byCategory.filter((c) => c.count > 0).map((c) => ({
-    name: CATEGORY_LABEL[c.categoria],
-    value: c.count,
-    fill: CATEGORY_COLOR[c.categoria],
-    cat: c.categoria,
-  }));
 
   /* vivid colors that pop on dark theme */
   const VIVID_COLORS: Record<ReportByCategory["categoria"], string> = {
@@ -333,7 +328,7 @@ function MonthlyReportCard({ report }: { report: MonthlyReportData }) {
       title={report.label}
       subtitle={`${report.totalOps} operações no período`}
     >
-      <div className="stagger mb-3 grid grid-cols-3 gap-2">
+      <div className="mb-3 grid grid-cols-3 gap-2">
         <BigStat label="Win-rate" value={`${report.winRate}%`} accent={report.winRate >= 55 ? "var(--green)" : report.winRate >= 45 ? "var(--gold)" : "var(--red)"} />
         <BigStat label="Wins" value={String(report.wins)} accent="var(--green)" />
         <BigStat label="Losses" value={String(report.losses)} accent="var(--red)" />
