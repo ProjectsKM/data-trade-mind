@@ -261,3 +261,145 @@ button, a, [role="button"] { transition: background-color .15s ease, color .15s 
 .thinking-dots > span:nth-child(3) { animation-delay: .3s; }
 @keyframes thinkingPulse { 0%, 100% { opacity: .65; } 50% { opacity: 1; } }
 .thinking-text { animation: thinkingPulse 1.6s infinite ease-in-out; }
+
+/* ── MindCards premium animations ─────────────────────────────────────── */
+
+/* 1. cardReveal: materialização com scale + translate + blur */
+@keyframes cardReveal {
+  0%   { opacity: 0; transform: translateY(18px) scale(.93); filter: blur(6px); }
+  55%  { filter: blur(0px); }
+  75%  { transform: translateY(-3px) scale(1.008); }
+  100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+}
+.card-reveal {
+  animation: cardReveal .48s cubic-bezier(.22,.9,.36,1) both;
+}
+
+/* 2. stripeShimmer: brilho deslizando da esquerda pra direita (1×) */
+@keyframes stripeShimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+.stripe-shimmer {
+  background-size: 200% 100%;
+  animation: stripeShimmer .9s cubic-bezier(.4,0,.6,1) .15s 1 both;
+}
+
+/* 3. valuePopIn: scale bounce na entrada de valores monetários */
+@keyframes valuePopIn {
+  0%   { opacity: 0; transform: scale(.6) translateY(4px); }
+  65%  { transform: scale(1.1) translateY(-1px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+.value-pop {
+  animation: valuePopIn .38s cubic-bezier(.34,1.56,.64,1) .22s both;
+  display: inline-block;
+}
+
+/* 4a. winGlowPulse: glow verde pulsando atrás do badge WIN */
+@keyframes winGlowPulse {
+  0%,100% { box-shadow: 0 0 0px 0px transparent; }
+  50%     { box-shadow: 0 0 18px 4px color-mix(in oklab, var(--green) 38%, transparent); }
+}
+.win-glow-pulse {
+  animation: winGlowPulse 2.4s ease-in-out .1s 3;
+}
+
+/* 4b. lossShake: shake suave 1× na entrada */
+@keyframes lossShakeIn {
+  0%   { transform: translateX(0); }
+  18%  { transform: translateX(-5px); }
+  36%  { transform: translateX(4px); }
+  54%  { transform: translateX(-3px); }
+  72%  { transform: translateX(2px); }
+  100% { transform: translateX(0); }
+}
+.loss-shake {
+  animation: lossShakeIn .45s cubic-bezier(.36,.07,.19,.97) .1s 1 both;
+}
+
+/* 5. checkDraw: SVG check animado pra WIN */
+@keyframes checkDraw {
+  0%   { stroke-dashoffset: 30; opacity: 0; }
+  30%  { opacity: 1; }
+  100% { stroke-dashoffset: 0; opacity: 1; }
+}
+.check-draw {
+  stroke-dasharray: 30;
+  stroke-dashoffset: 30;
+  animation: checkDraw .4s cubic-bezier(.4,0,.2,1) .18s both;
+}
+
+/* xDraw: X animado pra LOSS */
+@keyframes xDraw {
+  0%   { stroke-dashoffset: 24; opacity: 0; }
+  30%  { opacity: 1; }
+  100% { stroke-dashoffset: 0; opacity: 1; }
+}
+.x-draw-1 {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+  animation: xDraw .32s cubic-bezier(.4,0,.2,1) .12s both;
+}
+.x-draw-2 {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+  animation: xDraw .32s cubic-bezier(.4,0,.2,1) .26s both;
+}
+
+/* 6. winRateFill: barra animada da esquerda pra direita */
+.win-rate-bar {
+  width: 0%;
+  transition: width .9s cubic-bezier(.22,.9,.36,1) .3s;
+}
+.win-rate-bar.bar-ready {
+  /* width is set inline via style; transition handles the animation */
+}
+
+/* Trigger via JS-free approach: usar CSS animation */
+@keyframes winRateFill {
+  from { width: 0%; }
+  to   { width: var(--bar-target, 0%); }
+}
+.win-rate-bar-anim {
+  animation: winRateFill .9s cubic-bezier(.22,.9,.36,1) .35s both;
+  width: var(--bar-target, 0%);
+}
+
+/* ── Per-type entry animations ────────────────────────────────────── */
+@keyframes cardEnterWin {
+  0%   { opacity: 0; transform: translateY(18px) scale(.95); filter: brightness(0.7); }
+  60%  { opacity: 1; transform: translateY(-4px) scale(1.012); filter: brightness(1.08); }
+  100% { opacity: 1; transform: translateY(0) scale(1); filter: brightness(1); }
+}
+@keyframes cardEnterDelete {
+  0%   { opacity: 0; transform: translateX(-14px) scale(.97); }
+  100% { opacity: 1; transform: translateX(0) scale(1); }
+}
+@keyframes cardEnterReport {
+  0%   { opacity: 0; transform: translateY(22px) scale(.93); filter: blur(2px); }
+  70%  { opacity: 1; filter: blur(0); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+.card-enter-win    { animation: cardEnterWin    .48s cubic-bezier(.2,.9,.3,1) both; }
+.card-enter-loss   { animation: cardReveal      .38s cubic-bezier(.2,.7,.2,1) both; }
+.card-enter-delete { animation: cardEnterDelete .32s cubic-bezier(.2,.7,.2,1) both; }
+.card-enter-report { animation: cardEnterReport .52s cubic-bezier(.2,.8,.2,1) both; }
+
+/* ── num-reveal: glow pulse nos números financeiros ────────────── */
+@keyframes numGlowPulse {
+  0%, 100% { text-shadow: 0 0 0 transparent; }
+  50%      { text-shadow: 0 0 14px var(--num-glow-color, currentColor); }
+}
+.num-reveal {
+  animation: valuePopIn .38s cubic-bezier(.34,1.56,.64,1) .22s both,
+             numGlowPulse 2s ease-in-out 0.65s 2;
+}
+
+/* ── card-glow hover respects per-card accent ──────────────────── */
+.orion-mind-card.card-glow:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 48px -20px color-mix(in oklab, var(--card-accent, var(--accent)) 45%, transparent),
+              0 0 0 1px color-mix(in oklab, var(--card-accent, var(--accent)) 20%, transparent);
+  border-color: color-mix(in oklab, var(--card-accent, var(--accent)) 40%, var(--border));
+}

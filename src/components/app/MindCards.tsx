@@ -33,6 +33,7 @@ function CardShell({
   title,
   subtitle,
   children,
+  variant = "default",
 }: {
   accentVar: string;
   icon: React.ReactNode;
@@ -40,21 +41,33 @@ function CardShell({
   title: string;
   subtitle?: string;
   children: React.ReactNode;
+  variant?: "win" | "loss" | "delete" | "report" | "default";
 }) {
+  const entryClass = {
+    win: "card-enter-win",
+    loss: "card-enter-loss",
+    delete: "card-enter-delete",
+    report: "card-enter-report",
+    default: "card-reveal",
+  }[variant];
+
   return (
     <div
-      className="orion-mind-card scale-in card-glow w-full max-w-md overflow-hidden rounded-2xl border"
+      className={`orion-mind-card ${entryClass} card-glow w-full max-w-md overflow-hidden rounded-2xl border`}
       style={{
+        "--card-accent": accentVar,
         background: `linear-gradient(160deg, color-mix(in oklab, ${accentVar} 14%, var(--surface)), var(--surface))`,
         borderColor: `color-mix(in oklab, ${accentVar} 38%, var(--border-strong))`,
         boxShadow: `0 24px 60px -28px color-mix(in oklab, ${accentVar} 60%, transparent), 0 0 1px color-mix(in oklab, ${accentVar} 40%, transparent)`,
-      }}
+      } as React.CSSProperties}
     >
-      {/* Glow stripe no topo */}
+      {/* Stripe animado com shimmer na entrada */}
       <div
         aria-hidden
-        className="h-[3px] w-full"
-        style={{ background: `linear-gradient(90deg, transparent, ${accentVar}, transparent)` }}
+        className="stripe-shimmer h-[3px] w-full"
+        style={{
+          background: `linear-gradient(90deg, transparent 0%, ${accentVar} 30%, color-mix(in oklab, white 60%, ${accentVar}) 50%, ${accentVar} 70%, transparent 100%)`,
+        }}
       />
 
       <div className="p-4 sm:p-5">
@@ -73,7 +86,7 @@ function CardShell({
             <div className="text-[10px] font-bold uppercase tracking-[0.25em]" style={{ color: accentVar }}>
               {tag}
             </div>
-            <h3 className="mt-0.5 font-display text-base font-extrabold leading-tight tracking-tight">{title}</h3>
+            <h3 className="mt-0.5 font-display text-[15px] font-extrabold leading-tight tracking-tight min-w-0 truncate">{title}</h3>
             {subtitle ? <p className="mt-0.5 text-[11px] text-muted-foreground">{subtitle}</p> : null}
           </div>
         </div>
@@ -85,6 +98,43 @@ function CardShell({
 }
 
 // ─── Trade Added / Updated ────────────────────────────────────────────────
+
+/* ── Animated WIN checkmark (SVG CSS) ─── */
+function WinIcon() {
+  return (
+    <svg
+      width="18" height="18" viewBox="0 0 18 18" fill="none"
+      aria-hidden="true"
+      style={{ color: "var(--green)", flexShrink: 0 }}
+    >
+      <circle cx="9" cy="9" r="8" stroke="currentColor" strokeWidth="1.5" opacity="0.35" />
+      <polyline
+        className="check-draw"
+        points="5,9.5 7.8,12.2 13,6.5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+/* ── Animated LOSS X (SVG CSS) ─── */
+function LossIcon() {
+  return (
+    <svg
+      width="18" height="18" viewBox="0 0 18 18" fill="none"
+      aria-hidden="true"
+      style={{ color: "var(--red)", flexShrink: 0 }}
+    >
+      <circle cx="9" cy="9" r="8" stroke="currentColor" strokeWidth="1.5" opacity="0.35" />
+      <line className="x-draw-1" x1="6" y1="6" x2="12" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <line className="x-draw-2" x1="12" y1="6" x2="6" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
 
 function TradeBody({ trade }: { trade: TradeCardData }) {
   const isWin = trade.res === "WIN";
@@ -108,7 +158,7 @@ function TradeBody({ trade }: { trade: TradeCardData }) {
       </div>
 
       <div
-        className="flex items-center justify-between rounded-xl border px-3.5 py-3"
+        className={`flex items-center justify-between rounded-xl border px-3 py-2.5 ${isWin ? "win-glow-pulse" : "loss-shake"}`}
         style={{
           background: isWin
             ? "color-mix(in oklab, var(--green) 14%, transparent)"
@@ -119,21 +169,17 @@ function TradeBody({ trade }: { trade: TradeCardData }) {
         }}
       >
         <div className="flex items-center gap-2">
-          {isWin ? (
-            <CheckCircle2 className="h-4 w-4" style={{ color: "var(--green)" }} />
-          ) : (
-            <XCircle className="h-4 w-4" style={{ color: "var(--red)" }} />
-          )}
+          {isWin ? <WinIcon /> : <LossIcon />}
           <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: isWin ? "var(--green)" : "var(--red)" }}>
             {isWin ? "Win" : "Loss"}
           </span>
         </div>
-        <div
-          className="font-mono text-lg font-black tabular tracking-tight"
+        <span
+          className="value-pop font-mono text-lg font-black tabular tracking-tight"
           style={{ color: isWin ? "var(--green)" : "var(--red)" }}
         >
           {fmtUSD(trade.lucro, true)}
-        </div>
+        </span>
       </div>
 
       {trade.obs ? (
@@ -147,6 +193,7 @@ function TradeAddedCard({ trade }: { trade: TradeCardData }) {
   return (
     <CardShell
       accentVar="var(--green)"
+      variant={trade.res === "WIN" ? "win" : "loss"}
       icon={<CheckCircle2 className="h-5 w-5" strokeWidth={1.75} />}
       tag="Operação registrada"
       title={`${trade.ativo} · ${trade.dir}`}
@@ -175,10 +222,11 @@ function TradeDeletedCard({ ativo, valor, lucro, res }: { ativo: string; valor: 
   return (
     <CardShell
       accentVar="var(--red)"
+      variant="delete"
       icon={<Trash2 className="h-5 w-5" strokeWidth={1.75} />}
       tag="Operação removida"
       title={ativo}
-      subtitle="Excluída da sua planilha"
+      subtitle={`Excluída da planilha · ${res === "WIN" ? "era uma win" : "era uma loss"}`}
     >
       <div className="grid grid-cols-2 gap-2">
         <Cell label="Valor" value={fmtUSD(valor)} />
@@ -187,6 +235,18 @@ function TradeDeletedCard({ ativo, valor, lucro, res }: { ativo: string; valor: 
           value={`${res} (${fmtUSD(lucro, true)})`}
           accentColor={res === "WIN" ? "var(--green)" : "var(--red)"}
         />
+      </div>
+      <div
+        className="mt-3 flex items-center gap-2 rounded-lg border px-3 py-2"
+        style={{
+          background: "color-mix(in oklab, var(--red) 10%, transparent)",
+          borderColor: "color-mix(in oklab, var(--red) 30%, transparent)",
+        }}
+      >
+        <Trash2 className="h-3.5 w-3.5 flex-none" style={{ color: "var(--red)" }} />
+        <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "var(--red)" }}>
+          Removida permanentemente
+        </span>
       </div>
     </CardShell>
   );
@@ -207,15 +267,15 @@ function Cell({
 }) {
   return (
     <div
-      className="rounded-lg border px-3 py-2"
+      className="rounded-lg border px-2.5 py-2 min-w-0"
       style={{ background: "color-mix(in oklab, var(--surface-2) 70%, transparent)", borderColor: "var(--border)" }}
     >
-      <div className="flex items-center gap-1 text-[9px] font-semibold uppercase tracking-widest text-muted-foreground">
-        {icon}
-        <span>{label}</span>
+      <div className="flex items-center gap-1 text-[9px] font-semibold uppercase tracking-widest text-muted-foreground truncate">
+        {icon && <span className="flex-none">{icon}</span>}
+        <span className="truncate">{label}</span>
       </div>
       <div
-        className="mt-0.5 font-display text-[14px] font-bold tabular leading-tight"
+        className="mt-0.5 font-display text-[13px] font-bold tabular leading-tight truncate"
         style={{ color: accentColor ?? "var(--foreground)" }}
       >
         {value}
@@ -226,6 +286,20 @@ function Cell({
 
 // ─── Monthly Report ───────────────────────────────────────────────────────
 
+/* Custom label inside the donut hole */
+function PieDonutLabel({ cx, cy, totalOps }: { cx?: number; cy?: number; totalOps: number }) {
+  return (
+    <text x={cx} y={cy} textAnchor="middle" dominantBaseline="middle">
+      <tspan x={cx} dy="-5" fontSize="15" fontWeight="800" fill="var(--foreground)" fontFamily="var(--font-display)">
+        {totalOps}
+      </tspan>
+      <tspan x={cx} dy="13" fontSize="8" fontWeight="600" fill="var(--text-muted)" letterSpacing="0.08em">
+        OPS
+      </tspan>
+    </text>
+  );
+}
+
 function MonthlyReportCard({ report }: { report: MonthlyReportData }) {
   const positivo = report.lucroTotal >= 0;
   const pieData = report.byCategory.filter((c) => c.count > 0).map((c) => ({
@@ -235,22 +309,38 @@ function MonthlyReportCard({ report }: { report: MonthlyReportData }) {
     cat: c.categoria,
   }));
 
+  /* vivid colors that pop on dark theme */
+  const VIVID_COLORS: Record<ReportByCategory["categoria"], string> = {
+    CRIPTO: "oklch(0.68 0.22 245)",
+    FOREX:  "oklch(0.76 0.18 200)",
+    ACOES:  "oklch(0.82 0.16 80)",
+    OUTROS: "oklch(0.65 0.20 295)",
+  };
+
+  const vividPieData = report.byCategory.filter((c) => c.count > 0).map((c) => ({
+    name: CATEGORY_LABEL[c.categoria],
+    value: c.count,
+    fill: VIVID_COLORS[c.categoria],
+    cat: c.categoria,
+  }));
+
   return (
     <CardShell
       accentVar="var(--accent)"
+      variant="report"
       icon={<PieIcon className="h-5 w-5" strokeWidth={1.75} />}
       tag="Relatório mensal"
       title={report.label}
       subtitle={`${report.totalOps} operações no período`}
     >
-      <div className="mb-4 grid grid-cols-3 gap-2">
+      <div className="stagger mb-3 grid grid-cols-3 gap-2">
         <BigStat label="Win-rate" value={`${report.winRate}%`} accent={report.winRate >= 55 ? "var(--green)" : report.winRate >= 45 ? "var(--gold)" : "var(--red)"} />
         <BigStat label="Wins" value={String(report.wins)} accent="var(--green)" />
         <BigStat label="Losses" value={String(report.losses)} accent="var(--red)" />
       </div>
 
       <div
-        className="mb-4 flex items-center justify-between rounded-xl border px-3.5 py-3"
+        className="mb-3 flex items-center justify-between rounded-xl border px-3 py-2.5"
         style={{
           background: positivo
             ? "color-mix(in oklab, var(--green) 12%, transparent)"
@@ -263,44 +353,59 @@ function MonthlyReportCard({ report }: { report: MonthlyReportData }) {
         <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: positivo ? "var(--green)" : "var(--red)" }}>
           {positivo ? "Resultado positivo" : "Resultado negativo"}
         </span>
-        <span className="font-mono text-lg font-black tabular" style={{ color: positivo ? "var(--green)" : "var(--red)" }}>
+        <span
+          className="num-reveal font-mono text-lg font-black tabular tracking-tight"
+          style={{ color: positivo ? "var(--green)" : "var(--red)", "--num-glow-color": positivo ? "var(--green)" : "var(--red)" } as React.CSSProperties}
+        >
           {fmtUSD(report.lucroTotal, true)}
         </span>
       </div>
 
-      {pieData.length > 0 ? (
+      {vividPieData.length > 0 ? (
         <div className="rounded-xl border p-3" style={{ background: "color-mix(in oklab, var(--surface-2) 60%, transparent)", borderColor: "var(--border)" }}>
           <div className="mb-2 flex items-center justify-between">
             <span className="text-[9px] font-semibold uppercase tracking-widest text-muted-foreground">Operações por categoria</span>
             {report.melhorAtivo ? (
               <span className="inline-flex items-center gap-1 text-[10px] font-bold" style={{ color: "var(--gold)" }}>
-                <Crown className="h-3 w-3" /> {report.melhorAtivo}
+                <Crown className="h-3 w-3" aria-hidden="true" /> {report.melhorAtivo}
               </span>
             ) : null}
           </div>
-          <div className="flex items-center gap-4">
-            <div className="h-[110px] w-[110px] flex-none">
+          <div className="flex items-center gap-3">
+            <div className="relative h-[100px] w-[100px] flex-none">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie data={pieData} dataKey="value" innerRadius={32} outerRadius={50} paddingAngle={2} stroke="none">
-                    {pieData.map((entry, i) => (
+                  <Pie
+                    data={vividPieData}
+                    dataKey="value"
+                    innerRadius={30}
+                    outerRadius={46}
+                    paddingAngle={3}
+                    stroke="none"
+                    labelLine={false}
+                    label={<PieDonutLabel totalOps={report.totalOps} />}
+                    isAnimationActive={true}
+                    animationBegin={200}
+                    animationDuration={700}
+                  >
+                    {vividPieData.map((entry, i) => (
                       <PieCell key={i} fill={entry.fill} />
                     ))}
                   </Pie>
                 </PieChart>
               </ResponsiveContainer>
             </div>
-            <ul className="flex-1 space-y-1.5">
+            <ul className="flex-1 min-w-0 space-y-1.5">
               {report.byCategory.filter((c) => c.count > 0).map((c) => {
                 const wr = c.count ? Math.round((c.wins / c.count) * 100) : 0;
                 return (
-                  <li key={c.categoria} className="flex items-center gap-2 text-[11px]">
+                  <li key={c.categoria} className="flex items-center gap-2 text-[11px] min-w-0">
                     <span
                       className="h-2 w-2 flex-none rounded-full"
-                      style={{ background: CATEGORY_COLOR[c.categoria] }}
+                      style={{ background: VIVID_COLORS[c.categoria] }}
                     />
-                    <span className="flex-1 font-semibold">{CATEGORY_LABEL[c.categoria]}</span>
-                    <span className="text-muted-foreground tabular">{c.count} · WR {wr}%</span>
+                    <span className="flex-1 truncate font-semibold">{CATEGORY_LABEL[c.categoria]}</span>
+                    <span className="tabular text-muted-foreground whitespace-nowrap">{c.count} · {wr}%</span>
                   </li>
                 );
               })}
@@ -322,9 +427,21 @@ function MonthlyReportCard({ report }: { report: MonthlyReportData }) {
 function WinReportCard({ report }: { report: WinReportData }) {
   const positivo = report.lucroTotal >= 0;
   const wrColor = report.winRate >= 55 ? "var(--green)" : report.winRate >= 45 ? "var(--gold)" : "var(--red)";
+  const barColor = report.winRate >= 55
+    ? "color-mix(in oklab, var(--green) 85%, transparent)"
+    : report.winRate >= 45
+      ? "color-mix(in oklab, var(--gold) 85%, transparent)"
+      : "color-mix(in oklab, var(--red) 85%, transparent)";
+  const barGlow = report.winRate >= 55
+    ? "0 0 10px color-mix(in oklab, var(--green) 55%, transparent)"
+    : report.winRate >= 45
+      ? "0 0 10px color-mix(in oklab, var(--gold) 50%, transparent)"
+      : "0 0 10px color-mix(in oklab, var(--red) 50%, transparent)";
+
   return (
     <CardShell
       accentVar="var(--gold)"
+      variant="report"
       icon={<Trophy className="h-5 w-5" strokeWidth={1.75} />}
       tag="Balanço de operações"
       title={report.label}
@@ -337,20 +454,23 @@ function WinReportCard({ report }: { report: WinReportData }) {
         </div>
       ) : (
         <>
-          {/* Win/loss bar */}
+          {/* Win/loss bar animada */}
           <div className="mb-3">
             <div className="mb-1.5 flex items-center justify-between text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
               <span>Win-rate</span>
-              <span className="font-display text-base font-black" style={{ color: wrColor }}>{report.winRate}%</span>
+              <span className="value-pop font-display text-base font-black" style={{ color: wrColor }}>{report.winRate}%</span>
             </div>
-            <div className="relative h-2.5 overflow-hidden rounded-full" style={{ background: "color-mix(in oklab, var(--red) 22%, var(--surface-2))" }}>
+            <div
+              className="relative h-2.5 overflow-hidden rounded-full"
+              style={{ background: "color-mix(in oklab, var(--surface-3) 80%, var(--red) 20%)" }}
+            >
               <div
-                className="absolute left-0 top-0 h-full smooth"
+                className="win-rate-bar-anim absolute left-0 top-0 h-full rounded-full"
                 style={{
-                  width: `${report.winRate}%`,
-                  background: "color-mix(in oklab, var(--green) 80%, transparent)",
-                  boxShadow: "0 0 12px color-mix(in oklab, var(--green) 60%, transparent)",
-                }}
+                  "--bar-target": `${report.winRate}%`,
+                  background: barColor,
+                  boxShadow: barGlow,
+                } as React.CSSProperties}
               />
             </div>
             <div className="mt-1 flex items-center justify-between text-[10px] text-muted-foreground tabular">
@@ -361,13 +481,13 @@ function WinReportCard({ report }: { report: WinReportData }) {
 
           <div className="mb-3 grid grid-cols-2 gap-2">
             <Cell
-              label="Maior sequência ✓"
+              label="Melhor sequência"
               value={`${report.bestStreak} ${report.bestStreak === 1 ? "win" : "wins"}`}
               icon={<Flame className="h-3 w-3" />}
               accentColor="var(--green)"
             />
             <Cell
-              label="Maior sequência ✗"
+              label="Pior sequência"
               value={`${report.worstStreak} ${report.worstStreak === 1 ? "loss" : "losses"}`}
               icon={<Shield className="h-3 w-3" />}
               accentColor="var(--red)"
@@ -375,7 +495,7 @@ function WinReportCard({ report }: { report: WinReportData }) {
           </div>
 
           <div
-            className="flex items-center justify-between rounded-xl border px-3.5 py-3"
+            className="flex items-center justify-between rounded-xl border px-3 py-2.5"
             style={{
               background: positivo
                 ? "color-mix(in oklab, var(--green) 12%, transparent)"
@@ -386,10 +506,13 @@ function WinReportCard({ report }: { report: WinReportData }) {
             }}
           >
             <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest" style={{ color: positivo ? "var(--green)" : "var(--red)" }}>
-              <Calendar className="h-3 w-3" />
+              <Calendar className="h-3 w-3" aria-hidden="true" />
               Resultado do período
             </span>
-            <span className="font-mono text-lg font-black tabular" style={{ color: positivo ? "var(--green)" : "var(--red)" }}>
+            <span
+              className="num-reveal font-mono text-lg font-black tabular tracking-tight"
+              style={{ color: positivo ? "var(--green)" : "var(--red)", "--num-glow-color": positivo ? "var(--green)" : "var(--red)" } as React.CSSProperties}
+            >
               {fmtUSD(report.lucroTotal, true)}
             </span>
           </div>
