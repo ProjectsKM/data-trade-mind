@@ -8,10 +8,11 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "OrionHub — Plataforma de Trading Inteligente com IA" },
-      { name: "description", content: "Analise gráficos com IA, gerencie trades, converse com o OrionMind. Sua plataforma completa para opções binárias." },
+      { name: "description", content: "OrionHub usa IA para analisar gráficos de qualquer broker em menos de 2 segundos. Gerencie trades, converse com seu mentor IA e opere com mais clareza. Acesso anual por R$2.500." },
       { property: "og:title", content: "OrionHub — Trading Inteligente com IA" },
-      { property: "og:description", content: "Análise de gráficos por IA, planilha de trades e mentor IA em um só lugar." },
+      { property: "og:description", content: "Análise de gráficos por IA em 2s, planilha de trades automática e mentor IA 24/7. A plataforma completa do trader Gabriel Dutra — Orion Capital." },
       { property: "og:type", content: "website" },
+      { property: "og:url", content: "https://orionmindhub.projetoskm0.workers.dev/" },
     ],
   }),
   component: LandingPage,
@@ -115,7 +116,7 @@ function Hero({ user }: { user: User | null }) {
           backgroundImage: "linear-gradient(color-mix(in oklab, var(--accent) 4%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in oklab, var(--accent) 4%, transparent) 1px, transparent 1px)",
           backgroundSize: "60px 60px",
         }} />
-      <div className="relative z-10 flex flex-col items-center stagger">
+      <div className="relative z-10 flex flex-col items-center">
         <div className="mb-7 inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-semibold uppercase tracking-wider"
           style={{ background: "color-mix(in oklab, var(--accent) 7%, transparent)", border: "1px solid color-mix(in oklab, var(--accent) 18%, transparent)", color: "var(--electric)" }}>
           <span className="h-1.5 w-1.5 rounded-full blink-dot" style={{ background: "var(--electric)" }} />
@@ -363,7 +364,7 @@ function HowSection() {
   return (
     <section id="how" className="mx-auto max-w-6xl px-6 py-24">
       <SectionHeader tag="COMO FUNCIONA" title="Em 4 passos simples" sub="Da imagem ao sinal em menos de 2 segundos." />
-      <div className="relative grid grid-cols-2 gap-4 md:grid-cols-4">
+      <div className="relative grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-4">
         {steps.map(([n, t, d]) => (
           <div key={n} className="text-center">
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full border text-xl font-black"

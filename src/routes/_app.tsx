@@ -175,25 +175,27 @@ function AppLayout() {
           className="fixed inset-x-0 bottom-0 z-40 flex justify-around border-t py-2 backdrop-blur-xl sm:hidden fade-up"
           style={{ background: "color-mix(in oklab, var(--surface) 88%, transparent)", borderColor: "var(--border)" }}
         >
-          {tabs.map(({ to, Icon, label }) => {
-            const active = loc.pathname.startsWith(to);
-            return (
-              <Link
-                key={to}
-                to={to}
-                preload="intent"
-                viewTransition
-                className="flex flex-col items-center gap-1 px-3 py-1 text-[10px] font-medium smooth press"
-                style={{
-                  color: active ? "var(--accent)" : "var(--text-dim)",
-                  filter: active ? "drop-shadow(0 0 6px color-mix(in oklab, var(--accent) 60%, transparent))" : "none",
-                }}
-              >
-                <Icon className="h-4 w-4" strokeWidth={1.75} />
-                <span>{label}</span>
-              </Link>
-            );
-          })}
+          {tabs
+            .filter(({ to }) => ["/dashboard", "/scan", "/mind", "/gestao", "/noticias"].includes(to))
+            .map(({ to, Icon, label }) => {
+              const active = loc.pathname.startsWith(to);
+              return (
+                <Link
+                  key={to}
+                  to={to}
+                  preload="intent"
+                  viewTransition
+                  className="flex min-w-[56px] flex-col items-center gap-1 px-3 py-2 text-[11px] font-medium smooth press"
+                  style={{
+                    color: active ? "var(--accent)" : "var(--text-dim)",
+                    filter: active ? "drop-shadow(0 0 6px color-mix(in oklab, var(--accent) 60%, transparent))" : "none",
+                  }}
+                >
+                  <Icon className="h-4 w-4" strokeWidth={1.75} />
+                  <span>{label}</span>
+                </Link>
+              );
+            })}
         </nav>
 
         <main

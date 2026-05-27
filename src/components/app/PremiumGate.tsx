@@ -105,6 +105,12 @@ export function PremiumGate({ children, feature }: { children: ReactNode; featur
           <p className="mt-2 text-sm text-muted-foreground">
             {copy.description}
           </p>
+          <div className="mt-3 inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm font-black"
+            style={{ background: "color-mix(in oklab, var(--accent) 10%, transparent)", borderColor: "color-mix(in oklab, var(--accent) 30%, transparent)" }}>
+            <span className="text-[10px] font-medium text-muted-foreground">Acesso anual</span>
+            <span className="gradient-text">R$ 2.500</span>
+            <span className="text-[10px] font-medium text-muted-foreground">· 12 meses</span>
+          </div>
           <ul className="mt-5 grid w-full gap-2 text-left text-[13px]">
             {copy.perks.map((p) => (
               <li key={p} className="flex items-start gap-2">

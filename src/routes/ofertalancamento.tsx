@@ -33,11 +33,11 @@ function OfertaPage() {
     <div className="min-h-dvh" style={{ background: "var(--background)", color: "var(--foreground)" }}>
       <BgFx />
       <ExpiringBar />
-      <Reveal><Pricing /></Reveal>
       <Hero />
       <Reveal><Compare /></Reveal>
       <Reveal><Modules /></Reveal>
       <Reveal><Mentor /></Reveal>
+      <Reveal><Pricing /></Reveal>
       <Reveal><Faq /></Reveal>
       <Reveal><FinalCta /></Reveal>
       <Footer />
