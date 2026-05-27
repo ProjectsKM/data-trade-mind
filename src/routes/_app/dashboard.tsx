@@ -45,7 +45,7 @@ function DashboardPage() {
     if (h < 18) return "Boa tarde";
     return "Boa noite";
   })();
-  const name = (user?.email.split("@")[0] ?? "trader");
+  const name = (user?.name?.trim() || user?.email?.split("@")[0] || "trader");
 
   return (
     <div className="mx-auto w-full max-w-6xl px-6 py-8">

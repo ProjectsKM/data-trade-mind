@@ -152,20 +152,40 @@ function ScanPage() {
         | "image/jpeg"
         | "image/webp"
         | "image/gif";
-      const { data: sess } = await supabase.auth.getSession();
-      const token = sess.session?.access_token;
+      // Resolve um token válido, com refresh defensivo para mobile/Safari
+      // onde a sessão pode estar expirada silenciosamente após background.
+      async function resolveToken(): Promise<string | null> {
+        const { data: sess } = await supabase.auth.getSession();
+        const tk = sess.session?.access_token;
+        const exp = sess.session?.expires_at; // segundos
+        const isStale = !tk || (exp ? exp * 1000 - Date.now() < 60_000 : true);
+        if (!isStale) return tk ?? null;
+        const { data: refreshed } = await supabase.auth.refreshSession();
+        return refreshed.session?.access_token ?? tk ?? null;
+      }
+
+      const callApi = async (tk: string) => fetch("/api/ai-scan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${tk}` },
+        body: JSON.stringify({ imageBase64: b64, mediaType, durationMin: duration }),
+      });
+
+      let token = await resolveToken();
       if (!token) {
         const msg = "Sessão expirada. Faça login novamente.";
         setErr(msg); toast.error(msg); setStage("error"); return;
       }
-      const r = await fetch("/api/ai-scan", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ imageBase64: b64, mediaType, durationMin: duration }),
-      });
+      let r = await callApi(token);
+      if (r.status === 401) {
+        // Uma segunda tentativa após refresh forçado, cobrindo race conditions no mobile.
+        const { data: refreshed } = await supabase.auth.refreshSession();
+        token = refreshed.session?.access_token ?? null;
+        if (!token) {
+          const msg = "Sessão expirada. Faça login novamente.";
+          setErr(msg); toast.error(msg); setStage("error"); return;
+        }
+        r = await callApi(token);
+      }
       const data = (await r.json()) as { ok: boolean; result?: ScanResult; error?: string };
       if (!data.ok || !data.result) {
         const msg = data.error || "Não foi possível analisar a imagem.";

@@ -23,9 +23,30 @@ function buildPrompt(durationMin: number, baseDate: Date) {
   const prot1 = fmt(durationMin * 2);
   const prot2 = fmt(durationMin * 3);
   return {
-    text: `Você é um analista de opções binárias. Analise este gráfico e retorne SOMENTE JSON válido, sem markdown.
+    text: `Você é um analista de opções binárias brasileiro. Analise este gráfico e retorne SOMENTE JSON válido, sem markdown.
 
-{"ativo":"nome do ativo ou Não identificado","timeframe":"M1, M5, M15, M30, H1, H4 ou D1","direcao":"COMPRA ou VENDA","confianca":número inteiro de 0 a 100,"assertividade":"frase curta e direta sobre o nível de confiança","tendencia":"Alta, Baixa ou Lateral","vies":"Bullish, Bearish ou Neutro","suporte":"nível de suporte principal","resistencia":"nível de resistência principal","padroes":["padrão 1","padrão 2"],"indicadores":["indicador 1 e sinal","indicador 2 e sinal"],"justificativa":"Em 3 a 4 frases simples e diretas, sem termos difíceis: diga por que o sinal é de compra ou venda, o que você viu no gráfico que aponta isso, e o que o trader deve observar durante a operação.","riscos":["risco 1","risco 2","risco 3"],"entrada":"${entrada}","protecao1":"${prot1}","protecao2":"${prot2}"}`,
+REGRAS DE IDIOMA (CRÍTICO):
+- TODOS os campos de texto devem ser EM PORTUGUÊS BRASILEIRO.
+- NUNCA escreva padrões ou indicadores em inglês. Traduções obrigatórias:
+  * "Bullish engulfing" → "Engolfo de alta"
+  * "Bearish engulfing" → "Engolfo de baixa"
+  * "Hammer" → "Martelo"
+  * "Shooting star" → "Estrela cadente"
+  * "Inside bar" → "Barra interna"
+  * "Head and shoulders" → "Ombro-cabeça-ombro"
+  * "Double top" → "Topo duplo"
+  * "Double bottom" → "Fundo duplo"
+  * "Breakout" → "Rompimento"
+  * "Pullback" → "Retração"
+  * "Fakeout" → "Falso rompimento"
+  * "Support retest" → "Reteste de suporte"
+  * "Resistance retest" → "Reteste de resistência"
+- "Doji" e "Pin bar" podem ficar (jargão consagrado), mas adicione contexto em português. Ex: "Doji em zona de suporte".
+- "vies" mantém Bullish/Bearish/Neutro pois é jargão de mercado.
+- "indicadores": descreva o sinal em português. Ex: "RSI em alta com sinal de compra", "MACD em cruzamento de alta", "Média móvel 21 cruzando para cima".
+
+FORMATO (retorne EXATAMENTE este JSON):
+{"ativo":"nome do ativo ou Não identificado","timeframe":"M1, M5, M15, M30, H1, H4 ou D1","direcao":"COMPRA ou VENDA","confianca":número inteiro de 0 a 100,"assertividade":"frase curta e direta sobre o nível de confiança","tendencia":"Alta, Baixa ou Lateral","vies":"Bullish, Bearish ou Neutro","suporte":"nível de suporte principal","resistencia":"nível de resistência principal","padroes":["padrão 1 EM PORTUGUÊS","padrão 2 EM PORTUGUÊS"],"indicadores":["indicador 1 e sinal EM PORTUGUÊS","indicador 2 e sinal EM PORTUGUÊS"],"justificativa":"Em 3 a 4 frases simples e diretas, sem termos difíceis: diga por que o sinal é de compra ou venda, o que você viu no gráfico que aponta isso, e o que o trader deve observar durante a operação.","riscos":["risco 1","risco 2","risco 3"],"entrada":"${entrada}","protecao1":"${prot1}","protecao2":"${prot2}"}`,
     entrada, prot1, prot2,
   };
 }

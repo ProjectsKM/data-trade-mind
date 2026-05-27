@@ -5,6 +5,7 @@ import { corsHeaders, jsonResponse } from "@/lib/cors";
 import { createClient } from "@supabase/supabase-js";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { ASSETS, payoutForCategoria, categoriaForAtivo, calcLucro, type Categoria } from "@/lib/assets";
+import type { MindCard, MonthlyReportData, ReportByCategory, WinReportData, WinReportPeriod } from "@/lib/mind-cards";
 
 const OPENAI_URL = "https://api.openai.com/v1/chat/completions";
 const MODEL = "gpt-4o-mini";
@@ -83,8 +84,8 @@ Você tem uma ferramenta chamada **register_trade** que adiciona uma operação 
   - Ações: Apple, Amazon, McDonalds, Microsoft, Tesla.
 - Se o usuário disser apenas "BTC", normalize para "BTC/USD". Se o ativo for desconhecido, **pergunte** antes de chamar.
 - Se faltar **qualquer** campo obrigatório (ativo, direção, valor ou resultado), **pergunte ao usuário** de forma breve e objetiva antes de chamar a ferramenta. Nunca invente valores.
-- Após registrar com sucesso, confirme em uma frase curta com os dados gravados (ativo, direção, valor, resultado, lucro/prejuízo).`;
-// ## EDITAR / EXCLUIR OPERAÇÕES (FERRAMENTAS update_trade / delete_trade)
+- Após registrar com sucesso, NÃO repita os dados gravados em texto — o sistema mostra automaticamente um card visual com todas as informações da operação. Apenas dê uma resposta MUITO curta (no máximo 1 frase), confirmando rapidamente ou sugerindo o próximo passo. Exemplos válidos: "Pronto! Lembre-se da gestão para a próxima.", "Anotado.", "Boa! Continue disciplinado.". NÃO escreva nada como "Operação registrada: BTC/USD COMPRA $50…" — isso seria duplicado com o card.`;
+// ## EDITAR / EXCLUIR OPERAÇÕES + RELATÓRIOS
 const SYSTEM_EDIT = `
 ## EDITAR OU EXCLUIR OPERAÇÕES (update_trade / delete_trade)
 Você também pode editar (**update_trade**) ou excluir (**delete_trade**) operações que JÁ EXISTEM na planilha do usuário.
@@ -93,6 +94,14 @@ Você também pode editar (**update_trade**) ou excluir (**delete_trade**) opera
 - Se houver mais de uma operação que pode ser a referenciada, **pergunte** ao usuário qual delas antes de chamar a ferramenta.
 - Para **delete_trade**, peça **confirmação clara** antes de excluir.
 - Para **register_trade**: se a banca ainda não estiver definida, NÃO chame a ferramenta — peça primeiro para o usuário definir a banca em /gestao.
+- Após update_trade ou delete_trade com sucesso, NÃO repita os dados em texto — o sistema mostra automaticamente um card. Apenas confirme em 1 frase curta.
+
+## RELATÓRIOS (get_monthly_report / get_win_report)
+Quando o usuário pedir **relatório**, **resumo**, **balanço**, ou perguntar sobre **performance** em algum período, use a ferramenta apropriada:
+- **get_monthly_report**: para "relatório do mês", "resumo mensal", "como foi o mês". Sem parâmetros (pega o mês atual). Mostra total de operações, win rate, lucro, ranking por categoria.
+- **get_win_report**: para "quantos wins eu tive hoje/essa semana/esse mês", "minhas vitórias", "balanço de wins". Aceita parâmetro \`period\` (today | week | month | all).
+- Após a ferramenta executar, NÃO repita os dados em texto — o card visual já mostra tudo. Apenas faça um comentário interpretativo curto (1-2 frases) com tom de mentor: "Bom mês, mas atenção ao drawdown na semana 3.", "Win rate consistente — mantenha a disciplina.", "Sequência negativa — pare de operar hoje e reveja o setup.". NUNCA liste os números do relatório no texto.
+- Se o usuário ainda não tem operações registradas, a ferramenta retorna sem dados — nesse caso, responda sugerindo registrar a primeira operação.
 `;
 
 const Body = z.object({
@@ -166,6 +175,42 @@ const TOOLS = [
       },
     },
   },
+  {
+    type: "function" as const,
+    function: {
+      name: "get_monthly_report",
+      description: "Gera relatório completo do mês: total de operações, win rate, lucro acumulado e quebra por categoria de ativo. Use quando o usuário pedir relatório mensal, resumo do mês ou similar.",
+      parameters: {
+        type: "object",
+        properties: {
+          month: {
+            type: "string",
+            description: "Mês alvo no formato YYYY-MM. Omita ou use 'current' para o mês corrente. Use 'previous' para o mês anterior.",
+          },
+        },
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function" as const,
+    function: {
+      name: "get_win_report",
+      description: "Gera relatório de wins/losses em um período. Use quando o usuário pedir balanço de vitórias, quantos wins teve no dia/semana/mês, ou histórico de resultados.",
+      parameters: {
+        type: "object",
+        properties: {
+          period: {
+            type: "string",
+            enum: ["today", "week", "month", "all"],
+            description: "Período do relatório. 'today' = hoje, 'week' = últimos 7 dias, 'month' = últimos 30 dias, 'all' = todo o histórico.",
+          },
+        },
+        required: ["period"],
+        additionalProperties: false,
+      },
+    },
+  },
 ];
 
 function normalizeAtivo(raw: string): { ativo: string; categoria: Categoria } | null {
@@ -212,6 +257,10 @@ const UpdateArgs = z.object({
 });
 
 const DeleteArgs = z.object({ id: z.string().uuid() });
+const MonthlyReportArgs = z.object({ month: z.string().optional() });
+const WinReportArgs = z.object({ period: z.enum(["today", "week", "month", "all"]) });
+
+type ToolResult = { ok: boolean; message: string; card?: MindCard };
 
 async function executeRegisterTrade(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -219,7 +268,7 @@ async function executeRegisterTrade(
   userId: string,
   rawArgs: unknown,
   banca: number | null | undefined,
-): Promise<{ ok: boolean; message: string }> {
+): Promise<ToolResult> {
   if (!banca || banca <= 0) {
     return { ok: false, message: "BANCA_NAO_DEFINIDA: O usuário ainda não definiu a banca inicial em /gestao. Peça para ele definir a banca antes de registrar operações." };
   }
@@ -255,6 +304,20 @@ async function executeRegisterTrade(
   return {
     ok: true,
     message: `Operação registrada: ${norm.ativo} ${a.dir} $${a.valor} payout ${payout}% ${a.res} → ${lucro >= 0 ? "+" : ""}$${lucro.toFixed(2)}`,
+    card: {
+      type: "trade_added",
+      trade: {
+        id: data.id as string,
+        ativo: norm.ativo,
+        dir: a.dir,
+        valor: a.valor,
+        payout,
+        res: a.res,
+        lucro,
+        obs: a.obs ?? null,
+        data: (data.data ?? new Date().toISOString()) as string,
+      },
+    },
   };
 }
 
@@ -263,7 +326,7 @@ async function executeUpdateTrade(
   supabase: any,
   userId: string,
   rawArgs: unknown,
-): Promise<{ ok: boolean; message: string }> {
+): Promise<ToolResult> {
   const parsed = UpdateArgs.safeParse(rawArgs);
   if (!parsed.success) return { ok: false, message: `Argumentos inválidos: ${parsed.error.issues.map(i => i.message).join("; ")}` };
   const a = parsed.data;
@@ -283,6 +346,7 @@ async function executeUpdateTrade(
   const res = (a.res ?? existing.res) as "WIN" | "LOSS";
   const payout = a.payout ?? (a.ativo ? payoutForCategoria(categoria ?? "CRIPTO") : Number(existing.payout));
   const lucro = calcLucro(valor, payout, res);
+  const dir = (a.dir ?? existing.dir) as "COMPRA" | "VENDA";
 
   const patch: Record<string, unknown> = { ativo, valor, payout, res, lucro };
   if (a.dir) patch.dir = a.dir;
@@ -290,7 +354,24 @@ async function executeUpdateTrade(
 
   const { error: e2 } = await supabase.from("trades").update(patch as never).eq("id", a.id).eq("user_id", userId);
   if (e2) return { ok: false, message: `Falha ao atualizar: ${e2.message}` };
-  return { ok: true, message: `Operação atualizada: ${ativo} ${patch.dir ?? existing.dir} $${valor} payout ${payout}% ${res} → ${lucro >= 0 ? "+" : ""}$${lucro.toFixed(2)}` };
+  return {
+    ok: true,
+    message: `Operação atualizada: ${ativo} ${dir} $${valor} payout ${payout}% ${res} → ${lucro >= 0 ? "+" : ""}$${lucro.toFixed(2)}`,
+    card: {
+      type: "trade_updated",
+      trade: {
+        id: a.id,
+        ativo,
+        dir,
+        valor,
+        payout,
+        res,
+        lucro,
+        obs: (a.obs !== undefined ? a.obs : existing.obs) ?? null,
+        data: existing.data as string,
+      },
+    },
+  };
 }
 
 async function executeDeleteTrade(
@@ -298,12 +379,178 @@ async function executeDeleteTrade(
   supabase: any,
   userId: string,
   rawArgs: unknown,
-): Promise<{ ok: boolean; message: string }> {
+): Promise<ToolResult> {
   const parsed = DeleteArgs.safeParse(rawArgs);
   if (!parsed.success) return { ok: false, message: "ID inválido." };
+  const { data: existing, error: e1 } = await supabase
+    .from("trades").select("ativo, valor, lucro, res").eq("id", parsed.data.id).eq("user_id", userId).maybeSingle();
+  if (e1 || !existing) return { ok: false, message: `Operação ${parsed.data.id} não encontrada.` };
   const { error } = await supabase.from("trades").delete().eq("id", parsed.data.id).eq("user_id", userId);
   if (error) return { ok: false, message: `Falha ao excluir: ${error.message}` };
-  return { ok: true, message: "Operação excluída com sucesso." };
+  return {
+    ok: true,
+    message: "Operação excluída com sucesso.",
+    card: {
+      type: "trade_deleted",
+      ativo: existing.ativo as string,
+      valor: Number(existing.valor),
+      lucro: Number(existing.lucro),
+      res: existing.res as "WIN" | "LOSS",
+    },
+  };
+}
+
+function categoryGroupOf(ativo: string): ReportByCategory["categoria"] {
+  const cat = categoriaForAtivo(ativo);
+  if (cat === "CRIPTO" || cat === "FOREX" || cat === "ACOES") return cat;
+  return "OUTROS";
+}
+
+function resolveMonthRange(monthArg: string | undefined): { from: Date; to: Date; label: string } {
+  const now = new Date();
+  let year = now.getFullYear();
+  let month = now.getMonth(); // 0-indexed
+  const normalized = (monthArg ?? "current").toLowerCase();
+  if (normalized === "previous") {
+    if (month === 0) { month = 11; year -= 1; } else { month -= 1; }
+  } else if (/^\d{4}-\d{2}$/.test(normalized)) {
+    const [yy, mm] = normalized.split("-").map(Number);
+    year = yy;
+    month = mm - 1;
+  }
+  const from = new Date(year, month, 1, 0, 0, 0, 0);
+  const to = new Date(year, month + 1, 1, 0, 0, 0, 0);
+  const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+  return { from, to, label: `${monthNames[month]}/${year}` };
+}
+
+async function executeMonthlyReport(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  userId: string,
+  rawArgs: unknown,
+): Promise<ToolResult> {
+  const parsed = MonthlyReportArgs.safeParse(rawArgs);
+  if (!parsed.success) return { ok: false, message: "Parâmetros inválidos." };
+  const { from, to, label } = resolveMonthRange(parsed.data.month);
+  const { data, error } = await supabase
+    .from("trades")
+    .select("ativo, res, lucro, data")
+    .eq("user_id", userId)
+    .gte("data", from.toISOString())
+    .lt("data", to.toISOString());
+  if (error) return { ok: false, message: `Falha ao consultar trades: ${error.message}` };
+
+  type Row = { ativo: string; res: string; lucro: number; data: string };
+  const rows = (data ?? []) as Row[];
+
+  const wins = rows.filter((r) => r.res === "WIN").length;
+  const losses = rows.filter((r) => r.res === "LOSS").length;
+  const closed = wins + losses;
+  const lucroTotal = rows.reduce((a, r) => a + Number(r.lucro || 0), 0);
+  const winRate = closed ? Math.round((wins / closed) * 100) : 0;
+
+  const winsByAsset = new Map<string, number>();
+  for (const r of rows) if (r.res === "WIN") winsByAsset.set(r.ativo, (winsByAsset.get(r.ativo) ?? 0) + 1);
+  let melhorAtivo: string | null = null;
+  let topWins = 0;
+  for (const [a, n] of winsByAsset) if (n > topWins) { topWins = n; melhorAtivo = a; }
+
+  const byCatMap = new Map<ReportByCategory["categoria"], ReportByCategory>();
+  for (const r of rows) {
+    const cat = categoryGroupOf(r.ativo);
+    const cur = byCatMap.get(cat) ?? { categoria: cat, count: 0, wins: 0, lucro: 0 };
+    cur.count += 1;
+    if (r.res === "WIN") cur.wins += 1;
+    cur.lucro += Number(r.lucro || 0);
+    byCatMap.set(cat, cur);
+  }
+  const byCategory = Array.from(byCatMap.values()).sort((a, b) => b.count - a.count);
+
+  const report: MonthlyReportData = {
+    label,
+    totalOps: rows.length,
+    wins,
+    losses,
+    winRate,
+    lucroTotal: +lucroTotal.toFixed(2),
+    melhorAtivo,
+    byCategory,
+  };
+  return {
+    ok: true,
+    message: `Relatório de ${label}: ${rows.length} operações, ${wins} wins, ${losses} losses, lucro ${lucroTotal.toFixed(2)}.`,
+    card: { type: "monthly_report", report },
+  };
+}
+
+function resolveWinPeriod(period: WinReportPeriod): { from: Date; label: string } {
+  const now = new Date();
+  if (period === "today") {
+    const from = new Date(now); from.setHours(0, 0, 0, 0);
+    return { from, label: "Hoje" };
+  }
+  if (period === "week") {
+    const from = new Date(now.getTime() - 7 * 24 * 3600 * 1000);
+    return { from, label: "Últimos 7 dias" };
+  }
+  if (period === "month") {
+    const from = new Date(now.getTime() - 30 * 24 * 3600 * 1000);
+    return { from, label: "Últimos 30 dias" };
+  }
+  return { from: new Date(0), label: "Histórico completo" };
+}
+
+async function executeWinReport(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  userId: string,
+  rawArgs: unknown,
+): Promise<ToolResult> {
+  const parsed = WinReportArgs.safeParse(rawArgs);
+  if (!parsed.success) return { ok: false, message: "Período inválido." };
+  const { from, label } = resolveWinPeriod(parsed.data.period);
+  const { data, error } = await supabase
+    .from("trades")
+    .select("res, lucro, data")
+    .eq("user_id", userId)
+    .gte("data", from.toISOString())
+    .order("data", { ascending: true });
+  if (error) return { ok: false, message: `Falha ao consultar trades: ${error.message}` };
+
+  type Row = { res: string; lucro: number; data: string };
+  const rows = (data ?? []) as Row[];
+  const wins = rows.filter((r) => r.res === "WIN").length;
+  const losses = rows.filter((r) => r.res === "LOSS").length;
+  const closed = wins + losses;
+  const lucroTotal = rows.reduce((a, r) => a + Number(r.lucro || 0), 0);
+  const winRate = closed ? Math.round((wins / closed) * 100) : 0;
+
+  let bestStreak = 0;
+  let worstStreak = 0;
+  let curWin = 0;
+  let curLoss = 0;
+  for (const r of rows) {
+    if (r.res === "WIN") { curWin += 1; curLoss = 0; if (curWin > bestStreak) bestStreak = curWin; }
+    else if (r.res === "LOSS") { curLoss += 1; curWin = 0; if (curLoss > worstStreak) worstStreak = curLoss; }
+  }
+
+  const report: WinReportData = {
+    period: parsed.data.period,
+    label,
+    totalOps: rows.length,
+    wins,
+    losses,
+    winRate,
+    lucroTotal: +lucroTotal.toFixed(2),
+    bestStreak,
+    worstStreak,
+  };
+  return {
+    ok: true,
+    message: `Relatório (${label}): ${wins} wins, ${losses} losses, win-rate ${winRate}%, lucro ${lucroTotal.toFixed(2)}.`,
+    card: { type: "win_report", report },
+  };
 }
 
 export const Route = createFileRoute("/api/ai-mind")({
@@ -452,23 +699,29 @@ export const Route = createFileRoute("/api/ai-mind")({
                   const accumulated = Array.from(toolCalls.values());
                   messages.push({ role: "assistant", content: assistantContent, tool_calls: accumulated });
                   for (const tc of accumulated) {
-                    let result: { ok: boolean; message: string };
+                    let result: ToolResult;
+                    let args: unknown = {};
+                    try { args = JSON.parse(tc.function.arguments || "{}"); } catch { args = {}; }
                     if (tc.function.name === "register_trade") {
-                      let args: unknown = {};
-                      try { args = JSON.parse(tc.function.arguments || "{}"); } catch { args = {}; }
                       result = await executeRegisterTrade(supabase, userId, args, body.banca ?? null);
                     } else if (tc.function.name === "update_trade") {
-                      let args: unknown = {};
-                      try { args = JSON.parse(tc.function.arguments || "{}"); } catch { args = {}; }
                       result = await executeUpdateTrade(supabase, userId, args);
                     } else if (tc.function.name === "delete_trade") {
-                      let args: unknown = {};
-                      try { args = JSON.parse(tc.function.arguments || "{}"); } catch { args = {}; }
                       result = await executeDeleteTrade(supabase, userId, args);
+                    } else if (tc.function.name === "get_monthly_report") {
+                      result = await executeMonthlyReport(supabase, userId, args);
+                    } else if (tc.function.name === "get_win_report") {
+                      result = await executeWinReport(supabase, userId, args);
                     } else {
                       result = { ok: false, message: `Ferramenta desconhecida: ${tc.function.name}` };
                     }
-                    messages.push({ role: "tool", tool_call_id: tc.id, content: JSON.stringify(result) });
+                    // Emite o card no SSE assim que a ferramenta executar com sucesso —
+                    // o frontend vai renderizá-lo antes mesmo da resposta textual final.
+                    if (result.ok && result.card) {
+                      send({ card: result.card });
+                    }
+                    // Para o modelo, mandamos apenas o status sem o card (evita repetição).
+                    messages.push({ role: "tool", tool_call_id: tc.id, content: JSON.stringify({ ok: result.ok, message: result.message }) });
                   }
                   continue;
                 }

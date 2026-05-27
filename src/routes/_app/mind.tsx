@@ -9,6 +9,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { VoiceRecorder } from "@/components/app/VoiceRecorder";
 import { getBanca } from "@/lib/assets";
+import { MindCardRenderer } from "@/components/app/MindCards";
+import { CARD_PREFIX, parseCard, serializeCard, type MindCard } from "@/lib/mind-cards";
 
 export const Route = createFileRoute("/_app/mind")({
   head: () => ({ meta: [{ title: "OrionMind — OrionHub" }] }),
@@ -187,8 +189,15 @@ function MindPage() {
     autoFollowRef.current = true;
     try {
       const history = [...(messages.length ? messages : []), userMsg].map((m) => ({ role: m.role, content: m.content }));
+      // Token resolver com refresh defensivo (mobile/Safari pode ter sessão stale).
       const { data: sess } = await supabase.auth.getSession();
-      const token = sess.session?.access_token;
+      let token = sess.session?.access_token ?? null;
+      const exp = sess.session?.expires_at;
+      const isStale = !token || (exp ? exp * 1000 - Date.now() < 60_000 : true);
+      if (isStale) {
+        const { data: refreshed } = await supabase.auth.refreshSession();
+        token = refreshed.session?.access_token ?? token;
+      }
       if (!token) {
         toast.error("Sessão expirada. Faça login novamente.");
         setBusy(false);
@@ -213,6 +222,7 @@ function MindPage() {
       const ctype = r.headers.get("content-type") || "";
       let replyText = "";
       let errored = false;
+      const receivedCards: MindCard[] = [];
       if (ctype.includes("text/event-stream") && r.body) {
         // Add placeholder assistant message we will fill incrementally.
         setMessages((m) => [...m, { role: "assistant", content: "", ts: new Date().toISOString() }]);
@@ -237,10 +247,31 @@ function MindPage() {
                 replyText += j.delta;
                 setMessages((m) => {
                   const copy = m.slice();
-                  const last = copy[copy.length - 1];
-                  if (last && last.role === "assistant") copy[copy.length - 1] = { ...last, content: replyText };
+                  // Garante que o último elemento é a mensagem em construção (assistant
+                  // texto) e não um card recém-emitido pelo backend.
+                  for (let i = copy.length - 1; i >= 0; i--) {
+                    const it = copy[i];
+                    if (it.role === "assistant" && !it.content.startsWith(CARD_PREFIX)) {
+                      copy[i] = { ...it, content: replyText };
+                      return copy;
+                    }
+                  }
+                  // Não achou um placeholder de texto — cria um novo.
+                  copy.push({ role: "assistant", content: replyText, ts: new Date().toISOString() });
                   return copy;
                 });
+              } else if (j.card) {
+                const card = j.card as MindCard;
+                receivedCards.push(card);
+                const serialized = serializeCard(card);
+                // Adiciona o card como uma nova mensagem assistant separada
+                // (vai aparecer ANTES do parágrafo final de comentário da IA).
+                setMessages((m) => [...m, { role: "assistant", content: serialized, ts: new Date().toISOString() }]);
+                // Persiste no Supabase imediatamente — o card é o evento real,
+                // o texto final é só comentário da IA e será salvo abaixo.
+                if (user) {
+                  void supabase.from("mind_messages").insert({ user_id: user.id, role: "assistant", content: serialized, thread_id: threadId } as never);
+                }
               } else if (j.error) {
                 errored = true;
                 toast.error(j.error);
@@ -255,17 +286,28 @@ function MindPage() {
         replyText = data.ok ? data.reply || "Sem resposta." : `⚠️ ${data.error || "Erro."}`;
         setMessages((m) => [...m, { role: "assistant", content: replyText, ts: new Date().toISOString() }]);
       }
-      if (!replyText) {
+      if (!replyText && receivedCards.length === 0) {
         replyText = errored ? "⚠️ Não consegui responder agora." : "Sem resposta.";
         setMessages((m) => {
           const copy = m.slice();
-          const last = copy[copy.length - 1];
-          if (last && last.role === "assistant" && last.content === "") copy[copy.length - 1] = { ...last, content: replyText };
-          else copy.push({ role: "assistant", content: replyText, ts: new Date().toISOString() });
+          for (let i = copy.length - 1; i >= 0; i--) {
+            const it = copy[i];
+            if (it.role === "assistant" && it.content === "") {
+              copy[i] = { ...it, content: replyText };
+              return copy;
+            }
+          }
+          copy.push({ role: "assistant", content: replyText, ts: new Date().toISOString() });
           return copy;
         });
+      } else if (!replyText && receivedCards.length > 0) {
+        // Tivemos card(s) mas a IA não comentou nada — remove o placeholder vazio.
+        setMessages((m) => m.filter((it) => !(it.role === "assistant" && it.content === "")));
       }
-      await supabase.from("mind_messages").insert({ user_id: user.id, role: "assistant", content: replyText, thread_id: threadId } as never);
+      // Persiste o texto final apenas se houver algo
+      if (replyText) {
+        await supabase.from("mind_messages").insert({ user_id: user.id, role: "assistant", content: replyText, thread_id: threadId } as never);
+      }
       await supabase.from("mind_threads").update({ updated_at: new Date().toISOString() }).eq("id", threadId);
       void refreshThreads();
     } catch {
@@ -470,6 +512,20 @@ function ThinkingBubble() {
 
 function Bubble({ m, initials }: { m: ChatMsg; initials: string }) {
   const isUser = m.role === "user";
+
+  // Mensagem do tipo card: renderiza o componente visual sem bubble wrapper.
+  if (!isUser && m.content.startsWith(CARD_PREFIX)) {
+    const card = parseCard(m.content);
+    if (card) {
+      return (
+        <div className="flex items-end gap-2.5 fade-up">
+          <Avatar isAssistant initials={initials} />
+          <MindCardRenderer card={card} />
+        </div>
+      );
+    }
+  }
+
   return (
     <div className={`flex items-end gap-2.5 fade-in ${isUser ? "flex-row-reverse" : ""}`}>
       <Avatar isAssistant={!isUser} initials={initials} />

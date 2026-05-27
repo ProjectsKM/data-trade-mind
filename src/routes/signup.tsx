@@ -3,7 +3,7 @@ import { useState } from "react";
 import { signup, useUser } from "@/lib/store";
 
 export const Route = createFileRoute("/signup")({
-  head: () => ({ meta: [{ title: "Criar conta — OrionHub" }, { name: "description", content: "Crie sua conta OrionHub. 7 dias grátis." }] }),
+  head: () => ({ meta: [{ title: "Criar conta — OrionHub" }, { name: "description", content: "Crie sua conta OrionHub. Acesso anual com garantia de 7 dias." }] }),
   component: SignupPage,
 });
 
@@ -42,9 +42,9 @@ function SignupPage() {
         <Link to="/" className="block text-center text-2xl font-black tracking-tight smooth hover:opacity-80">
           Orion<span style={{ color: "var(--electric)" }}>Hub</span>
         </Link>
-        <p className="mb-7 mt-1 text-center text-xs text-muted-foreground">Crie sua conta · 7 dias de PRO grátis</p>
+        <p className="mb-7 mt-1 text-center text-xs text-muted-foreground">Crie sua conta · Garantia de 7 dias</p>
         <form onSubmit={submit} className="space-y-3">
-          <Field label="NOME" value={name} onChange={setName} placeholder="Como podemos te chamar?" required />
+          <Field label="COMO GOSTARIA DE SER CHAMADO?" value={name} onChange={setName} placeholder="Ex: João" required />
           <Field label="EMAIL" type="email" value={email} onChange={setEmail} placeholder="seu@email.com" required />
           <Field label="SENHA" type="password" value={pw} onChange={setPw} placeholder="Mínimo 6 caracteres" required />
           <div>

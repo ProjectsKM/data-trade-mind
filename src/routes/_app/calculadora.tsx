@@ -35,8 +35,9 @@ function CalcPage() {
     const valor = +(banca * (risco / 100)).toFixed(2);
     const lucroWin = +(valor * (payout / 100)).toFixed(2);
     const prejLoss = -valor;
-    const martingale = [valor, +(valor * 2.2).toFixed(2), +(valor * 5).toFixed(2)];
-    const martTotal = martingale.reduce((a, b) => a + b, 0);
+    // Proteção padrão Orion: entrada (1x), 1ª proteção (2x da entrada), 2ª proteção (2x da 1ª = 4x).
+    const protecao = [valor, +(valor * 2).toFixed(2), +(valor * 4).toFixed(2)];
+    const protecaoTotal = protecao.reduce((a, b) => a + b, 0);
     const metaValor = +(banca * (meta / 100)).toFixed(2);
     let bancaSim = banca;
     const progressao = Array.from({ length: ops }, (_, i) => {
@@ -45,7 +46,7 @@ function CalcPage() {
       bancaSim = +(bancaSim + delta).toFixed(2);
       return { op: i + 1, win, banca: bancaSim };
     });
-    return { valor, lucroWin, prejLoss, martingale, martTotal, metaValor, progressao };
+    return { valor, lucroWin, prejLoss, protecao, protecaoTotal, metaValor, progressao };
   }, [banca, risco, payout, meta, ops, winrate]);
 
   const accentRgb = "98, 142, 230";
@@ -83,7 +84,7 @@ function CalcPage() {
     },
   };
 
-  const martPct = (calc.martTotal / banca) * 100;
+  const protecaoPct = (calc.protecaoTotal / banca) * 100;
 
   return (
     <div className="mx-auto w-full max-w-6xl px-5 py-8">
@@ -143,29 +144,35 @@ function CalcPage() {
           >
             <div className="mb-3 flex items-center justify-between">
               <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                Martingale (3 níveis)
+                Proteção (padrão Orion)
               </div>
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <AlertTriangle className="h-3 w-3" strokeWidth={1.75} style={{ color: "var(--gold)" }} />
                 Risco total{" "}
                 <span className="font-mono font-semibold tabular" style={{ color: "var(--red)" }}>
-                  ${calc.martTotal.toFixed(2)} ({martPct.toFixed(1)}%)
+                  ${calc.protecaoTotal.toFixed(2)} ({protecaoPct.toFixed(1)}%)
                 </span>
               </div>
             </div>
             <div className="grid grid-cols-3 gap-2">
-              {calc.martingale.map((m, i) => (
-                <div
-                  key={i}
-                  className="rounded-md border p-3 text-center"
-                  style={{ background: "var(--surface-2)", borderColor: "var(--border)" }}
-                >
-                  <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Nível {i + 1}</div>
-                  <div className="mt-1 font-mono text-lg font-semibold tabular" style={{ color: "var(--gold)" }}>
-                    ${m.toFixed(2)}
+              {calc.protecao.map((m, i) => {
+                const labels = ["Entrada", "1ª Proteção", "2ª Proteção"] as const;
+                return (
+                  <div
+                    key={i}
+                    className="rounded-md border p-3 text-center"
+                    style={{ background: "var(--surface-2)", borderColor: "var(--border)" }}
+                  >
+                    <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{labels[i]}</div>
+                    <div className="mt-1 font-mono text-lg font-semibold tabular" style={{ color: "var(--gold)" }}>
+                      ${m.toFixed(2)}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
+            </div>
+            <div className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
+              Padrão Orion: <strong className="text-foreground">máximo 2 proteções</strong>, cada uma <strong className="text-foreground">2× a anterior</strong>. Stop loss diário: máximo 2 loss completos.
             </div>
           </div>
 
