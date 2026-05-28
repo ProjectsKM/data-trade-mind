@@ -115,14 +115,46 @@ export function useUser() {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
-      setUser(session?.user ? toUser(session.user) : null);
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      // Eventos que indicam mudança REAL de auth:
+      //   SIGNED_OUT, USER_UPDATED — limpa/atualiza user
+      //   SIGNED_IN, INITIAL_SESSION, TOKEN_REFRESHED — define user da sessão
+      // NÃO derruba user em eventos transitórios (PASSWORD_RECOVERY, etc) —
+      // antes era `setUser(session?.user ?? null)` sempre, e qualquer evento
+      // sem sessão temporariamente derrubava o user e redirecionava pra /login.
+      if (event === "SIGNED_OUT") {
+        setUser(null);
+      } else if (
+        event === "INITIAL_SESSION" ||
+        event === "SIGNED_IN" ||
+        event === "TOKEN_REFRESHED" ||
+        event === "USER_UPDATED"
+      ) {
+        setUser(session?.user ? toUser(session.user) : null);
+      }
       setReady(true);
     });
-    supabase.auth.getSession().then(({ data }) => {
-      setUser(data.session?.user ? toUser(data.session.user) : null);
-      setReady(true);
-    });
+    // Tenta refresh primeiro: estende a sessão se ainda houver refresh token
+    // válido, evitando logout em quem deixou a aba aberta por horas.
+    supabase.auth
+      .refreshSession()
+      .then(({ data, error }) => {
+        if (!error && data.session?.user) {
+          setUser(toUser(data.session.user));
+          setReady(true);
+          return;
+        }
+        // Refresh falhou (sem refresh token ou expirado) — fallback pra
+        // getSession (pode ter access token ainda válido).
+        return supabase.auth.getSession().then(({ data: s }) => {
+          setUser(s.session?.user ? toUser(s.session.user) : null);
+          setReady(true);
+        });
+      })
+      .catch(() => {
+        // Erro de rede no refresh — não derruba, deixa user atual e marca ready.
+        setReady(true);
+      });
     return () => sub.subscription.unsubscribe();
   }, []);
 

@@ -15,6 +15,7 @@ import { logout, useAppState, useUser } from "@/lib/store";
 import { PremiumGate, type GateKey } from "@/components/app/PremiumGate";
 import { useVirtualKeyboard } from "@/hooks/use-virtual-keyboard";
 import { hydrateBancaFromCloud } from "@/lib/banca-sync";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_app")({
   component: AppLayout,
@@ -40,7 +41,24 @@ function AppLayout() {
   const kbOpen = kbHeight > 0;
 
   useEffect(() => {
-    if (ready && !user) nav({ to: "/login" });
+    if (!ready || user) return;
+    // Antes redirecionava direto pra /login quando user ficasse null.
+    // Agora tenta um refresh ativo primeiro — se o refresh token ainda for
+    // válido, recupera a sessão sem forçar o usuário a relogar.
+    let cancelled = false;
+    void (async () => {
+      try {
+        const { data } = await supabase.auth.refreshSession();
+        if (cancelled) return;
+        if (!data.session?.user) nav({ to: "/login" });
+        // Se houve sucesso, o onAuthStateChange atualiza o user no hook.
+      } catch {
+        if (!cancelled) nav({ to: "/login" });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [ready, user, nav]);
 
   // Sincroniza banca da cloud (user_metadata) pro localStorage logo após

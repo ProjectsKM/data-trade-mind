@@ -63,7 +63,7 @@ function DashboardPage() {
   const name = user?.name?.trim() || user?.email?.split("@")[0] || "trader";
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-6 py-8">
+    <div className="mx-auto w-full max-w-6xl overflow-x-hidden px-4 py-6 sm:px-6 sm:py-8">
       <PageHeader
         title={`${greeting}, ${name}`}
         description="Visão geral da sua operação."
@@ -220,13 +220,13 @@ function DashboardPage() {
               {lastScans.map((s) => (
                 <div
                   key={s.id}
-                  className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm"
+                  className="flex min-w-0 items-center gap-2 rounded-md border px-3 py-2 text-sm"
                   style={{ background: "var(--surface-2)", borderColor: "var(--border)" }}
                 >
-                  <span className="font-mono text-xs">{s.ativo || "—"}</span>
-                  <span className="text-[10px] text-muted-foreground">{s.timeframe}</span>
+                  <span className="min-w-0 flex-1 truncate font-mono text-xs">{s.ativo || "—"}</span>
+                  <span className="flex-none text-[10px] text-muted-foreground">{s.timeframe}</span>
                   <span
-                    className="ml-auto rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase"
+                    className="flex-none rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase"
                     style={{
                       background:
                         s.direcao === "COMPRA"
@@ -268,12 +268,12 @@ function DashboardPage() {
               {lastTrades.map((t) => (
                 <div
                   key={t.id}
-                  className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm"
+                  className="flex min-w-0 items-center gap-2 rounded-md border px-3 py-2 text-sm"
                   style={{ background: "var(--surface-2)", borderColor: "var(--border)" }}
                 >
-                  <span className="font-mono text-xs">{t.ativo}</span>
+                  <span className="min-w-0 flex-1 truncate font-mono text-xs">{t.ativo}</span>
                   <span
-                    className="rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase"
+                    className="flex-none rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase"
                     style={{
                       background:
                         t.dir === "COMPRA"
@@ -285,7 +285,7 @@ function DashboardPage() {
                     {t.dir}
                   </span>
                   <span
-                    className="ml-auto text-xs font-semibold"
+                    className="ml-auto flex-none whitespace-nowrap font-mono text-xs font-semibold"
                     style={{
                       color:
                         t.res === "WIN"
@@ -322,14 +322,14 @@ function Section({
 }) {
   return (
     <section
-      className={`rounded-xl border p-5 fade-up ${className}`}
+      className={`min-w-0 overflow-hidden rounded-xl border p-4 fade-up sm:p-5 ${className}`}
       style={{
         background: "color-mix(in oklab, var(--surface) 80%, transparent)",
         borderColor: "var(--border)",
       }}
     >
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="font-display text-sm font-semibold tracking-tight">{title}</h2>
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <h2 className="min-w-0 truncate font-display text-sm font-semibold tracking-tight">{title}</h2>
         {action}
       </div>
       {children}

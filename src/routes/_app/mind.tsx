@@ -49,6 +49,40 @@ const SUGGESTIONS = [
   "Análise de price action em M5",
 ];
 
+// Persiste card no Supabase com retry. Crítico porque cards são a única
+// evidência visual de uma operação registrada — se perder, o usuário não
+// vê o card quando voltar ao thread em outro dispositivo.
+async function persistCardWithRetry(
+  userId: string,
+  threadId: string,
+  serialized: string,
+): Promise<void> {
+  const tryInsert = async () => {
+    // Refresh defensivo antes de inserir — se o JWT está perto de expirar,
+    // estende sessão pra evitar 401 na inserção.
+    await supabase.auth.refreshSession().catch(() => undefined);
+    return supabase.from("mind_messages").insert({
+      user_id: userId,
+      role: "assistant",
+      content: serialized,
+      thread_id: threadId,
+    } as never);
+  };
+
+  const first = await tryInsert();
+  if (!first.error) return;
+  console.warn("[mind] card insert falhou, tentando de novo:", first.error.message);
+
+  // Backoff curto + retry. Se falhar de novo, log e desiste — o card ainda
+  // está no estado local, mas vai sumir após reload (degradação aceitável,
+  // melhor que silêncio absoluto).
+  await new Promise((r) => setTimeout(r, 600));
+  const second = await tryInsert();
+  if (second.error) {
+    console.error("[mind] card insert falhou 2x, card só local:", second.error.message);
+  }
+}
+
 function MindPage() {
   const { user } = useUser();
   const [threads, setThreads] = useState<Thread[]>([]);
@@ -71,6 +105,14 @@ function MindPage() {
   }, [autoFollow]);
   const kbHeight = useVirtualKeyboard();
   const kbOpen = kbHeight > 0;
+
+  // Preload do chunk MindCards assim que o /mind monta. O chunk só será
+  // necessário quando a IA emitir o primeiro card, mas no mobile a latência
+  // pra baixá-lo SOB DEMANDA estava fazendo o usuário não ver o card até o
+  // chunk chegar. Preload em paralelo elimina essa espera.
+  useEffect(() => {
+    void import("@/components/app/MindCards");
+  }, []);
 
   // rAF-throttled batching para updates de stream — evita 60+ re-renders/s
   // do React + reparse do markdown a cada delta.
@@ -367,17 +409,14 @@ function MindPage() {
                   ...m,
                   { role: "assistant", content: serialized, ts: new Date().toISOString() },
                 ]);
-                // Persiste no Supabase imediatamente — o card é o evento real,
-                // o texto final é só comentário da IA e será salvo abaixo.
-                if (user) {
-                  void supabase
-                    .from("mind_messages")
-                    .insert({
-                      user_id: user.id,
-                      role: "assistant",
-                      content: serialized,
-                      thread_id: threadId,
-                    } as never);
+                // Persiste no Supabase com retry — antes era fire-and-forget
+                // (`void ...insert(...)`), então se a inserção falhasse (RLS,
+                // token, rede), o card sumia ao recarregar o thread. Agora:
+                // 1) Faz refresh defensivo de token, 2) Tenta inserir, 3) Se
+                // falhar, tenta UMA vez de novo após 600ms.
+                if (user && threadId) {
+                  const tid = threadId;
+                  void persistCardWithRetry(user.id, tid, serialized);
                 }
               } else if (j.error) {
                 errored = true;
@@ -779,6 +818,57 @@ function ThinkingBubble() {
   );
 }
 
+// Fallback enquanto o chunk MindCards baixa (mobile lento). Mostra os
+// dados crus do card pra usuário ter feedback imediato mesmo sem o
+// componente visual completo carregado.
+function CardLoadingFallback({ card }: { card: MindCard }) {
+  const accent =
+    card.type === "trade_added"
+      ? "var(--green)"
+      : card.type === "trade_deleted"
+        ? "var(--red)"
+        : "var(--accent)";
+  const title =
+    card.type === "trade_added"
+      ? `${card.trade.ativo} · ${card.trade.dir}`
+      : card.type === "trade_updated"
+        ? `${card.trade.ativo} · atualizado`
+        : card.type === "trade_deleted"
+          ? `${card.ativo} · removido`
+          : card.type === "monthly_report"
+            ? `Relatório ${card.report.label}`
+            : `Balanço · ${card.report.label}`;
+  const tag =
+    card.type === "trade_added"
+      ? "Operação registrada"
+      : card.type === "trade_updated"
+        ? "Operação atualizada"
+        : card.type === "trade_deleted"
+          ? "Operação removida"
+          : "Relatório";
+  return (
+    <div
+      className="w-full max-w-[min(28rem,calc(100vw-5rem))] rounded-2xl border p-4 skeleton-shimmer"
+      style={{
+        background: `linear-gradient(160deg, color-mix(in oklab, ${accent} 14%, var(--surface)), var(--surface))`,
+        borderColor: `color-mix(in oklab, ${accent} 38%, var(--border-strong))`,
+      }}
+    >
+      <div
+        className="text-[10px] font-bold uppercase tracking-[0.25em]"
+        style={{ color: accent }}
+      >
+        {tag}
+      </div>
+      <div className="mt-0.5 font-display text-[15px] font-extrabold leading-tight tracking-tight truncate">
+        {title}
+      </div>
+      <div className="mt-2 h-2 w-3/4 rounded-full" style={{ background: `color-mix(in oklab, ${accent} 20%, transparent)` }} />
+      <div className="mt-1.5 h-2 w-1/2 rounded-full" style={{ background: `color-mix(in oklab, ${accent} 14%, transparent)` }} />
+    </div>
+  );
+}
+
 const Bubble = memo(function Bubble({
   m,
   initials,
@@ -797,7 +887,7 @@ const Bubble = memo(function Bubble({
       return (
         <div className="flex items-end gap-2.5 fade-up">
           <Avatar isAssistant initials={initials} />
-          <Suspense fallback={null}>
+          <Suspense fallback={<CardLoadingFallback card={card} />}>
             <MindCardRenderer card={card} />
           </Suspense>
         </div>
