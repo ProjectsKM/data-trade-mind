@@ -52,7 +52,7 @@ function SignupPage() {
       {/* Left branding panel — desktop only */}
       <div className="relative hidden flex-1 flex-col justify-center px-16 lg:flex">
         <div className="max-w-md">
-          <Link to="/" className="mb-12 inline-block text-3xl font-black tracking-tight smooth hover:opacity-80">
+          <Link to="/" viewTransition preload="intent" className="mb-12 inline-block text-3xl font-black tracking-tight smooth hover:opacity-80">
             Orion<span style={{ color: "var(--electric)" }}>Hub</span>
           </Link>
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest"
@@ -98,7 +98,7 @@ function SignupPage() {
         <div className={`w-full max-w-sm fade-up ${shake ? "shake" : ""}`}>
           {/* Mobile logo + badge */}
           <div className="mb-8 text-center lg:hidden">
-            <Link to="/" className="text-2xl font-black tracking-tight">
+            <Link to="/" viewTransition preload="intent" className="text-2xl font-black tracking-tight">
               Orion<span style={{ color: "var(--electric)" }}>Hub</span>
             </Link>
             <div className="mt-2 inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-widest"
@@ -156,11 +156,11 @@ function SignupPage() {
             <div className="mt-6 flex flex-col items-center gap-3 text-[13px]">
               <p className="text-muted-foreground">
                 Já tem conta?{" "}
-                <Link to="/login" className="font-semibold smooth hover:opacity-80" style={{ color: "var(--electric)" }}>
+                <Link to="/login" viewTransition preload="intent" className="font-semibold smooth hover:opacity-80" style={{ color: "var(--electric)" }}>
                   Entrar
                 </Link>
               </p>
-              <Link to="/" className="text-muted-foreground/70 smooth hover:text-foreground">← Voltar ao site</Link>
+              <Link to="/" viewTransition preload="intent" className="text-muted-foreground/70 smooth hover:text-foreground">← Voltar ao site</Link>
             </div>
           </div>
 

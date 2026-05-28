@@ -1,0 +1,27 @@
+{
+  "name": "OrionHub — Trading Inteligente com IA",
+  "short_name": "OrionHub",
+  "description": "Análise de gráficos por IA, mentor 24/7, planilha automatizada e calendário econômico.",
+  "start_url": "/dashboard",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#221F35",
+  "theme_color": "#221F35",
+  "categories": ["finance", "productivity", "business"],
+  "lang": "pt-BR",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}

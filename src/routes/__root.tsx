@@ -58,6 +58,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:description", content: "Plataforma de Trading Inteligente com IA" },
       { property: "og:type", content: "website" },
       { name: "theme-color", content: "#221F35" },
+      // PWA — instalar como app no mobile/desktop
+      { name: "application-name", content: "OrionHub" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-title", content: "OrionHub" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
+      { name: "mobile-web-app-capable", content: "yes" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: "OrionHub" },
       { name: "twitter:description", content: "Plataforma de Trading Inteligente com IA" },
@@ -66,6 +72,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     ],
     links: [
       { rel: "stylesheet", href: appCss },
+      { rel: "manifest", href: "/manifest.json" },
+      { rel: "icon", href: "/icon.svg", type: "image/svg+xml" },
+      { rel: "apple-touch-icon", href: "/icon.svg" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" },
@@ -90,6 +99,7 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   return (
     <QueryClientProvider client={queryClient}>
+      <a href="#main-content" className="skip-link">Pular para o conteúdo</a>
       <Outlet />
       <Toaster position="top-right" theme="dark" richColors closeButton />
     </QueryClientProvider>

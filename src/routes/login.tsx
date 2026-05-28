@@ -50,7 +50,7 @@ function LoginPage() {
       {/* Left branding panel — desktop only */}
       <div className="relative hidden flex-1 flex-col justify-center px-16 lg:flex">
         <div className="max-w-md">
-          <Link to="/" className="mb-12 inline-block text-3xl font-black tracking-tight smooth hover:opacity-80">
+          <Link to="/" viewTransition preload="intent" className="mb-12 inline-block text-3xl font-black tracking-tight smooth hover:opacity-80">
             Orion<span style={{ color: "var(--electric)" }}>Hub</span>
           </Link>
           <h1 className="font-display text-4xl font-black leading-tight tracking-tight">
@@ -83,7 +83,7 @@ function LoginPage() {
         <div className={`w-full max-w-sm fade-up ${shake ? "shake" : ""}`}>
           {/* Mobile logo */}
           <div className="mb-8 text-center lg:hidden">
-            <Link to="/" className="text-2xl font-black tracking-tight">
+            <Link to="/" viewTransition preload="intent" className="text-2xl font-black tracking-tight">
               Orion<span style={{ color: "var(--electric)" }}>Hub</span>
             </Link>
           </div>
@@ -125,11 +125,11 @@ function LoginPage() {
             <div className="mt-6 flex flex-col items-center gap-3 text-[13px]">
               <p className="text-muted-foreground">
                 Ainda não tem conta?{" "}
-                <Link to="/signup" className="font-semibold smooth hover:opacity-80" style={{ color: "var(--electric)" }}>
+                <Link to="/signup" viewTransition preload="intent" className="font-semibold smooth hover:opacity-80" style={{ color: "var(--electric)" }}>
                   Criar conta
                 </Link>
               </p>
-              <Link to="/" className="text-muted-foreground/70 smooth hover:text-foreground">← Voltar ao site</Link>
+              <Link to="/" viewTransition preload="intent" className="text-muted-foreground/70 smooth hover:text-foreground">← Voltar ao site</Link>
             </div>
           </div>
 

@@ -52,7 +52,7 @@ function Reveal({ children, className = "" }: { children: React.ReactNode; class
 function LandingPage() {
   const { user } = useUser();
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div id="main-content" className="min-h-screen bg-background text-foreground">
       <Nav user={user} />
       <Hero user={user} />
       <BrokerMarquee />
@@ -331,13 +331,32 @@ function Hero({ user }: { user: User | null }) {
 }
 
 function FloatingSymbols() {
+  // Parallax leve baseado em scroll — translateY proporcional ao scrollY
+  // pra dar profundidade. rAF throttle pra não pesar.
+  const [scrollY, setScrollY] = useState(0);
+  useEffect(() => {
+    let raf: number | null = null;
+    const onScroll = () => {
+      if (raf !== null) return;
+      raf = requestAnimationFrame(() => {
+        raf = null;
+        setScrollY(window.scrollY);
+      });
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      if (raf !== null) cancelAnimationFrame(raf);
+    };
+  }, []);
+
   const symbols = [
-    { label: "BTC", color: "var(--gold)", style: { top: "12%", left: "8%", animationDelay: "0s" } },
-    { label: "ETH", color: "var(--electric)", style: { top: "22%", right: "10%", animationDelay: "-1.5s" } },
-    { label: "EUR/USD", color: "var(--accent)", style: { top: "60%", left: "6%", animationDelay: "-3s" } },
-    { label: "SOL", color: "var(--purple)", style: { top: "70%", right: "8%", animationDelay: "-2s" } },
-    { label: "AAPL", color: "var(--green)", style: { top: "35%", left: "12%", animationDelay: "-4s" } },
-    { label: "M5", color: "var(--gold)", style: { top: "82%", right: "16%", animationDelay: "-1s" } },
+    { label: "BTC", color: "var(--gold)", depth: 0.18, style: { top: "12%", left: "8%", animationDelay: "0s" } },
+    { label: "ETH", color: "var(--electric)", depth: 0.25, style: { top: "22%", right: "10%", animationDelay: "-1.5s" } },
+    { label: "EUR/USD", color: "var(--accent)", depth: 0.12, style: { top: "60%", left: "6%", animationDelay: "-3s" } },
+    { label: "SOL", color: "var(--purple)", depth: 0.32, style: { top: "70%", right: "8%", animationDelay: "-2s" } },
+    { label: "AAPL", color: "var(--green)", depth: 0.22, style: { top: "35%", left: "12%", animationDelay: "-4s" } },
+    { label: "M5", color: "var(--gold)", depth: 0.16, style: { top: "82%", right: "16%", animationDelay: "-1s" } },
   ];
   return (
     <div className="pointer-events-none absolute inset-0 hidden lg:block" aria-hidden>
@@ -348,8 +367,10 @@ function FloatingSymbols() {
           style={{
             ...s.style,
             color: s.color,
-            opacity: 0.32,
+            opacity: Math.max(0, 0.32 - scrollY * 0.0005),
             textShadow: `0 0 14px color-mix(in oklab, ${s.color} 40%, transparent)`,
+            transform: `translate3d(0, ${scrollY * s.depth}px, 0)`,
+            willChange: "transform, opacity",
           }}
         >
           {s.label}

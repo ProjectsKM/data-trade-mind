@@ -260,6 +260,7 @@ function AppLayout() {
         </nav>
 
         <main
+          id="main-content"
           className={`relative min-h-0 flex-1 sm:!pb-0 ${isFullHeightRoute ? "overflow-hidden" : "overflow-y-auto"}`}
           style={{
             paddingBottom: kbOpen
