@@ -30,16 +30,21 @@ function DashboardPage() {
   const { user } = useUser();
   const { state } = useAppState();
   const [threads, setThreads] = useState<Thread[]>([]);
+  const [loadingThreads, setLoadingThreads] = useState(true);
 
   useEffect(() => {
     if (!user) return;
+    setLoadingThreads(true);
     supabase
       .from("mind_threads")
       .select("id,title,updated_at")
       .eq("user_id", user.id)
       .order("updated_at", { ascending: false })
       .limit(3)
-      .then(({ data }) => setThreads(data ?? []));
+      .then(({ data }) => {
+        setThreads(data ?? []);
+        setLoadingThreads(false);
+      });
   }, [user?.id]);
 
   const winTrades = state.tradeList.filter((t) => t.res === "WIN").length;
@@ -133,17 +138,26 @@ function DashboardPage() {
           action={
             <Link
               to="/mind"
-              className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-[color:var(--accent)]"
+              viewTransition
+              preload="intent"
+              className="inline-flex items-center gap-1 text-[11px] text-muted-foreground smooth hover:text-[color:var(--accent)]"
             >
               <Plus className="h-3 w-3" /> Nova
             </Link>
           }
         >
-          {threads.length === 0 ? (
+          {loadingThreads ? (
+            <SkeletonRows count={3} />
+          ) : threads.length === 0 ? (
             <Empty
               text="Nenhuma conversa ainda."
               cta={
-                <Link to="/mind" className="text-[color:var(--accent)] hover:underline">
+                <Link
+                  to="/mind"
+                  viewTransition
+                  preload="intent"
+                  className="text-[color:var(--accent)] hover:underline"
+                >
                   Iniciar com o OrionMind →
                 </Link>
               }
@@ -154,11 +168,13 @@ function DashboardPage() {
                 <Link
                   key={t.id}
                   to="/mind"
-                  className="group flex items-center gap-2 rounded-md border px-3 py-2 text-sm smooth hover:border-[color:var(--accent)]"
+                  viewTransition
+                  preload="intent"
+                  className="group flex items-center gap-2 rounded-md border px-3 py-2 text-sm smooth press hover:-translate-y-px hover:border-[color:var(--accent)]"
                   style={{ background: "var(--surface-2)", borderColor: "var(--border)" }}
                 >
                   <MessageSquare
-                    className="h-3.5 w-3.5 flex-none"
+                    className="h-3.5 w-3.5 flex-none transition-transform group-hover:scale-110"
                     style={{ color: "var(--accent)" }}
                   />
                   <span className="truncate flex-1">{t.title}</span>
@@ -169,9 +185,12 @@ function DashboardPage() {
               ))}
               <Link
                 to="/mind"
-                className="mt-1 flex items-center justify-center gap-1 text-[11px] text-muted-foreground hover:text-[color:var(--accent)]"
+                viewTransition
+                preload="intent"
+                className="group mt-1 flex items-center justify-center gap-1 text-[11px] text-muted-foreground smooth hover:text-[color:var(--accent)]"
               >
-                Ver todas <ArrowRight className="h-3 w-3" />
+                Ver todas
+                <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
               </Link>
             </div>
           )}
@@ -185,9 +204,12 @@ function DashboardPage() {
           action={
             <Link
               to="/scan"
-              className="text-[11px] text-muted-foreground hover:text-[color:var(--accent)]"
+              viewTransition
+              preload="intent"
+              className="group inline-flex items-center gap-0.5 text-[11px] text-muted-foreground smooth hover:text-[color:var(--accent)]"
             >
-              Ver todas →
+              Ver todas
+              <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
             </Link>
           }
         >
@@ -230,9 +252,12 @@ function DashboardPage() {
           action={
             <Link
               to="/gestao"
-              className="text-[11px] text-muted-foreground hover:text-[color:var(--accent)]"
+              viewTransition
+              preload="intent"
+              className="group inline-flex items-center gap-0.5 text-[11px] text-muted-foreground smooth hover:text-[color:var(--accent)]"
             >
-              Gestão →
+              Gestão
+              <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
             </Link>
           }
         >
@@ -328,7 +353,9 @@ function QuickLink({
   return (
     <Link
       to={to}
-      className="group flex items-center gap-3 rounded-lg border px-3 py-3 smooth press hover:border-[color:var(--accent)] hover:-translate-y-px"
+      viewTransition
+      preload="intent"
+      className="group flex items-center gap-3 rounded-lg border px-3 py-3 smooth press hover:border-[color:var(--accent)] hover:-translate-y-px hover:shadow-[0_8px_24px_-12px_color-mix(in_oklab,var(--accent)_60%,transparent)]"
       style={{
         background: highlight
           ? "color-mix(in oklab, var(--accent) 12%, var(--surface-2))"
@@ -339,7 +366,7 @@ function QuickLink({
       }}
     >
       <div
-        className="flex h-9 w-9 flex-none items-center justify-center rounded-md border"
+        className="flex h-9 w-9 flex-none items-center justify-center rounded-md border transition-transform group-hover:scale-110 group-hover:rotate-[-4deg]"
         style={{
           background: "var(--surface)",
           borderColor: "var(--border)",
@@ -352,8 +379,42 @@ function QuickLink({
         <span className="text-sm font-medium">{label}</span>
         <span className="text-[11px] text-muted-foreground">{desc}</span>
       </div>
-      <ArrowRight className="ml-auto h-3.5 w-3.5 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+      <ArrowRight className="ml-auto h-3.5 w-3.5 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-[color:var(--accent)]" />
     </Link>
+  );
+}
+
+function SkeletonRows({ count }: { count: number }) {
+  return (
+    <div className="space-y-1.5">
+      {Array.from({ length: count }).map((_, i) => (
+        <div
+          key={i}
+          className="skeleton-shimmer flex items-center gap-2 rounded-md border px-3 py-2.5"
+          style={{
+            background: "var(--surface-2)",
+            borderColor: "var(--border)",
+            animationDelay: `${i * 80}ms`,
+          }}
+        >
+          <div
+            className="h-3 w-3 flex-none rounded-full"
+            style={{ background: "color-mix(in oklab, var(--text-dim) 30%, transparent)" }}
+          />
+          <div
+            className="h-2.5 flex-1 rounded-full"
+            style={{
+              background: "color-mix(in oklab, var(--text-dim) 25%, transparent)",
+              maxWidth: `${60 + ((i * 13) % 30)}%`,
+            }}
+          />
+          <div
+            className="h-2 w-8 flex-none rounded-full"
+            style={{ background: "color-mix(in oklab, var(--text-dim) 20%, transparent)" }}
+          />
+        </div>
+      ))}
+    </div>
   );
 }
 

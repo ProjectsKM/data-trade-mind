@@ -36,7 +36,6 @@ import {
   Filler,
 } from "chart.js";
 import { Line, Bar, Doughnut } from "react-chartjs-2";
-import jsPDF from "jspdf";
 import { useAppState, type Trade } from "@/lib/store";
 import {
   ASSETS,
@@ -1149,6 +1148,9 @@ function ReportTab({ trades }: { trades: Trade[] }) {
   }
 
   async function exportPDF() {
+    // Lazy-load jsPDF (e html2canvas como dep transitiva) só quando o usuário
+    // clica em exportar — economiza ~680KB no chunk inicial do /gestao.
+    const { default: jsPDF } = await import("jspdf");
     await waitForCharts();
     const items = [
       { ref: lineRef.current, title: "Evolução do lucro" },

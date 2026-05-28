@@ -264,6 +264,13 @@ button, a, [role="button"] { transition: background-color .15s ease, color .15s 
 @keyframes thinkingPulse { 0%, 100% { opacity: .65; } 50% { opacity: 1; } }
 .thinking-text { animation: thinkingPulse 1.6s infinite ease-in-out; }
 
+/* Skeleton: respiração suave pra placeholders de loading */
+@keyframes skeletonPulse {
+  0%, 100% { opacity: 0.5; }
+  50%      { opacity: 0.85; }
+}
+.skeleton-shimmer { animation: skeletonPulse 1.6s ease-in-out infinite; }
+
 /* OrionMind: cursor pulsante enquanto a IA está digitando */
 @keyframes streamCursor { 0%, 50% { opacity: 1; } 50.01%, 100% { opacity: 0; } }
 .stream-cursor {
