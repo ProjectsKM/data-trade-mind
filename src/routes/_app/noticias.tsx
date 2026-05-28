@@ -91,7 +91,7 @@ function NoticiasPage() {
         }
       />
 
-      <div className="mb-4 flex flex-wrap gap-2">
+      <div className="mb-4 flex flex-wrap gap-2 fade-in">
         {(["all", "High", "Medium", "Low"] as const).map((f) => {
           const active = filter === f;
           const label = f === "all" ? "Todos" : IMPACT_LABEL[f];
@@ -99,10 +99,10 @@ function NoticiasPage() {
             <button
               key={f}
               onClick={() => setFilter(f)}
-              className="rounded-full border px-3 py-1 text-xs font-medium smooth"
+              className="rounded-full border px-3 py-1 text-xs font-medium smooth press hover:-translate-y-px"
               style={
                 active
-                  ? { background: "color-mix(in oklab, var(--accent) 14%, transparent)", color: "var(--accent)", borderColor: "color-mix(in oklab, var(--accent) 35%, transparent)" }
+                  ? { background: "color-mix(in oklab, var(--accent) 14%, transparent)", color: "var(--accent)", borderColor: "color-mix(in oklab, var(--accent) 35%, transparent)", boxShadow: "0 6px 18px -10px color-mix(in oklab, var(--accent) 60%, transparent)" }
                   : { background: "var(--surface)", color: "var(--text-muted)", borderColor: "var(--border-strong)" }
               }
             >
@@ -113,26 +113,46 @@ function NoticiasPage() {
       </div>
 
       {loading && (
-        <div className="rounded-xl border p-10 text-center fade-in" style={{ background: "var(--surface)", borderColor: "var(--border)" }}>
-          <Loader2 className="mx-auto h-6 w-6 animate-spin" style={{ color: "var(--accent)" }} />
-          <div className="mt-3 text-sm text-muted-foreground">Carregando calendário…</div>
+        <div className="space-y-6">
+          {[0, 1].map((g) => (
+            <div key={g} className="fade-in" style={{ animationDelay: `${g * 80}ms` }}>
+              <div
+                className="skeleton-shimmer mb-2 ml-1 h-2.5 w-32 rounded-full"
+                style={{ background: "color-mix(in oklab, var(--text-dim) 25%, transparent)", animationDelay: `${g * 100}ms` }}
+              />
+              <div className="overflow-hidden rounded-xl border" style={{ background: "var(--surface)", borderColor: "var(--border)" }}>
+                {[0, 1, 2].map((i) => (
+                  <div key={i} className="skeleton-shimmer flex items-center gap-3 border-b px-4 py-3 last:border-b-0" style={{ borderColor: "var(--border)", animationDelay: `${(g * 3 + i) * 60}ms` }}>
+                    <div className="h-2.5 w-12 flex-none rounded-full" style={{ background: "color-mix(in oklab, var(--text-dim) 25%, transparent)" }} />
+                    <div className="h-5 w-14 flex-none rounded-full" style={{ background: "color-mix(in oklab, var(--text-dim) 20%, transparent)" }} />
+                    <div className="h-2.5 w-8 flex-none rounded-full" style={{ background: "color-mix(in oklab, var(--text-dim) 22%, transparent)" }} />
+                    <div className="h-2.5 flex-1 rounded-full" style={{ background: "color-mix(in oklab, var(--text-dim) 28%, transparent)", maxWidth: `${50 + i * 12}%` }} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
       {err && !loading && (
-        <div className="rounded-xl border p-5 text-sm" style={{ background: "color-mix(in oklab, var(--red) 6%, transparent)", borderColor: "color-mix(in oklab, var(--red) 22%, transparent)", color: "var(--red)" }}>
+        <div className="rounded-xl border p-5 text-sm fade-up" style={{ background: "color-mix(in oklab, var(--red) 6%, transparent)", borderColor: "color-mix(in oklab, var(--red) 22%, transparent)", color: "var(--red)" }}>
           Erro ao carregar notícias: {err}
         </div>
       )}
 
-      {!loading && !err && grouped.map(([day, evs]) => (
-        <div key={day} className="mb-6">
+      {!loading && !err && grouped.map(([day, evs], dayIdx) => (
+        <div key={day} className="mb-6 fade-up" style={{ animationDelay: `${dayIdx * 60}ms` }}>
           <div className="mb-2 px-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{day}</div>
           <div className="overflow-hidden rounded-xl border" style={{ background: "var(--surface)", borderColor: "var(--border)" }}>
             {evs.map((ev, i) => {
               const s = impactStyle(ev.impact);
               return (
-                <div key={i} className="flex items-center gap-3 border-b px-4 py-3 last:border-b-0" style={{ borderColor: "var(--border)" }}>
+                <div
+                  key={i}
+                  className="flex items-center gap-3 border-b px-4 py-3 transition-colors last:border-b-0 hover:bg-[color:var(--surface-2)]"
+                  style={{ borderColor: "var(--border)" }}
+                >
                   <div className="w-12 flex-none font-mono text-xs tabular text-muted-foreground">
                     {new Date(ev.date).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                   </div>

@@ -54,24 +54,40 @@ function PerfilPage() {
       <PageHeader title="Perfil" description="Sua conta, plano e estatísticas." />
 
       <section
-        className="mt-6 flex flex-col items-center gap-5 rounded-xl border p-6 sm:flex-row sm:items-center sm:gap-6 fade-up"
+        className="mt-6 flex flex-col items-center gap-5 rounded-xl border p-6 transition-shadow sm:flex-row sm:items-center sm:gap-6 fade-up hover:shadow-[0_24px_60px_-32px_color-mix(in_oklab,var(--accent)_45%,transparent)]"
         style={{ background: "color-mix(in oklab, var(--surface) 80%, transparent)", borderColor: "var(--border)" }}
       >
-        <div className="flex h-16 w-16 items-center justify-center rounded-xl font-display text-xl font-semibold" style={{ background: "color-mix(in oklab, var(--accent) 12%, var(--surface-2))", color: "var(--accent)" }}>
+        <div
+          className="flex h-16 w-16 items-center justify-center rounded-xl font-display text-xl font-semibold transition-transform hover:scale-105 hover:rotate-[-3deg]"
+          style={{
+            background: "color-mix(in oklab, var(--accent) 12%, var(--surface-2))",
+            color: "var(--accent)",
+            boxShadow: "inset 0 0 0 1px color-mix(in oklab, var(--accent) 22%, transparent)",
+          }}
+        >
           {initials}
         </div>
         <div className="flex-1 text-center sm:text-left">
-          <div className="font-display text-lg font-semibold tracking-tight">{profile?.name || user.email.split("@")[0]}</div>
-          <div className="mt-1 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs text-muted-foreground sm:justify-start">
-            <span className="inline-flex items-center gap-1"><Mail className="h-3 w-3" />{user.email}</span>
-            {profile?.country && <span className="inline-flex items-center gap-1"><Globe className="h-3 w-3" />{profile.country}</span>}
-          </div>
+          {profile === null ? (
+            <>
+              <div className="skeleton-shimmer mx-auto h-4 w-36 rounded-full sm:mx-0" style={{ background: "color-mix(in oklab, var(--text-dim) 25%, transparent)" }} />
+              <div className="skeleton-shimmer mx-auto mt-2 h-2.5 w-48 rounded-full sm:mx-0" style={{ background: "color-mix(in oklab, var(--text-dim) 20%, transparent)", animationDelay: "120ms" }} />
+            </>
+          ) : (
+            <>
+              <div className="font-display text-lg font-semibold tracking-tight">{profile?.name || user.email.split("@")[0]}</div>
+              <div className="mt-1 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs text-muted-foreground sm:justify-start">
+                <span className="inline-flex items-center gap-1"><Mail className="h-3 w-3" />{user.email}</span>
+                {profile?.country && <span className="inline-flex items-center gap-1"><Globe className="h-3 w-3" />{profile.country}</span>}
+              </div>
+            </>
+          )}
         </div>
         <span
           className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider"
           style={
             state.isPro
-              ? { background: "color-mix(in oklab, var(--accent) 14%, transparent)", color: "var(--accent)" }
+              ? { background: "color-mix(in oklab, var(--accent) 14%, transparent)", color: "var(--accent)", boxShadow: "0 0 18px -8px color-mix(in oklab, var(--accent) 60%, transparent)" }
               : { background: "var(--surface-2)", color: "var(--text-muted)" }
           }
         >

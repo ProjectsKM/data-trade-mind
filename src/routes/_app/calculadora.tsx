@@ -97,7 +97,7 @@ function CalcPage() {
       <div className="grid gap-4 lg:grid-cols-[340px_1fr]">
         {/* Parâmetros */}
         <div
-          className="space-y-3 rounded-xl border p-5"
+          className="space-y-3 rounded-xl border p-5 fade-up transition-shadow hover:shadow-[0_18px_50px_-30px_color-mix(in_oklab,var(--accent)_50%,transparent)]"
           style={{ background: "var(--surface)", borderColor: "var(--border)" }}
         >
           <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Parâmetros</div>
@@ -111,7 +111,7 @@ function CalcPage() {
 
         {/* Resultados */}
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4 stagger">
             <StatCard
               label="Valor por entrada"
               value={`$${calc.valor.toFixed(2)}`}
@@ -139,7 +139,7 @@ function CalcPage() {
           </div>
 
           <div
-            className="rounded-xl border p-5"
+            className="rounded-xl border p-5 fade-up transition-shadow hover:shadow-[0_18px_50px_-30px_color-mix(in_oklab,var(--accent)_45%,transparent)]"
             style={{ background: "var(--surface)", borderColor: "var(--border)" }}
           >
             <div className="mb-3 flex items-center justify-between">
@@ -177,7 +177,7 @@ function CalcPage() {
           </div>
 
           <div
-            className="rounded-xl border p-5"
+            className="rounded-xl border p-5 fade-up transition-shadow hover:shadow-[0_18px_50px_-30px_color-mix(in_oklab,var(--accent)_45%,transparent)]"
             style={{ background: "var(--surface)", borderColor: "var(--border)" }}
           >
             <div className="mb-3 flex items-center justify-between">

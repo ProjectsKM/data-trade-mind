@@ -252,9 +252,12 @@ function ScanPage() {
       Acesso Anual
     </Badge>
   ) : (
-    <Link to="/upgrade" className="smooth hover:opacity-80">
-      <Badge variant="outline" className="gap-1.5 font-mono text-[10px] tracking-wide">
-        <span className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--gold)" }} />
+    <Link to="/upgrade" viewTransition preload="intent" className="group smooth press hover:opacity-80">
+      <Badge
+        variant="outline"
+        className="gap-1.5 font-mono text-[10px] tracking-wide transition-transform group-hover:-translate-y-px"
+      >
+        <span className="h-1.5 w-1.5 rounded-full blink-dot" style={{ background: "var(--gold)" }} />
         {state.analysesLeft} análises no trial
       </Badge>
     </Link>
