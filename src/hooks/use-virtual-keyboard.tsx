@@ -13,8 +13,9 @@ export function useVirtualKeyboard(): number {
 
     const update = () => {
       const diff = window.innerHeight - vv.height - vv.offsetTop;
-      // Threshold de 80px pra ignorar variações pequenas (barra de URL, etc.)
-      setKeyboardHeight(diff > 80 ? Math.round(diff) : 0);
+      // Threshold de 150px pra distinguir teclado virtual (>=250px típico)
+      // de variações da URL bar do iOS (50-90px ao scrollar).
+      setKeyboardHeight(diff > 150 ? Math.round(diff) : 0);
     };
 
     vv.addEventListener("resize", update);

@@ -235,6 +235,8 @@ function MindPage() {
     const t = (text ?? input).trim();
     if (!t || busy || !user) return;
     setInput("");
+    // Reset do buffer do throttle pra evitar stale text de envios anteriores.
+    pendingReplyRef.current = "";
 
     let threadId = activeId;
 
@@ -408,7 +410,9 @@ function MindPage() {
           errored = true;
           toast.error(data.error || "Erro na resposta da IA.");
         }
-        replyText = data.ok ? data.reply || "Sem resposta." : `⚠️ ${data.error || "Erro."}`;
+        replyText = data.ok
+          ? data.reply || "Não recebi resposta. Tente reformular ou enviar novamente."
+          : `⚠️ ${data.error || "Erro."}`;
         setMessages((m) => [
           ...m,
           { role: "assistant", content: replyText, ts: new Date().toISOString() },
@@ -678,6 +682,9 @@ function MindPage() {
                 }}
                 onFocus={() => {
                   // iOS Safari: garante que o input fica visível após o teclado abrir.
+                  // Só roda em mobile (coarse pointer) — em desktop causa jump desnecessário.
+                  if (typeof window === "undefined") return;
+                  if (!window.matchMedia?.("(pointer: coarse)").matches) return;
                   setTimeout(
                     () => taRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" }),
                     300,
