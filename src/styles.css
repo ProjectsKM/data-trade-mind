@@ -266,15 +266,13 @@ button, a, [role="button"] { transition: background-color .15s ease, color .15s 
 
 /* ── MindCards premium animations ─────────────────────────────────────── */
 
-/* 1. cardReveal: materialização com scale + translate + blur */
+/* 1. cardReveal: materialização rápida com scale + translate */
 @keyframes cardReveal {
-  0%   { opacity: 0; transform: translateY(18px) scale(.93); filter: blur(6px); }
-  55%  { filter: blur(0px); }
-  75%  { transform: translateY(-3px) scale(1.008); }
-  100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+  0%   { opacity: 0; transform: translateY(10px) scale(.96); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
 }
 .card-reveal {
-  animation: cardReveal .48s cubic-bezier(.22,.9,.36,1) both;
+  animation: cardReveal .28s cubic-bezier(.22,.9,.36,1) both;
 }
 
 /* 2. stripeShimmer: brilho deslizando da esquerda pra direita (1×) */
@@ -300,11 +298,12 @@ button, a, [role="button"] { transition: background-color .15s ease, color .15s 
 
 /* 4a. winGlowPulse: glow verde pulsando atrás do badge WIN */
 @keyframes winGlowPulse {
-  0%,100% { box-shadow: 0 0 0px 0px transparent; }
-  50%     { box-shadow: 0 0 18px 4px color-mix(in oklab, var(--green) 38%, transparent); }
+  0%   { box-shadow: 0 0 0px 0px transparent; }
+  50%  { box-shadow: 0 0 18px 4px color-mix(in oklab, var(--green) 38%, transparent); }
+  100% { box-shadow: 0 0 8px 2px color-mix(in oklab, var(--green) 18%, transparent); }
 }
 .win-glow-pulse {
-  animation: winGlowPulse 2.4s ease-in-out .1s 3;
+  animation: winGlowPulse 1.6s ease-in-out .15s 2 forwards;
 }
 
 /* 4b. lossShake: shake suave 1× na entrada */
@@ -389,10 +388,10 @@ button, a, [role="button"] { transition: background-color .15s ease, color .15s 
   70%  { opacity: 1; filter: blur(0); }
   100% { opacity: 1; transform: translateY(0) scale(1); }
 }
-.card-enter-win    { animation: cardEnterWin    .48s cubic-bezier(.2,.9,.3,1) both; }
-.card-enter-loss   { animation: cardEnterLoss   .42s cubic-bezier(.2,.9,.3,1) both; }
-.card-enter-delete { animation: cardEnterDelete .32s cubic-bezier(.2,.7,.2,1) both; }
-.card-enter-report { animation: cardEnterReport .52s cubic-bezier(.2,.8,.2,1) both; }
+.card-enter-win    { animation: cardEnterWin    .32s cubic-bezier(.2,.9,.3,1) both; }
+.card-enter-loss   { animation: cardEnterLoss   .32s cubic-bezier(.2,.9,.3,1) both; }
+.card-enter-delete { animation: cardEnterDelete .28s cubic-bezier(.2,.7,.2,1) both; }
+.card-enter-report { animation: cardEnterReport .36s cubic-bezier(.2,.8,.2,1) both; }
 
 /* ── num-reveal: glow pulse nos números financeiros ────────────── */
 @keyframes numGlowPulse {
@@ -400,8 +399,8 @@ button, a, [role="button"] { transition: background-color .15s ease, color .15s 
   50%      { text-shadow: 0 0 14px var(--num-glow-color, currentColor); }
 }
 .num-reveal {
-  animation: valuePopIn .38s cubic-bezier(.34,1.56,.64,1) .22s both,
-             numGlowPulse 2s ease-in-out 0.65s 2;
+  animation: valuePopIn .32s cubic-bezier(.34,1.56,.64,1) .12s both,
+             numGlowPulse 1.4s ease-in-out 0.42s 1;
 }
 
 /* ── card-glow hover respects per-card accent ──────────────────── */

@@ -91,7 +91,7 @@ function CardShell({
           </div>
         </div>
 
-        <div className="stagger">{children}</div>
+        <div>{children}</div>
       </div>
     </div>
   );
@@ -276,7 +276,7 @@ function Cell({
         <span className="truncate">{label}</span>
       </div>
       <div
-        className="mt-0.5 font-display text-[13px] font-bold tabular leading-tight truncate"
+        className="mt-0.5 font-display text-[13px] font-bold tabular leading-tight break-words"
         style={{ color: accentColor ?? "var(--foreground)" }}
       >
         {value}
