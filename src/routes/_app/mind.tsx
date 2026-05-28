@@ -799,7 +799,11 @@ function MindPage() {
                 }}
                 placeholder="Pergunte ao OrionMind…"
                 rows={1}
-                className="flex-1 resize-none bg-transparent px-2 py-2 text-sm outline-none placeholder:text-[color:var(--text-dim)]"
+                // iOS Safari faz auto-zoom em inputs com font-size < 16px
+                // ao focar — o que reajustava o layout inteiro do /mind.
+                // text-base (16px) no mobile elimina o zoom; volta a 14px
+                // (text-sm) em sm+ pra manter a estética compacta no desktop.
+                className="flex-1 resize-none bg-transparent px-2 py-2 text-base outline-none placeholder:text-[color:var(--text-dim)] sm:text-sm"
               />
               <VoiceRecorder
                 disabled={busy}

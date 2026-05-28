@@ -225,7 +225,7 @@ function PerfilPage() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Seu nome"
-            className="w-full rounded-lg border bg-[color:var(--surface-2)] px-3 py-2 text-sm outline-none transition-colors focus:border-[color:var(--accent)] focus:shadow-[0_0_0_2px_color-mix(in_oklab,var(--accent)_12%,transparent)]"
+            className="w-full rounded-lg border bg-[color:var(--surface-2)] px-3 py-2 text-base outline-none transition-colors focus:border-[color:var(--accent)] focus:shadow-[0_0_0_2px_color-mix(in_oklab,var(--accent)_12%,transparent)] sm:text-sm"
             style={{ borderColor: "var(--border)" }}
           />
           <Row label="Email" value={user.email} className="mt-3" />

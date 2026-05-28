@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet, useNavigate, Link, useLocation } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   LineChart,
   ClipboardList,
@@ -10,6 +10,8 @@ import {
   Brain,
   Newspaper,
   CircleDot,
+  MoreHorizontal,
+  X,
 } from "lucide-react";
 import { logout, useAppState, useUser } from "@/lib/store";
 import { PremiumGate, type GateKey } from "@/components/app/PremiumGate";
@@ -39,6 +41,7 @@ function AppLayout() {
   const loc = useLocation();
   const kbHeight = useVirtualKeyboard();
   const kbOpen = kbHeight > 0;
+  const [moreOpen, setMoreOpen] = useState(false);
 
   useEffect(() => {
     if (!ready || user) return;
@@ -237,6 +240,10 @@ function AppLayout() {
           })}
         </nav>
 
+        {/* Primary bottom nav: 4 tabs principais + botão "Mais" que abre
+            sheet com Calc, Notícias e CryptoBubbles. Antes excluía
+            cryptobubbles da nav inteira; agora todas as features são
+            acessíveis no mobile. */}
         <nav
           aria-hidden={kbOpen}
           className="fixed inset-x-0 bottom-0 z-40 flex justify-around border-t py-2 backdrop-blur-xl sm:hidden fade-up"
@@ -251,7 +258,7 @@ function AppLayout() {
         >
           {tabs
             .filter(({ to }) =>
-              ["/dashboard", "/scan", "/mind", "/gestao", "/noticias"].includes(to),
+              ["/dashboard", "/scan", "/mind", "/gestao"].includes(to),
             )
             .map(({ to, Icon, label }) => {
               const active = loc.pathname.startsWith(to);
@@ -274,7 +281,109 @@ function AppLayout() {
                 </Link>
               );
             })}
+          {(() => {
+            const moreItems = tabs.filter(({ to }) =>
+              ["/calculadora", "/noticias", "/cryptobubbles"].includes(to),
+            );
+            const activeInMore = moreItems.some(({ to }) => loc.pathname.startsWith(to));
+            return (
+              <button
+                type="button"
+                onClick={() => setMoreOpen(true)}
+                className="flex flex-1 flex-col items-center gap-0.5 px-1 py-2 text-[10px] font-medium smooth press"
+                aria-label="Mais opções"
+                style={{
+                  color: activeInMore ? "var(--accent)" : "var(--text-dim)",
+                  filter: activeInMore
+                    ? "drop-shadow(0 0 6px color-mix(in oklab, var(--accent) 60%, transparent))"
+                    : "none",
+                }}
+              >
+                <MoreHorizontal className="h-4 w-4" strokeWidth={1.75} />
+                <span>Mais</span>
+              </button>
+            );
+          })()}
         </nav>
+
+        {/* "Mais" sheet: bottom-up modal com tabs secundárias */}
+        {moreOpen && (
+          <div
+            className="fixed inset-0 z-50 sm:hidden"
+            onClick={() => setMoreOpen(false)}
+          >
+            <div
+              className="absolute inset-0 fade-in"
+              style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(4px)" }}
+            />
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="absolute inset-x-0 bottom-0 rounded-t-2xl border-t p-4 fade-up"
+              style={{
+                background: "color-mix(in oklab, var(--surface) 96%, transparent)",
+                borderColor: "var(--border-strong)",
+                paddingBottom: "calc(1rem + env(safe-area-inset-bottom, 0px))",
+                boxShadow: "0 -24px 60px -20px rgba(0,0,0,0.6)",
+              }}
+            >
+              <div className="mb-3 flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                  Mais opções
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setMoreOpen(false)}
+                  aria-label="Fechar"
+                  className="flex h-8 w-8 items-center justify-center rounded-md border smooth press"
+                  style={{
+                    borderColor: "var(--border-strong)",
+                    background: "var(--surface-2)",
+                  }}
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                {tabs
+                  .filter(({ to }) =>
+                    ["/calculadora", "/noticias", "/cryptobubbles"].includes(to),
+                  )
+                  .map(({ to, Icon, label, desc }) => {
+                    const active = loc.pathname.startsWith(to);
+                    return (
+                      <Link
+                        key={to}
+                        to={to}
+                        preload="intent"
+                        viewTransition
+                        onClick={() => setMoreOpen(false)}
+                        className="flex flex-col items-center gap-1.5 rounded-xl border p-3 text-center smooth press"
+                        style={
+                          active
+                            ? {
+                                background: "color-mix(in oklab, var(--accent) 14%, var(--surface-2))",
+                                borderColor: "color-mix(in oklab, var(--accent) 40%, transparent)",
+                                color: "var(--accent)",
+                              }
+                            : {
+                                background: "var(--surface-2)",
+                                borderColor: "var(--border)",
+                                color: "var(--foreground)",
+                              }
+                        }
+                      >
+                        <Icon className="h-5 w-5" strokeWidth={1.75} />
+                        <span className="text-xs font-semibold">{label}</span>
+                        <span className="text-[10px] leading-tight text-muted-foreground">
+                          {desc}
+                        </span>
+                      </Link>
+                    );
+                  })}
+              </div>
+            </div>
+          </div>
+        )}
 
         <main
           id="main-content"

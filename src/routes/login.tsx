@@ -274,7 +274,7 @@ function IconField({
           placeholder={placeholder}
           required={required}
           autoComplete={autoComplete}
-          className="flex-1 bg-transparent py-3.5 text-sm outline-none placeholder:text-muted-foreground/50"
+          className="flex-1 bg-transparent py-3.5 text-base outline-none placeholder:text-muted-foreground/50 sm:text-sm"
         />
       </div>
     </div>

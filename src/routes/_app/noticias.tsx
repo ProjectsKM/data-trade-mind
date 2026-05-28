@@ -74,9 +74,25 @@ function NoticiasPage() {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
         signal: controller.signal,
       });
-      const data = await r.json();
-      if (!Array.isArray(data)) throw new Error("Não foi possível carregar o calendário.");
-      if (!controller.signal.aborted) setItems(data as CalendarItem[]);
+      let data: unknown;
+      try {
+        data = await r.json();
+      } catch {
+        throw new Error("O servidor devolveu uma resposta inválida. Tente novamente.");
+      }
+      // Sucesso: backend devolve array de eventos.
+      if (Array.isArray(data)) {
+        if (!controller.signal.aborted) setItems(data as CalendarItem[]);
+        return;
+      }
+      // Erro estruturado: { ok: false, error: "..." } do backend.
+      const errObj = data as { error?: string; ok?: boolean };
+      if (errObj?.error) throw new Error(errObj.error);
+      throw new Error(
+        r.status >= 500
+          ? "Calendário temporariamente indisponível. Tente em alguns minutos."
+          : "Não foi possível carregar o calendário.",
+      );
     } catch (e) {
       if ((e as Error)?.name === "AbortError" || controller.signal.aborted) return;
       setErr((e as Error).message);
