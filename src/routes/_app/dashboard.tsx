@@ -34,6 +34,7 @@ function DashboardPage() {
 
   useEffect(() => {
     if (!user) return;
+    let cancelled = false;
     setLoadingThreads(true);
     supabase
       .from("mind_threads")
@@ -41,10 +42,15 @@ function DashboardPage() {
       .eq("user_id", user.id)
       .order("updated_at", { ascending: false })
       .limit(3)
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) console.error("load threads", error);
         setThreads(data ?? []);
         setLoadingThreads(false);
       });
+    return () => {
+      cancelled = true;
+    };
   }, [user?.id]);
 
   const winTrades = state.tradeList.filter((t) => t.res === "WIN").length;
@@ -223,7 +229,9 @@ function DashboardPage() {
                   className="flex min-w-0 items-center gap-2 rounded-md border px-3 py-2 text-sm"
                   style={{ background: "var(--surface-2)", borderColor: "var(--border)" }}
                 >
-                  <span className="min-w-0 flex-1 truncate font-mono text-xs">{s.ativo || "—"}</span>
+                  <span className="min-w-0 flex-1 truncate font-mono text-xs">
+                    {s.ativo || "—"}
+                  </span>
                   <span className="flex-none text-[10px] text-muted-foreground">{s.timeframe}</span>
                   <span
                     className="flex-none rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase"
@@ -329,7 +337,9 @@ function Section({
       }}
     >
       <div className="mb-3 flex items-center justify-between gap-2">
-        <h2 className="min-w-0 truncate font-display text-sm font-semibold tracking-tight">{title}</h2>
+        <h2 className="min-w-0 truncate font-display text-sm font-semibold tracking-tight">
+          {title}
+        </h2>
         {action}
       </div>
       {children}
@@ -431,7 +441,9 @@ function Empty({ text, cta }: { text: string; cta?: React.ReactNode }) {
 }
 
 function relativeTime(iso: string) {
-  const diff = Date.now() - new Date(iso).getTime();
+  const ts = new Date(iso).getTime();
+  if (!isFinite(ts)) return "—";
+  const diff = Math.max(0, Date.now() - ts);
   const m = Math.floor(diff / 60000);
   if (m < 1) return "agora";
   if (m < 60) return `${m}m`;

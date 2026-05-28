@@ -69,7 +69,17 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Tooltip, Legend, Filler);
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  ArcElement,
+  Tooltip,
+  Legend,
+  Filler,
+);
 
 export const Route = createFileRoute("/_app/gestao")({
   head: () => ({ meta: [{ title: "Gestão & Relatório — OrionHub" }] }),
@@ -114,13 +124,18 @@ function parseCSVRow(line: string, delimiter = ","): string[] {
   for (let i = 0; i < line.length; i++) {
     const c = line[i];
     if (inQuotes) {
-      if (c === '"' && line[i + 1] === '"') { cur += '"'; i++; }
-      else if (c === '"') { inQuotes = false; }
-      else cur += c;
+      if (c === '"' && line[i + 1] === '"') {
+        cur += '"';
+        i++;
+      } else if (c === '"') {
+        inQuotes = false;
+      } else cur += c;
     } else {
       if (c === '"') inQuotes = true;
-      else if (c === delimiter) { out.push(cur); cur = ""; }
-      else cur += c;
+      else if (c === delimiter) {
+        out.push(cur);
+        cur = "";
+      } else cur += c;
     }
   }
   out.push(cur);
@@ -130,7 +145,9 @@ function parseCSVRow(line: string, delimiter = ","): string[] {
 // Accept "1,5", "1.5", "$ 1.234,56", "1 234.56" → number
 function parseNumber(raw: string | undefined): number {
   if (raw == null) return NaN;
-  let s = String(raw).trim().replace(/[\s$R€]/gi, "");
+  let s = String(raw)
+    .trim()
+    .replace(/[\s$R€]/gi, "");
   if (!s) return NaN;
   const neg = s.startsWith("-") || (s.startsWith("(") && s.endsWith(")"));
   s = s.replace(/^[-(]/, "").replace(/\)$/, "");
@@ -150,7 +167,10 @@ function parseNumber(raw: string | undefined): number {
 const HEADER_KEYS = ["id", "ativo", "data", "dir", "valor", "payout", "res", "lucro", "obs"];
 
 function validateCSV(text: string): ParsedRow[] {
-  const lines = text.replace(/^\uFEFF/, "").split(/\r?\n/).filter((r) => r.trim().length > 0);
+  const lines = text
+    .replace(/^\uFEFF/, "")
+    .split(/\r?\n/)
+    .filter((r) => r.trim().length > 0);
   if (lines.length === 0) return [];
 
   // Detect delimiter (comma or semicolon — semicolon is common in pt-BR exports)
@@ -163,9 +183,14 @@ function validateCSV(text: string): ParsedRow[] {
   // Build column index map. Default positional layout: id,ativo,data,dir,valor,payout,res,lucro,obs
   const idx: Record<string, number> = {};
   if (hasHeader) {
-    HEADER_KEYS.forEach((k) => { const i = firstCols.indexOf(k); if (i >= 0) idx[k] = i; });
+    HEADER_KEYS.forEach((k) => {
+      const i = firstCols.indexOf(k);
+      if (i >= 0) idx[k] = i;
+    });
   } else {
-    HEADER_KEYS.forEach((k, i) => { idx[k] = i; });
+    HEADER_KEYS.forEach((k, i) => {
+      idx[k] = i;
+    });
   }
 
   const dataLines = hasHeader ? lines.slice(1) : lines;
@@ -182,16 +207,17 @@ function validateCSV(text: string): ParsedRow[] {
     const rawData = (get("data") || "").trim();
     let dt: Date | null = null;
     if (rawData) {
-      // Try ISO first, then dd/mm/yyyy[ hh:mm]
-      const iso = new Date(rawData);
-      if (!isNaN(+iso)) dt = iso;
-      else {
-        const m = rawData.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})(?:[ T](\d{1,2}):(\d{2}))?/);
-        if (m) {
-          const [, dd, mm, yy, hh = "0", mi = "0"] = m;
-          const yr = yy.length === 2 ? 2000 + Number(yy) : Number(yy);
-          dt = new Date(yr, Number(mm) - 1, Number(dd), Number(hh), Number(mi));
-        }
+      // dd/mm/yyyy[ hh:mm] PRIMEIRO (formato pt-BR). Só cai no parser nativo
+      // para strings claramente ISO (yyyy-mm-dd...), porque `new Date("01/05/2026")`
+      // é interpretado como mm/dd (US) e trocaria dia/mês.
+      const m = rawData.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})(?:[ T](\d{1,2}):(\d{2}))?/);
+      if (m) {
+        const [, dd, mm, yy, hh = "0", mi = "0"] = m;
+        const yr = yy.length === 2 ? 2000 + Number(yy) : Number(yy);
+        dt = new Date(yr, Number(mm) - 1, Number(dd), Number(hh), Number(mi));
+      } else {
+        const iso = new Date(rawData);
+        if (!isNaN(+iso)) dt = iso;
       }
     } else {
       dt = new Date();
@@ -200,8 +226,14 @@ function validateCSV(text: string): ParsedRow[] {
 
     const dirRaw = (get("dir") || "").trim().toUpperCase();
     const dirMap: Record<string, "COMPRA" | "VENDA"> = {
-      COMPRA: "COMPRA", BUY: "COMPRA", LONG: "COMPRA", CALL: "COMPRA",
-      VENDA: "VENDA", SELL: "VENDA", SHORT: "VENDA", PUT: "VENDA",
+      COMPRA: "COMPRA",
+      BUY: "COMPRA",
+      LONG: "COMPRA",
+      CALL: "COMPRA",
+      VENDA: "VENDA",
+      SELL: "VENDA",
+      SHORT: "VENDA",
+      PUT: "VENDA",
     };
     const dirN = dirMap[dirRaw];
     if (!dirN) errors.push(`Direção inválida ("${get("dir")}").`);
@@ -211,13 +243,24 @@ function validateCSV(text: string): ParsedRow[] {
 
     const pRaw = (get("payout") || "").replace(/%/g, "");
     const p = parseNumber(pRaw);
-    if (!isFinite(p) || p < 0 || p > 1000) errors.push(`Payout fora do intervalo ("${get("payout")}").`);
+    if (!isFinite(p) || p <= 0 || p > 1000)
+      errors.push(`Payout fora do intervalo ("${get("payout")}").`);
 
     const resRaw = (get("res") || "").trim().toUpperCase();
     const resMap: Record<string, "WIN" | "LOSS" | "OPEN"> = {
-      WIN: "WIN", W: "WIN", GAIN: "WIN", VITORIA: "WIN", VITÓRIA: "WIN",
-      LOSS: "LOSS", L: "LOSS", LOSE: "LOSS", PERDA: "LOSS", DERROTA: "LOSS",
-      OPEN: "OPEN", ABERTA: "OPEN", ABERTO: "OPEN",
+      WIN: "WIN",
+      W: "WIN",
+      GAIN: "WIN",
+      VITORIA: "WIN",
+      VITÓRIA: "WIN",
+      LOSS: "LOSS",
+      L: "LOSS",
+      LOSE: "LOSS",
+      PERDA: "LOSS",
+      DERROTA: "LOSS",
+      OPEN: "OPEN",
+      ABERTA: "OPEN",
+      ABERTO: "OPEN",
     };
     const resN = resMap[resRaw];
     if (!resN) errors.push(`Resultado inválido ("${get("res")}").`);
@@ -230,16 +273,19 @@ function validateCSV(text: string): ParsedRow[] {
       line: i + (hasHeader ? 2 : 1),
       raw: row,
       errors,
-      trade: errors.length === 0 && dt && dirN && resN ? {
-        ativo: ativo.toUpperCase(),
-        data: dt.toISOString(),
-        dir: dirN,
-        valor: v,
-        payout: p,
-        res: resN,
-        lucro: isFinite(l) ? l : calcLucro(v, p, resN),
-        obs: obs || undefined,
-      } : undefined,
+      trade:
+        errors.length === 0 && dt && dirN && resN
+          ? {
+              ativo: ativo.toUpperCase(),
+              data: dt.toISOString(),
+              dir: dirN,
+              valor: v,
+              payout: p,
+              res: resN,
+              lucro: isFinite(l) ? l : calcLucro(v, p, resN),
+              obs: obs || undefined,
+            }
+          : undefined,
     });
   });
 
@@ -252,8 +298,14 @@ function GestaoPage() {
   const [banca, setBancaState] = useState<number | null>(null);
   const [bancaInput, setBancaInput] = useState<string>("");
   useEffect(() => {
+    let cancelled = false;
     setBancaState(getBanca());
-    void hydrateBancaFromCloud().then((v) => { if (v !== null) setBancaState(v); });
+    void hydrateBancaFromCloud().then((v) => {
+      if (!cancelled && v !== null) setBancaState(v);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
   const fileRef = useRef<HTMLInputElement>(null);
   const [tab, setTab] = useState<"ops" | "report">("ops");
@@ -274,7 +326,10 @@ function GestaoPage() {
     let topAtivo = "—";
     let topWins = 0;
     for (const [ativo, n] of winsByAsset) {
-      if (n > topWins) { topWins = n; topAtivo = ativo; }
+      if (n > topWins) {
+        topWins = n;
+        topAtivo = ativo;
+      }
     }
     return {
       total: trades.length,
@@ -291,6 +346,10 @@ function GestaoPage() {
     const payout = parseFloat(form.payout);
     if (!form.ativo.trim() || isNaN(rawValor) || isNaN(payout)) {
       toast.error("Preencha ativo, valor e payout para registrar.");
+      return;
+    }
+    if (payout <= 0 || payout > 1000) {
+      toast.error("Payout precisa ser maior que zero.");
       return;
     }
     let valor = rawValor;
@@ -316,7 +375,13 @@ function GestaoPage() {
         lucro: calcLucro(valor, payout, form.res),
         obs: form.obs.trim() || undefined,
       });
-      setForm((f) => ({ ...makeEmptyForm(), categoria: f.categoria, ativo: f.ativo, payout: f.payout, valorMode: f.valorMode }));
+      setForm((f) => ({
+        ...makeEmptyForm(),
+        categoria: f.categoria,
+        ativo: f.ativo,
+        payout: f.payout,
+        valorMode: f.valorMode,
+      }));
       toast.success(`Trade ${form.ativo} adicionado.`);
     } catch {
       toast.error("Não foi possível salvar o trade.");
@@ -352,7 +417,15 @@ function GestaoPage() {
     if (!cur) return;
     const next: Trade = { ...cur, ...patch };
     next.lucro = calcLucro(next.valor, next.payout, next.res);
-    await updateTrade(id, { ativo: next.ativo, dir: next.dir, valor: next.valor, payout: next.payout, res: next.res, lucro: next.lucro, obs: next.obs });
+    await updateTrade(id, {
+      ativo: next.ativo,
+      dir: next.dir,
+      valor: next.valor,
+      payout: next.payout,
+      res: next.res,
+      lucro: next.lucro,
+      obs: next.obs,
+    });
     toast.success("Operação atualizada.");
   }
 
@@ -363,7 +436,17 @@ function GestaoPage() {
   function exportCSV() {
     const head = "id,ativo,data,dir,valor,payout,res,lucro,obs";
     const lines = trades.map((t) =>
-      [t.id, t.ativo, t.data, t.dir, t.valor, t.payout, t.res, t.lucro, (t.obs || "").replace(/[\n,]/g, " ")].join(","),
+      [
+        t.id,
+        t.ativo,
+        t.data,
+        t.dir,
+        t.valor,
+        t.payout,
+        t.res,
+        t.lucro,
+        (t.obs || "").replace(/[\n,]/g, " "),
+      ].join(","),
     );
     const blob = new Blob([head + "\n" + lines.join("\n")], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
@@ -422,7 +505,12 @@ function GestaoPage() {
               <Download className="h-3.5 w-3.5" strokeWidth={1.75} />
               Exportar
             </Button>
-            <Button variant="outline" size="sm" onClick={() => fileRef.current?.click()} className="gap-1.5">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => fileRef.current?.click()}
+              className="gap-1.5"
+            >
               <Upload className="h-3.5 w-3.5" strokeWidth={1.75} />
               Importar
             </Button>
@@ -441,10 +529,12 @@ function GestaoPage() {
         className="mb-5 inline-flex gap-1 rounded-lg border p-1"
         style={{ background: "var(--surface)", borderColor: "var(--border)" }}
       >
-        {([
-          ["ops", "Operações", ClipboardList],
-          ["report", "Relatório", BarChart3],
-        ] as const).map(([k, l, Icon]) => {
+        {(
+          [
+            ["ops", "Operações", ClipboardList],
+            ["report", "Relatório", BarChart3],
+          ] as const
+        ).map(([k, l, Icon]) => {
           const active = tab === k;
           return (
             <button
@@ -503,7 +593,10 @@ function GestaoPage() {
           bancaInput={bancaInput}
           setBancaInput={setBancaInput}
           saveBanca={saveBanca}
-          onSaveBanca={(n) => { setBancaState(n); void setBancaSynced(n); }}
+          onSaveBanca={(n) => {
+            setBancaState(n);
+            void setBancaSynced(n);
+          }}
         />
       ) : (
         <ReportTab trades={trades} />
@@ -514,59 +607,90 @@ function GestaoPage() {
           <DialogHeader>
             <DialogTitle>Pré-visualização da importação</DialogTitle>
           </DialogHeader>
-          {importPreview && (() => {
-            const valid = importPreview.filter((r) => r.trade).length;
-            const invalid = importPreview.length - valid;
-            return (
-              <>
-                <div className="mb-3 flex gap-3 text-sm">
-                  <span className="rounded-md border px-2 py-1" style={{ borderColor: "color-mix(in oklab, var(--green) 30%, transparent)", color: "var(--green)" }}>
-                    {valid} válida(s)
-                  </span>
-                  <span className="rounded-md border px-2 py-1" style={{ borderColor: "color-mix(in oklab, var(--red) 30%, transparent)", color: "var(--red)" }}>
-                    {invalid} com erro
-                  </span>
-                </div>
-                <div className="max-h-72 overflow-y-auto rounded-md border" style={{ borderColor: "var(--border)" }}>
-                  <table className="w-full text-xs">
-                    <thead className="sticky top-0" style={{ background: "var(--surface-2)" }}>
-                      <tr className="text-left text-muted-foreground">
-                        <th className="px-3 py-1.5">Linha</th>
-                        <th className="px-3 py-1.5">Status</th>
-                        <th className="px-3 py-1.5">Detalhes</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {importPreview.map((r) => (
-                        <tr key={r.line} className="border-t" style={{ borderColor: "var(--border)" }}>
-                          <td className="px-3 py-1.5 font-mono">{r.line}</td>
-                          <td className="px-3 py-1.5">
-                            {r.errors.length === 0 ? (
-                              <span className="inline-flex items-center gap-1" style={{ color: "var(--green)" }}>
-                                <Check className="h-3 w-3" /> OK
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1" style={{ color: "var(--red)" }}>
-                                <AlertTriangle className="h-3 w-3" /> Erro
-                              </span>
-                            )}
-                          </td>
-                          <td className="px-3 py-1.5 text-muted-foreground">
-                            {r.errors.length === 0
-                              ? `${r.trade?.ativo} · ${r.trade?.dir} · $${r.trade?.valor}`
-                              : r.errors.join(" ")}
-                          </td>
+          {importPreview &&
+            (() => {
+              const valid = importPreview.filter((r) => r.trade).length;
+              const invalid = importPreview.length - valid;
+              return (
+                <>
+                  <div className="mb-3 flex gap-3 text-sm">
+                    <span
+                      className="rounded-md border px-2 py-1"
+                      style={{
+                        borderColor: "color-mix(in oklab, var(--green) 30%, transparent)",
+                        color: "var(--green)",
+                      }}
+                    >
+                      {valid} válida(s)
+                    </span>
+                    <span
+                      className="rounded-md border px-2 py-1"
+                      style={{
+                        borderColor: "color-mix(in oklab, var(--red) 30%, transparent)",
+                        color: "var(--red)",
+                      }}
+                    >
+                      {invalid} com erro
+                    </span>
+                  </div>
+                  <div
+                    className="max-h-72 overflow-y-auto rounded-md border"
+                    style={{ borderColor: "var(--border)" }}
+                  >
+                    <table className="w-full text-xs">
+                      <thead className="sticky top-0" style={{ background: "var(--surface-2)" }}>
+                        <tr className="text-left text-muted-foreground">
+                          <th className="px-3 py-1.5">Linha</th>
+                          <th className="px-3 py-1.5">Status</th>
+                          <th className="px-3 py-1.5">Detalhes</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </>
-            );
-          })()}
+                      </thead>
+                      <tbody>
+                        {importPreview.map((r) => (
+                          <tr
+                            key={r.line}
+                            className="border-t"
+                            style={{ borderColor: "var(--border)" }}
+                          >
+                            <td className="px-3 py-1.5 font-mono">{r.line}</td>
+                            <td className="px-3 py-1.5">
+                              {r.errors.length === 0 ? (
+                                <span
+                                  className="inline-flex items-center gap-1"
+                                  style={{ color: "var(--green)" }}
+                                >
+                                  <Check className="h-3 w-3" /> OK
+                                </span>
+                              ) : (
+                                <span
+                                  className="inline-flex items-center gap-1"
+                                  style={{ color: "var(--red)" }}
+                                >
+                                  <AlertTriangle className="h-3 w-3" /> Erro
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-3 py-1.5 text-muted-foreground">
+                              {r.errors.length === 0
+                                ? `${r.trade?.ativo} · ${r.trade?.dir} · $${r.trade?.valor}`
+                                : r.errors.join(" ")}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              );
+            })()}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setImportPreview(null)} disabled={importing}>Cancelar</Button>
-            <Button onClick={() => void confirmImport()} disabled={importing || !importPreview?.some((r) => r.trade)}>
+            <Button variant="outline" onClick={() => setImportPreview(null)} disabled={importing}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => void confirmImport()}
+              disabled={importing || !importPreview?.some((r) => r.trade)}
+            >
               {importing ? "Importando..." : "Importar válidos"}
             </Button>
           </DialogFooter>
@@ -612,13 +736,17 @@ function OpsTab({
 
   if (banca === null || banca <= 0) {
     return (
-      <div className="mx-auto max-w-md rounded-2xl border p-6 fade-up" style={{ background: "var(--surface)", borderColor: "var(--border-strong)" }}>
+      <div
+        className="mx-auto max-w-md rounded-2xl border p-6 fade-up"
+        style={{ background: "var(--surface)", borderColor: "var(--border-strong)" }}
+      >
         <div className="mb-1 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.25em] text-muted-foreground">
           <Wallet className="h-3.5 w-3.5" /> Banca inicial
         </div>
         <h2 className="font-display text-xl font-bold tracking-tight">Defina sua banca</h2>
         <p className="mt-1 text-xs text-muted-foreground">
-          Antes de registrar operações, informe o valor da sua banca em USD. Você poderá ajustar depois.
+          Antes de registrar operações, informe o valor da sua banca em USD. Você poderá ajustar
+          depois.
         </p>
         <div className="mt-4 flex gap-2">
           <Input
@@ -627,7 +755,9 @@ function OpsTab({
             placeholder="Ex: 200"
             value={bancaInput}
             onChange={(e) => setBancaInput(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") saveBanca(); }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") saveBanca();
+            }}
           />
           <Button onClick={saveBanca}>Salvar</Button>
         </div>
@@ -641,26 +771,46 @@ function OpsTab({
     <>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-xs">
         <div className="flex flex-wrap items-center gap-2">
-          <div className="inline-flex items-center gap-2 rounded-lg border px-3 py-1.5" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+          <div
+            className="inline-flex items-center gap-2 rounded-lg border px-3 py-1.5"
+            style={{ borderColor: "var(--border)", background: "var(--surface)" }}
+          >
             <Wallet className="h-3.5 w-3.5" style={{ color: "var(--accent)" }} />
             <span className="text-muted-foreground">Banca inicial:</span>
             <span className="font-mono font-semibold tabular">${banca.toFixed(2)}</span>
           </div>
-          <div className="inline-flex items-center gap-2 rounded-lg border px-3 py-1.5"
+          <div
+            className="inline-flex items-center gap-2 rounded-lg border px-3 py-1.5"
             style={{
-              borderColor: bancaAtual >= banca
-                ? "color-mix(in oklab, var(--green) 30%, transparent)"
-                : "color-mix(in oklab, var(--red) 30%, transparent)",
+              borderColor:
+                bancaAtual >= banca
+                  ? "color-mix(in oklab, var(--green) 30%, transparent)"
+                  : "color-mix(in oklab, var(--red) 30%, transparent)",
               background: "var(--surface)",
-            }}>
-            <TrendingUp className="h-3.5 w-3.5" style={{ color: bancaAtual >= banca ? "var(--green)" : "var(--red)" }} />
+            }}
+          >
+            <TrendingUp
+              className="h-3.5 w-3.5"
+              style={{ color: bancaAtual >= banca ? "var(--green)" : "var(--red)" }}
+            />
             <span className="text-muted-foreground">Banca atual:</span>
-            <span className="font-mono font-semibold tabular" style={{ color: bancaAtual >= banca ? "var(--green)" : "var(--red)" }}>
+            <span
+              className="font-mono font-semibold tabular"
+              style={{ color: bancaAtual >= banca ? "var(--green)" : "var(--red)" }}
+            >
               ${bancaAtual.toFixed(2)}
             </span>
           </div>
         </div>
-        <Button variant="outline" size="sm" onClick={() => { setEditBancaVal(String(banca)); setEditBancaOpen(true); }} className="gap-1.5 text-xs">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            setEditBancaVal(String(banca));
+            setEditBancaOpen(true);
+          }}
+          className="gap-1.5 text-xs"
+        >
           <Pencil className="h-3 w-3" /> Editar banca
         </Button>
       </div>
@@ -675,29 +825,48 @@ function OpsTab({
         </div>
         <div className="grid gap-2.5 md:grid-cols-2 lg:grid-cols-3">
           <div>
-            <label className="mb-1 block text-[10px] uppercase tracking-wider text-muted-foreground">Categoria</label>
+            <label className="mb-1 block text-[10px] uppercase tracking-wider text-muted-foreground">
+              Categoria
+            </label>
             <Select
               value={form.categoria}
               onValueChange={(v) => {
                 const cat = v as Categoria;
                 const list = ASSETS[cat];
-                setForm((f) => ({ ...f, categoria: cat, ativo: list[0], payout: String(payoutForCategoria(cat)) }));
+                setForm((f) => ({
+                  ...f,
+                  categoria: cat,
+                  ativo: list[0],
+                  payout: String(payoutForCategoria(cat)),
+                }));
               }}
             >
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 {(Object.keys(ASSETS) as Categoria[]).map((c) => (
-                  <SelectItem key={c} value={c}>{CATEGORIA_LABEL[c]}</SelectItem>
+                  <SelectItem key={c} value={c}>
+                    {CATEGORIA_LABEL[c]}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
           <div>
-            <label className="mb-1 block text-[10px] uppercase tracking-wider text-muted-foreground">Ativo</label>
+            <label className="mb-1 block text-[10px] uppercase tracking-wider text-muted-foreground">
+              Ativo
+            </label>
             <Select value={form.ativo} onValueChange={(v) => setForm((f) => ({ ...f, ativo: v }))}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
-                {ativos.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}
+                {ativos.map((a) => (
+                  <SelectItem key={a} value={a}>
+                    {a}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -713,16 +882,26 @@ function OpsTab({
                 value={form.valor}
                 onChange={(e) => setForm((f) => ({ ...f, valor: e.target.value }))}
               />
-              <div className="inline-flex rounded-md border p-0.5" style={{ borderColor: "var(--border-strong)", background: "var(--surface-2)" }}>
+              <div
+                className="inline-flex rounded-md border p-0.5"
+                style={{ borderColor: "var(--border-strong)", background: "var(--surface-2)" }}
+              >
                 {(["VALOR", "PCT"] as const).map((m) => {
                   const active = form.valorMode === m;
                   return (
                     <button
                       key={m}
                       type="button"
-                      onClick={() => { setForm((f) => ({ ...f, valorMode: m })); persistValorMode(m); }}
+                      onClick={() => {
+                        setForm((f) => ({ ...f, valorMode: m }));
+                        persistValorMode(m);
+                      }}
                       className="rounded px-2 text-[11px] font-semibold smooth"
-                      style={active ? { background: "var(--accent)", color: "var(--accent-foreground)" } : { color: "var(--text-muted)" }}
+                      style={
+                        active
+                          ? { background: "var(--accent)", color: "var(--accent-foreground)" }
+                          : { color: "var(--text-muted)" }
+                      }
                     >
                       {m === "VALOR" ? "$" : "%"}
                     </button>
@@ -737,7 +916,9 @@ function OpsTab({
             )}
           </div>
           <div>
-            <label className="mb-1 block text-[10px] uppercase tracking-wider text-muted-foreground">Payout %</label>
+            <label className="mb-1 block text-[10px] uppercase tracking-wider text-muted-foreground">
+              Payout %
+            </label>
             <Input
               type="number"
               placeholder="Payout %"
@@ -746,9 +927,16 @@ function OpsTab({
             />
           </div>
           <div>
-            <label className="mb-1 block text-[10px] uppercase tracking-wider text-muted-foreground">Direção</label>
-            <Select value={form.dir} onValueChange={(v) => setForm((f) => ({ ...f, dir: v as Form["dir"] }))}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+            <label className="mb-1 block text-[10px] uppercase tracking-wider text-muted-foreground">
+              Direção
+            </label>
+            <Select
+              value={form.dir}
+              onValueChange={(v) => setForm((f) => ({ ...f, dir: v as Form["dir"] }))}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="COMPRA">Compra</SelectItem>
                 <SelectItem value="VENDA">Venda</SelectItem>
@@ -756,9 +944,16 @@ function OpsTab({
             </Select>
           </div>
           <div>
-            <label className="mb-1 block text-[10px] uppercase tracking-wider text-muted-foreground">Resultado</label>
-            <Select value={form.res} onValueChange={(v) => setForm((f) => ({ ...f, res: v as Form["res"] }))}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+            <label className="mb-1 block text-[10px] uppercase tracking-wider text-muted-foreground">
+              Resultado
+            </label>
+            <Select
+              value={form.res}
+              onValueChange={(v) => setForm((f) => ({ ...f, res: v as Form["res"] }))}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="WIN">Win</SelectItem>
                 <SelectItem value="LOSS">Loss</SelectItem>
@@ -794,7 +989,17 @@ function OpsTab({
           <table className="w-full text-sm">
             <thead style={{ background: "var(--surface-2)" }}>
               <tr className="text-left text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-                {["Ativo", "Data", "Direção", "Valor", "Payout", "Resultado", "Lucro", "Obs", ""].map((h) => (
+                {[
+                  "Ativo",
+                  "Data",
+                  "Direção",
+                  "Valor",
+                  "Payout",
+                  "Resultado",
+                  "Lucro",
+                  "Obs",
+                  "",
+                ].map((h) => (
                   <th key={h} className="px-4 py-2.5">
                     {h}
                   </th>
@@ -826,7 +1031,9 @@ function OpsTab({
                     </span>
                   </td>
                   <td className="px-4 py-2.5 font-mono tabular">${t.valor.toFixed(2)}</td>
-                  <td className="px-4 py-2.5 font-mono text-xs tabular text-muted-foreground">{t.payout}%</td>
+                  <td className="px-4 py-2.5 font-mono text-xs tabular text-muted-foreground">
+                    {t.payout}%
+                  </td>
                   <td className="px-4 py-2.5">
                     <span
                       className="inline-block rounded-md border px-2 py-0.5 text-[10px] font-medium"
@@ -858,7 +1065,11 @@ function OpsTab({
                     className="px-4 py-2.5 font-mono text-sm font-semibold tabular"
                     style={{
                       color:
-                        t.lucro > 0 ? "var(--green)" : t.lucro < 0 ? "var(--red)" : "var(--text-muted)",
+                        t.lucro > 0
+                          ? "var(--green)"
+                          : t.lucro < 0
+                            ? "var(--red)"
+                            : "var(--text-muted)",
                     }}
                   >
                     {t.lucro >= 0 ? "+" : ""}${t.lucro.toFixed(2)}
@@ -935,7 +1146,8 @@ function OpsTab({
             <DialogTitle>Editar banca inicial</DialogTitle>
           </DialogHeader>
           <p className="text-xs text-muted-foreground">
-            Esse valor é a base de cálculo para entradas em % e para a "banca atual" (banca + lucros).
+            Esse valor é a base de cálculo para entradas em % e para a "banca atual" (banca +
+            lucros).
           </p>
           <Input
             type="number"
@@ -945,14 +1157,23 @@ function OpsTab({
             placeholder="Ex: 200"
           />
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditBancaOpen(false)}>Cancelar</Button>
-            <Button onClick={() => {
-              const n = parseFloat(editBancaVal);
-              if (!isFinite(n) || n <= 0) { toast.error("Valor inválido."); return; }
-              onSaveBanca(n);
-              setEditBancaOpen(false);
-              toast.success(`Banca atualizada: $${n.toFixed(2)}.`);
-            }}>Salvar</Button>
+            <Button variant="outline" onClick={() => setEditBancaOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => {
+                const n = parseFloat(editBancaVal);
+                if (!isFinite(n) || n <= 0) {
+                  toast.error("Valor inválido.");
+                  return;
+                }
+                onSaveBanca(n);
+                setEditBancaOpen(false);
+                toast.success(`Banca atualizada: $${n.toFixed(2)}.`);
+              }}
+            >
+              Salvar
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -971,7 +1192,9 @@ function OpsTab({
 }
 
 function EditTradeDialog({
-  trade, onClose, onSave,
+  trade,
+  onClose,
+  onSave,
 }: {
   trade: Trade | null;
   onClose: () => void;
@@ -1005,12 +1228,20 @@ function EditTradeDialog({
         </DialogHeader>
         <div className="grid gap-2.5">
           <div>
-            <label className="mb-1 block text-[10px] uppercase tracking-wider text-muted-foreground">Ativo</label>
+            <label className="mb-1 block text-[10px] uppercase tracking-wider text-muted-foreground">
+              Ativo
+            </label>
             {ativos ? (
               <Select value={ativo} onValueChange={setAtivo}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
-                  {ativos.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}
+                  {ativos.map((a) => (
+                    <SelectItem key={a} value={a}>
+                      {a}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             ) : (
@@ -1019,9 +1250,13 @@ function EditTradeDialog({
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="mb-1 block text-[10px] uppercase tracking-wider text-muted-foreground">Direção</label>
+              <label className="mb-1 block text-[10px] uppercase tracking-wider text-muted-foreground">
+                Direção
+              </label>
               <Select value={dir} onValueChange={(v) => setDir(v as "COMPRA" | "VENDA")}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="COMPRA">Compra</SelectItem>
                   <SelectItem value="VENDA">Venda</SelectItem>
@@ -1029,9 +1264,13 @@ function EditTradeDialog({
               </Select>
             </div>
             <div>
-              <label className="mb-1 block text-[10px] uppercase tracking-wider text-muted-foreground">Resultado</label>
+              <label className="mb-1 block text-[10px] uppercase tracking-wider text-muted-foreground">
+                Resultado
+              </label>
               <Select value={res} onValueChange={(v) => setRes(v as "WIN" | "LOSS")}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="WIN">Win</SelectItem>
                   <SelectItem value="LOSS">Loss</SelectItem>
@@ -1041,30 +1280,59 @@ function EditTradeDialog({
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="mb-1 block text-[10px] uppercase tracking-wider text-muted-foreground">Valor (USD)</label>
-              <Input type="number" step="0.01" value={valor} onChange={(e) => setValor(e.target.value)} />
+              <label className="mb-1 block text-[10px] uppercase tracking-wider text-muted-foreground">
+                Valor (USD)
+              </label>
+              <Input
+                type="number"
+                step="0.01"
+                value={valor}
+                onChange={(e) => setValor(e.target.value)}
+              />
             </div>
             <div>
-              <label className="mb-1 block text-[10px] uppercase tracking-wider text-muted-foreground">Payout %</label>
-              <Input type="number" step="0.01" value={payout} onChange={(e) => setPayout(e.target.value)} />
+              <label className="mb-1 block text-[10px] uppercase tracking-wider text-muted-foreground">
+                Payout %
+              </label>
+              <Input
+                type="number"
+                step="0.01"
+                value={payout}
+                onChange={(e) => setPayout(e.target.value)}
+              />
             </div>
           </div>
           <div>
-            <label className="mb-1 block text-[10px] uppercase tracking-wider text-muted-foreground">Observação</label>
+            <label className="mb-1 block text-[10px] uppercase tracking-wider text-muted-foreground">
+              Observação
+            </label>
             <Input value={obs} onChange={(e) => setObs(e.target.value)} />
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancelar</Button>
-          <Button onClick={() => {
-            const v = parseFloat(valor);
-            const p = parseFloat(payout);
-            if (!ativo.trim() || !isFinite(v) || v <= 0 || !isFinite(p) || p < 0) {
-              toast.error("Verifique os campos.");
-              return;
-            }
-            void onSave({ ativo: ativo.trim(), dir, valor: v, payout: p, res, obs: obs.trim() || undefined });
-          }}>Salvar</Button>
+          <Button variant="outline" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button
+            onClick={() => {
+              const v = parseFloat(valor);
+              const p = parseFloat(payout);
+              if (!ativo.trim() || !isFinite(v) || v <= 0 || !isFinite(p) || p < 0) {
+                toast.error("Verifique os campos.");
+                return;
+              }
+              void onSave({
+                ativo: ativo.trim(),
+                dir,
+                valor: v,
+                payout: p,
+                res,
+                obs: obs.trim() || undefined,
+              });
+            }}
+          >
+            Salvar
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -1076,20 +1344,28 @@ function ReportTab({ trades }: { trades: Trade[] }) {
   const barRef = useRef<ChartJS<"bar"> | null>(null);
   const doughnutRef = useRef<ChartJS<"doughnut"> | null>(null);
 
-  const sorted = [...trades].sort((a, b) => +new Date(a.data) - +new Date(b.data));
+  // Desempate por id para ordenação estável quando há datas iguais (comum em
+  // import CSV sem hora) — evita streak/curva calculados em ordem arbitrária.
+  const sorted = [...trades].sort(
+    (a, b) => +new Date(a.data) - +new Date(b.data) || a.id.localeCompare(b.id),
+  );
   const closed = trades.filter((t) => t.res !== "OPEN");
   const wins = closed.filter((t) => t.res === "WIN").length;
   const losses = closed.filter((t) => t.res === "LOSS").length;
   const open = trades.length - closed.length;
   const totalOperado = trades.reduce((a, t) => a + t.valor, 0);
-  const payoutMed = trades.length ? Math.round(trades.reduce((a, t) => a + t.payout, 0) / trades.length) : 0;
+  const payoutMed = trades.length
+    ? Math.round(trades.reduce((a, t) => a + t.payout, 0) / trades.length)
+    : 0;
   let streak = 0;
   let streakType: "WIN" | "LOSS" | "" = "";
   for (let i = sorted.length - 1; i >= 0; i--) {
     const r = sorted[i].res;
     if (r === "OPEN") continue;
-    if (!streakType) { streakType = r; streak = 1; }
-    else if (r === streakType) streak++;
+    if (!streakType) {
+      streakType = r;
+      streak = 1;
+    } else if (r === streakType) streak++;
     else break;
   }
 
@@ -1136,15 +1412,23 @@ function ReportTab({ trades }: { trades: Trade[] }) {
     let skipped = 0;
     for (const { ref, name } of charts) {
       const snap = snapshotChart(ref);
-      if (!snap) { skipped++; continue; }
+      if (!snap) {
+        skipped++;
+        continue;
+      }
       const a = document.createElement("a");
       a.href = snap.url;
       a.download = `orionhub-${name}-${Date.now()}.png`;
       a.click();
       count++;
     }
-    if (count === 0) { toast.error("Aguarde os gráficos renderizarem e tente novamente."); return; }
-    toast.success(`${count} gráfico(s) exportado(s)${skipped ? ` (${skipped} pulado por não ter renderizado)` : ""}.`);
+    if (count === 0) {
+      toast.error("Aguarde os gráficos renderizarem e tente novamente.");
+      return;
+    }
+    toast.success(
+      `${count} gráfico(s) exportado(s)${skipped ? ` (${skipped} pulado por não ter renderizado)` : ""}.`,
+    );
   }
 
   async function exportPDF() {
@@ -1184,7 +1468,10 @@ function ReportTab({ trades }: { trades: Trade[] }) {
       const w = maxW;
       const h = Math.min(w * aspect, 280);
       const titleH = 22;
-      if (y + h + titleH > pageH - margin) { pdf.addPage(); y = margin; }
+      if (y + h + titleH > pageH - margin) {
+        pdf.addPage();
+        y = margin;
+      }
       pdf.setFontSize(12);
       pdf.text(title, margin, y + 12);
       pdf.addImage(snap.url, "PNG", margin, y + titleH, w, h, undefined, "FAST");
@@ -1197,40 +1484,74 @@ function ReportTab({ trades }: { trades: Trade[] }) {
   const accent = "98, 142, 230";
   let acc = 0;
   const lineData = {
-    labels: sorted.map((t) => new Date(t.data).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })),
-    datasets: [{
-      label: "Lucro acumulado",
-      data: sorted.map((t) => (acc += t.lucro)),
-      borderColor: `rgb(${accent})`,
-      backgroundColor: `rgba(${accent}, 0.12)`,
-      fill: true, tension: 0.32, borderWidth: 2, pointRadius: 0, pointHoverRadius: 4,
-    }],
+    labels: sorted.map((t) =>
+      new Date(t.data).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }),
+    ),
+    datasets: [
+      {
+        label: "Lucro acumulado",
+        data: sorted.map((t) => (acc += t.lucro)),
+        borderColor: `rgb(${accent})`,
+        backgroundColor: `rgba(${accent}, 0.12)`,
+        fill: true,
+        tension: 0.32,
+        borderWidth: 2,
+        pointRadius: 0,
+        pointHoverRadius: 4,
+      },
+    ],
   };
   const map = new Map<string, number>();
   trades.forEach((t) => map.set(t.ativo, (map.get(t.ativo) || 0) + t.lucro));
   const entries = [...map.entries()].sort((a, b) => b[1] - a[1]);
   const barData = {
     labels: entries.map((e) => e[0]),
-    datasets: [{
-      label: "Lucro por ativo",
-      data: entries.map((e) => e[1]),
-      backgroundColor: entries.map((e) => (e[1] >= 0 ? "rgba(110, 200, 140, 0.85)" : "rgba(220, 110, 110, 0.85)")),
-      borderRadius: 4,
-    }],
+    datasets: [
+      {
+        label: "Lucro por ativo",
+        data: entries.map((e) => e[1]),
+        backgroundColor: entries.map((e) =>
+          e[1] >= 0 ? "rgba(110, 200, 140, 0.85)" : "rgba(220, 110, 110, 0.85)",
+        ),
+        borderRadius: 4,
+      },
+    ],
   };
   const doughnutData = {
     labels: ["Win", "Loss", "Aberta"],
-    datasets: [{ data: [wins, losses, open], backgroundColor: ["rgb(110, 200, 140)", "rgb(220, 110, 110)", "rgb(120, 130, 150)"], borderWidth: 0 }],
+    datasets: [
+      {
+        data: [wins, losses, open],
+        backgroundColor: ["rgb(110, 200, 140)", "rgb(220, 110, 110)", "rgb(120, 130, 150)"],
+        borderWidth: 0,
+      },
+    ],
   };
   const baseOpts = {
-    responsive: true, maintainAspectRatio: false,
+    responsive: true,
+    maintainAspectRatio: false,
     plugins: {
       legend: { labels: { color: "rgb(170, 178, 195)", font: { size: 11 } } },
-      tooltip: { backgroundColor: "rgba(20, 24, 32, 0.95)", borderColor: "rgba(255,255,255,0.08)", borderWidth: 1, padding: 10, titleFont: { size: 11 }, bodyFont: { size: 12 } },
+      tooltip: {
+        backgroundColor: "rgba(20, 24, 32, 0.95)",
+        borderColor: "rgba(255,255,255,0.08)",
+        borderWidth: 1,
+        padding: 10,
+        titleFont: { size: 11 },
+        bodyFont: { size: 12 },
+      },
     },
     scales: {
-      x: { ticks: { color: "rgb(140, 150, 170)", font: { size: 10 } }, grid: { color: "rgba(255,255,255,0.04)" }, border: { display: false } },
-      y: { ticks: { color: "rgb(140, 150, 170)", font: { size: 10 } }, grid: { color: "rgba(255,255,255,0.04)" }, border: { display: false } },
+      x: {
+        ticks: { color: "rgb(140, 150, 170)", font: { size: 10 } },
+        grid: { color: "rgba(255,255,255,0.04)" },
+        border: { display: false },
+      },
+      y: {
+        ticks: { color: "rgb(140, 150, 170)", font: { size: 10 } },
+        grid: { color: "rgba(255,255,255,0.04)" },
+        border: { display: false },
+      },
     },
   };
 
@@ -1247,9 +1568,21 @@ function ReportTab({ trades }: { trades: Trade[] }) {
         </Button>
       </div>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <StatCard label="Total operado" value={`$${totalOperado.toFixed(2)}`} icon={<DollarSign className="h-4 w-4" strokeWidth={1.75} />} />
-        <StatCard label="Payout médio" value={`${payoutMed}%`} icon={<Percent className="h-4 w-4" strokeWidth={1.75} />} />
-        <StatCard label="Wins / Losses" value={`${wins} / ${losses}`} icon={<Target className="h-4 w-4" strokeWidth={1.75} />} />
+        <StatCard
+          label="Total operado"
+          value={`$${totalOperado.toFixed(2)}`}
+          icon={<DollarSign className="h-4 w-4" strokeWidth={1.75} />}
+        />
+        <StatCard
+          label="Payout médio"
+          value={`${payoutMed}%`}
+          icon={<Percent className="h-4 w-4" strokeWidth={1.75} />}
+        />
+        <StatCard
+          label="Wins / Losses"
+          value={`${wins} / ${losses}`}
+          icon={<Target className="h-4 w-4" strokeWidth={1.75} />}
+        />
         <StatCard
           label="Sequência"
           value={streak ? `${streak} ${streakType}` : "—"}
@@ -1258,11 +1591,15 @@ function ReportTab({ trades }: { trades: Trade[] }) {
         />
       </div>
       <ChartCard title="Evolução do lucro">
-        <div style={{ height: 280 }}><Line ref={lineRef} data={lineData} options={baseOpts} /></div>
+        <div style={{ height: 280 }}>
+          <Line ref={lineRef} data={lineData} options={baseOpts} />
+        </div>
       </ChartCard>
       <div className="grid gap-4 md:grid-cols-2">
         <ChartCard title="Lucro por ativo">
-          <div style={{ height: 240 }}><Bar ref={barRef} data={barData} options={baseOpts} /></div>
+          <div style={{ height: 240 }}>
+            <Bar ref={barRef} data={barData} options={baseOpts} />
+          </div>
         </ChartCard>
         <ChartCard title="Distribuição de resultados">
           <div style={{ height: 240 }}>
@@ -1270,8 +1607,13 @@ function ReportTab({ trades }: { trades: Trade[] }) {
               ref={doughnutRef}
               data={doughnutData}
               options={{
-                ...baseOpts, scales: undefined, cutout: "68%",
-                plugins: { ...baseOpts.plugins, legend: { ...baseOpts.plugins.legend, position: "right" as const } },
+                ...baseOpts,
+                scales: undefined,
+                cutout: "68%",
+                plugins: {
+                  ...baseOpts.plugins,
+                  legend: { ...baseOpts.plugins.legend, position: "right" as const },
+                },
               }}
             />
           </div>
@@ -1283,8 +1625,13 @@ function ReportTab({ trades }: { trades: Trade[] }) {
 
 function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-xl border p-4" style={{ background: "var(--surface)", borderColor: "var(--border)" }}>
-      <div className="mb-3 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{title}</div>
+    <div
+      className="rounded-xl border p-4"
+      style={{ background: "var(--surface)", borderColor: "var(--border)" }}
+    >
+      <div className="mb-3 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+        {title}
+      </div>
       {children}
     </div>
   );

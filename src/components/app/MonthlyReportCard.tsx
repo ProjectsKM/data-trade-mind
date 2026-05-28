@@ -10,10 +10,24 @@ import { CardShell, BigStat, CATEGORY_LABEL, fmtUSD } from "./MindCards";
 function PieDonutLabel({ cx, cy, totalOps }: { cx?: number; cy?: number; totalOps: number }) {
   return (
     <text x={cx} y={cy} textAnchor="middle" dominantBaseline="middle">
-      <tspan x={cx} dy="-5" fontSize="15" fontWeight="800" fill="var(--foreground)" fontFamily="var(--font-display)">
+      <tspan
+        x={cx}
+        dy="-5"
+        fontSize="15"
+        fontWeight="800"
+        fill="var(--foreground)"
+        fontFamily="var(--font-display)"
+      >
         {totalOps}
       </tspan>
-      <tspan x={cx} dy="13" fontSize="8" fontWeight="600" fill="var(--text-muted)" letterSpacing="0.08em">
+      <tspan
+        x={cx}
+        dy="13"
+        fontSize="8"
+        fontWeight="600"
+        fill="var(--text-muted)"
+        letterSpacing="0.08em"
+      >
         OPS
       </tspan>
     </text>
@@ -53,7 +67,11 @@ function MonthlyReportCard({ report }: { report: MonthlyReportData }) {
           label="Win-rate"
           value={`${report.winRate}%`}
           accent={
-            report.winRate >= 55 ? "var(--green)" : report.winRate >= 45 ? "var(--gold)" : "var(--red)"
+            report.winRate >= 55
+              ? "var(--green)"
+              : report.winRate >= 45
+                ? "var(--gold)"
+                : "var(--red)"
           }
         />
         <BigStat label="Wins" value={String(report.wins)} accent="var(--green)" />

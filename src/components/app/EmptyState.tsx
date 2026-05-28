@@ -19,7 +19,11 @@ export function EmptyState({
       {icon && (
         <div
           className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl border"
-          style={{ background: "var(--surface-2)", borderColor: "var(--border)", color: "var(--text-muted)" }}
+          style={{
+            background: "var(--surface-2)",
+            borderColor: "var(--border)",
+            color: "var(--text-muted)",
+          }}
         >
           {icon}
         </div>

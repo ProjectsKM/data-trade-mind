@@ -154,8 +154,7 @@ function AppLayout() {
           </Link>
           <button
             onClick={() => {
-              logout();
-              nav({ to: "/" });
+              void logout().finally(() => nav({ to: "/" }));
             }}
             aria-label="Sair"
             className="hidden h-8 w-8 items-center justify-center rounded-md border text-muted-foreground smooth hover:border-[color:var(--red)] hover:text-[color:var(--red)] sm:inline-flex"

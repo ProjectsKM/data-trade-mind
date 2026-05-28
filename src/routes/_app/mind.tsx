@@ -37,6 +37,7 @@ export const Route = createFileRoute("/_app/mind")({
 type Thread = { id: string; title: string; updated_at: string };
 
 const STARTER: ChatMsg = {
+  id: "starter",
   role: "assistant",
   content:
     "Olá! Sou o **OrionMind**, seu mentor de trade. Pergunte sobre estratégias, padrões, gestão de risco ou peça para analisar suas operações.",
@@ -103,6 +104,17 @@ function MindPage() {
   useEffect(() => {
     autoFollowRef.current = autoFollow;
   }, [autoFollow]);
+  // Guard de montagem + controlador do stream em andamento (evita setState após
+  // unmount e abortar a resposta ao trocar de conversa / sair da rota).
+  const mountedRef = useRef(true);
+  const abortRef = useRef<AbortController | null>(null);
+  useEffect(
+    () => () => {
+      mountedRef.current = false;
+      abortRef.current?.abort();
+    },
+    [],
+  );
   const kbHeight = useVirtualKeyboard();
   const kbOpen = kbHeight > 0;
 
@@ -133,7 +145,12 @@ function MindPage() {
             return copy;
           }
         }
-        copy.push({ role: "assistant", content: text, ts: new Date().toISOString() });
+        copy.push({
+          id: crypto.randomUUID(),
+          role: "assistant",
+          content: text,
+          ts: new Date().toISOString(),
+        });
         return copy;
       });
     });
@@ -194,6 +211,10 @@ function MindPage() {
       skipLoadRef.current.delete(activeId);
       return;
     }
+    // Troca real de conversa: aborta qualquer stream em andamento para não
+    // gravar a resposta no thread errado.
+    abortRef.current?.abort();
+    abortRef.current = null;
     let cancel = false;
     supabase
       .from("mind_messages")
@@ -305,7 +326,12 @@ function MindPage() {
       setThreads([data, ...threads]);
     }
 
-    const userMsg: ChatMsg = { role: "user", content: t, ts: new Date().toISOString() };
+    const userMsg: ChatMsg = {
+      id: crypto.randomUUID(),
+      role: "user",
+      content: t,
+      ts: new Date().toISOString(),
+    };
     setMessages((m) => [...m, userMsg]);
     await supabase
       .from("mind_messages")
@@ -342,6 +368,12 @@ function MindPage() {
         .limit(15);
       const banca = getBanca();
 
+      // Aborta um stream anterior que porventura ainda esteja rodando e cria o
+      // controlador deste envio.
+      abortRef.current?.abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
+
       const doFetch = (tk: string) =>
         fetch("/api/ai-mind", {
           method: "POST",
@@ -350,6 +382,7 @@ function MindPage() {
             Authorization: `Bearer ${tk}`,
           },
           body: JSON.stringify({ messages: history, banca, recentTrades: recentRows ?? [] }),
+          signal: controller.signal,
         });
 
       let r = await doFetch(token);
@@ -376,13 +409,14 @@ function MindPage() {
         // Add placeholder assistant message we will fill incrementally.
         setMessages((m) => [
           ...m,
-          { role: "assistant", content: "", ts: new Date().toISOString() },
+          { id: crypto.randomUUID(), role: "assistant", content: "", ts: new Date().toISOString() },
         ]);
         setStreaming(true);
         const reader = r.body.getReader();
         const decoder = new TextDecoder();
         let buf = "";
         outer: while (true) {
+          if (!mountedRef.current || controller.signal.aborted) break outer;
           const { value, done } = await reader.read();
           if (done) break;
           buf += decoder.decode(value, { stream: true });
@@ -407,7 +441,12 @@ function MindPage() {
                 // (vai aparecer ANTES do parágrafo final de comentário da IA).
                 setMessages((m) => [
                   ...m,
-                  { role: "assistant", content: serialized, ts: new Date().toISOString() },
+                  {
+                    id: crypto.randomUUID(),
+                    role: "assistant",
+                    content: serialized,
+                    ts: new Date().toISOString(),
+                  },
                 ]);
                 // Persiste no Supabase com retry — antes era fire-and-forget
                 // (`void ...insert(...)`), então se a inserção falhasse (RLS,
@@ -459,7 +498,12 @@ function MindPage() {
           : `⚠️ ${data.error || "Erro."}`;
         setMessages((m) => [
           ...m,
-          { role: "assistant", content: replyText, ts: new Date().toISOString() },
+          {
+            id: crypto.randomUUID(),
+            role: "assistant",
+            content: replyText,
+            ts: new Date().toISOString(),
+          },
         ]);
       }
       if (!replyText && receivedCards.length === 0) {
@@ -475,7 +519,12 @@ function MindPage() {
               return copy;
             }
           }
-          copy.push({ role: "assistant", content: replyText, ts: new Date().toISOString() });
+          copy.push({
+            id: crypto.randomUUID(),
+            role: "assistant",
+            content: replyText,
+            ts: new Date().toISOString(),
+          });
           return copy;
         });
       } else if (!replyText && receivedCards.length > 0) {
@@ -484,31 +533,35 @@ function MindPage() {
       }
       // Persiste o texto final apenas se houver algo
       if (replyText) {
-        await supabase
-          .from("mind_messages")
-          .insert({
-            user_id: user.id,
-            role: "assistant",
-            content: replyText,
-            thread_id: threadId,
-          } as never);
+        await supabase.from("mind_messages").insert({
+          user_id: user.id,
+          role: "assistant",
+          content: replyText,
+          thread_id: threadId,
+        } as never);
       }
       await supabase
         .from("mind_threads")
         .update({ updated_at: new Date().toISOString() })
         .eq("id", threadId);
       void refreshThreads();
-    } catch {
+    } catch (e) {
+      // Abort (troca de conversa / saída da rota) não é erro — sai em silêncio.
+      if ((e as Error)?.name === "AbortError" || !mountedRef.current) return;
       toast.error("Erro de conexão. Tente novamente.");
       const reply: ChatMsg = {
+        id: crypto.randomUUID(),
         role: "assistant",
         content: "⚠️ Erro de conexão. Tente novamente.",
         ts: new Date().toISOString(),
       };
       setMessages((m) => [...m, reply]);
     } finally {
-      setBusy(false);
-      setStreaming(false);
+      abortRef.current = null;
+      if (mountedRef.current) {
+        setBusy(false);
+        setStreaming(false);
+      }
     }
   }
 
@@ -658,13 +711,10 @@ function MindPage() {
             {display.map((m, i) => {
               const isLast = i === display.length - 1;
               const isStreamingBubble =
-                streaming &&
-                isLast &&
-                m.role === "assistant" &&
-                !m.content.startsWith(CARD_PREFIX);
+                streaming && isLast && m.role === "assistant" && !m.content.startsWith(CARD_PREFIX);
               return (
                 <Bubble
-                  key={i}
+                  key={m.id ?? `idx-${i}`}
                   m={m}
                   initials={initials}
                   isStreaming={isStreamingBubble}
@@ -854,17 +904,20 @@ function CardLoadingFallback({ card }: { card: MindCard }) {
         borderColor: `color-mix(in oklab, ${accent} 38%, var(--border-strong))`,
       }}
     >
-      <div
-        className="text-[10px] font-bold uppercase tracking-[0.25em]"
-        style={{ color: accent }}
-      >
+      <div className="text-[10px] font-bold uppercase tracking-[0.25em]" style={{ color: accent }}>
         {tag}
       </div>
       <div className="mt-0.5 font-display text-[15px] font-extrabold leading-tight tracking-tight truncate">
         {title}
       </div>
-      <div className="mt-2 h-2 w-3/4 rounded-full" style={{ background: `color-mix(in oklab, ${accent} 20%, transparent)` }} />
-      <div className="mt-1.5 h-2 w-1/2 rounded-full" style={{ background: `color-mix(in oklab, ${accent} 14%, transparent)` }} />
+      <div
+        className="mt-2 h-2 w-3/4 rounded-full"
+        style={{ background: `color-mix(in oklab, ${accent} 20%, transparent)` }}
+      />
+      <div
+        className="mt-1.5 h-2 w-1/2 rounded-full"
+        style={{ background: `color-mix(in oklab, ${accent} 14%, transparent)` }}
+      />
     </div>
   );
 }

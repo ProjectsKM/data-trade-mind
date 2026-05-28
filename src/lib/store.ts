@@ -66,7 +66,10 @@ const defaultState = (): AppState => ({
   mindMessages: [],
 });
 
-function toUser(u: AuthUser, profile?: { name?: string | null; country?: string | null } | null): User {
+function toUser(
+  u: AuthUser,
+  profile?: { name?: string | null; country?: string | null } | null,
+): User {
   return {
     id: u.id,
     email: u.email ?? "",
@@ -78,7 +81,12 @@ function toUser(u: AuthUser, profile?: { name?: string | null; country?: string 
 
 // ---------- Auth API ----------
 
-export async function signup(input: { name: string; email: string; password: string; country?: string }): Promise<User> {
+export async function signup(input: {
+  name: string;
+  email: string;
+  password: string;
+  country?: string;
+}): Promise<User> {
   if (input.password.length < 6) throw new Error("Senha precisa de pelo menos 6 caracteres.");
   const redirectUrl = typeof window !== "undefined" ? `${window.location.origin}/scan` : undefined;
   const { data, error } = await supabase.auth.signUp({
@@ -99,7 +107,10 @@ export async function login(emailRaw: string, password: string): Promise<User> {
     email: emailRaw.trim().toLowerCase(),
     password,
   });
-  if (error) throw new Error(error.message === "Invalid login credentials" ? "Email ou senha incorretos." : error.message);
+  if (error)
+    throw new Error(
+      error.message === "Invalid login credentials" ? "Email ou senha incorretos." : error.message,
+    );
   if (!data.user) throw new Error("Falha no login.");
   return toUser(data.user);
 }
@@ -178,9 +189,23 @@ export function useAppState() {
     (async () => {
       const [planRes, tradesRes, scansRes, msgsRes] = await Promise.all([
         supabase.from("user_plans").select("*").eq("user_id", user.id).maybeSingle(),
-        supabase.from("trades").select("*").eq("user_id", user.id).order("data", { ascending: false }),
-        supabase.from("scan_history").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(50),
-        supabase.from("mind_messages").select("*").eq("user_id", user.id).order("created_at", { ascending: true }).limit(200),
+        supabase
+          .from("trades")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("data", { ascending: false }),
+        supabase
+          .from("scan_history")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(50),
+        supabase
+          .from("mind_messages")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: true })
+          .limit(200),
       ]);
       if (cancelled) return;
       const plan = planRes.data;
@@ -219,54 +244,95 @@ export function useAppState() {
         })),
       });
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [user?.id]);
 
-  // Update plan fields (isPro, analysesLeft, trialDaysLeft, trialStartedAt). For arrays use helpers.
-  const update = useCallback((patch: Partial<Pick<AppState, "isPro" | "analysesLeft" | "trialDaysLeft" | "trialStartedAt">>) => {
-    const uid = userIdRef.current;
-    if (!uid) return;
-    setState((prev) => {
-      const next = { ...prev, ...patch };
-      const dbPatch: Record<string, unknown> = {};
-      if (patch.isPro !== undefined) dbPatch.is_pro = patch.isPro;
-      if (patch.analysesLeft !== undefined) dbPatch.analyses_left = patch.analysesLeft;
-      if (patch.trialDaysLeft !== undefined) dbPatch.trial_days_left = patch.trialDaysLeft;
-      if (patch.trialStartedAt !== undefined) dbPatch.trial_started_at = patch.trialStartedAt;
-      if (Object.keys(dbPatch).length) {
-        supabase.from("user_plans").update(dbPatch as never).eq("user_id", uid).then(({ error }) => {
-          if (error) console.error("update plan", error);
-        });
-      }
-      return next;
-    });
-  }, []);
+  // Update plan fields (analysesLeft, trialDaysLeft, trialStartedAt). For arrays use helpers.
+  // NÃO permite alterar `isPro` pelo client: promoção/rebaixamento de plano é
+  // exclusivo do servidor (admin.functions.ts), nunca do browser.
+  const update = useCallback(
+    (patch: Partial<Pick<AppState, "analysesLeft" | "trialDaysLeft" | "trialStartedAt">>) => {
+      const uid = userIdRef.current;
+      if (!uid) return;
+      setState((prev) => {
+        const next = { ...prev, ...patch };
+        const dbPatch: Record<string, unknown> = {};
+        if (patch.analysesLeft !== undefined) dbPatch.analyses_left = patch.analysesLeft;
+        if (patch.trialDaysLeft !== undefined) dbPatch.trial_days_left = patch.trialDaysLeft;
+        if (patch.trialStartedAt !== undefined) dbPatch.trial_started_at = patch.trialStartedAt;
+        if (Object.keys(dbPatch).length) {
+          supabase
+            .from("user_plans")
+            .update(dbPatch as never)
+            .eq("user_id", uid)
+            .then(({ error }) => {
+              if (error) console.error("update plan", error);
+            });
+        }
+        return next;
+      });
+    },
+    [],
+  );
 
   const addTrade = useCallback(async (t: Omit<Trade, "id">) => {
     const uid = userIdRef.current;
     if (!uid) return;
-    const { data, error } = await supabase.from("trades").insert({
-      user_id: uid, ativo: t.ativo, data: t.data, dir: t.dir, valor: t.valor, payout: t.payout, res: t.res, lucro: t.lucro, obs: t.obs ?? null,
-    }).select().single();
-    if (error || !data) { console.error("addTrade", error); return; }
-    const created: Trade = { id: data.id, ativo: data.ativo, data: data.data, dir: data.dir as Trade["dir"], valor: Number(data.valor), payout: Number(data.payout), res: data.res as Trade["res"], lucro: Number(data.lucro), obs: data.obs ?? undefined };
+    const { data, error } = await supabase
+      .from("trades")
+      .insert({
+        user_id: uid,
+        ativo: t.ativo,
+        data: t.data,
+        dir: t.dir,
+        valor: t.valor,
+        payout: t.payout,
+        res: t.res,
+        lucro: t.lucro,
+        obs: t.obs ?? null,
+      })
+      .select()
+      .single();
+    if (error || !data) {
+      console.error("addTrade", error);
+      return;
+    }
+    const created: Trade = {
+      id: data.id,
+      ativo: data.ativo,
+      data: data.data,
+      dir: data.dir as Trade["dir"],
+      valor: Number(data.valor),
+      payout: Number(data.payout),
+      res: data.res as Trade["res"],
+      lucro: Number(data.lucro),
+      obs: data.obs ?? undefined,
+    };
     setState((s) => ({ ...s, tradeList: [created, ...s.tradeList] }));
   }, []);
 
   const updateTrade = useCallback(async (id: string, patch: Partial<Trade>) => {
     const uid = userIdRef.current;
     if (!uid) return;
-    setState((s) => ({ ...s, tradeList: s.tradeList.map((t) => (t.id === id ? { ...t, ...patch } : t)) }));
-    await supabase.from("trades").update({
-      ...(patch.ativo !== undefined && { ativo: patch.ativo }),
-      ...(patch.data !== undefined && { data: patch.data }),
-      ...(patch.dir !== undefined && { dir: patch.dir }),
-      ...(patch.valor !== undefined && { valor: patch.valor }),
-      ...(patch.payout !== undefined && { payout: patch.payout }),
-      ...(patch.res !== undefined && { res: patch.res }),
-      ...(patch.lucro !== undefined && { lucro: patch.lucro }),
-      ...(patch.obs !== undefined && { obs: patch.obs ?? null }),
-    }).eq("id", id);
+    setState((s) => ({
+      ...s,
+      tradeList: s.tradeList.map((t) => (t.id === id ? { ...t, ...patch } : t)),
+    }));
+    await supabase
+      .from("trades")
+      .update({
+        ...(patch.ativo !== undefined && { ativo: patch.ativo }),
+        ...(patch.data !== undefined && { data: patch.data }),
+        ...(patch.dir !== undefined && { dir: patch.dir }),
+        ...(patch.valor !== undefined && { valor: patch.valor }),
+        ...(patch.payout !== undefined && { payout: patch.payout }),
+        ...(patch.res !== undefined && { res: patch.res }),
+        ...(patch.lucro !== undefined && { lucro: patch.lucro }),
+        ...(patch.obs !== undefined && { obs: patch.obs ?? null }),
+      })
+      .eq("id", id);
   }, []);
 
   const deleteTrade = useCallback(async (id: string) => {
@@ -277,23 +343,35 @@ export function useAppState() {
   const addScan = useCallback(async (r: ScanResult) => {
     const uid = userIdRef.current;
     if (!uid) return;
-    const { data, error } = await supabase.from("scan_history").insert({
-      user_id: uid,
-      ativo: r.ativo ?? null,
-      timeframe: r.timeframe ?? null,
-      direcao: r.direcao ?? null,
-      confianca: r.confianca ?? null,
-      result: r as never,
-    }).select().single();
-    if (error || !data) { console.error("addScan", error); return; }
-    setState((s) => ({ ...s, history: [{ ...r, id: data.id, createdAt: data.created_at }, ...s.history].slice(0, 50) }));
+    const { data, error } = await supabase
+      .from("scan_history")
+      .insert({
+        user_id: uid,
+        ativo: r.ativo ?? null,
+        timeframe: r.timeframe ?? null,
+        direcao: r.direcao ?? null,
+        confianca: r.confianca ?? null,
+        result: r as never,
+      })
+      .select()
+      .single();
+    if (error || !data) {
+      console.error("addScan", error);
+      return;
+    }
+    setState((s) => ({
+      ...s,
+      history: [{ ...r, id: data.id, createdAt: data.created_at }, ...s.history].slice(0, 50),
+    }));
   }, []);
 
   const addMindMessages = useCallback(async (msgs: ChatMsg[]) => {
     const uid = userIdRef.current;
     if (!uid || msgs.length === 0) return;
     setState((s) => ({ ...s, mindMessages: [...s.mindMessages, ...msgs] }));
-    await supabase.from("mind_messages").insert(msgs.map((m) => ({ user_id: uid, role: m.role, content: m.content })));
+    await supabase
+      .from("mind_messages")
+      .insert(msgs.map((m) => ({ user_id: uid, role: m.role, content: m.content })));
   }, []);
 
   const clearMind = useCallback(async () => {
@@ -307,4 +385,6 @@ export function useAppState() {
 }
 
 // Synchronous getter no longer available — use useUser() hook.
-export function getCurrentUser(): null { return null; }
+export function getCurrentUser(): null {
+  return null;
+}

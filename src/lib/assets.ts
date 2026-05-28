@@ -3,9 +3,22 @@ export type Categoria = "CRIPTO" | "FOREX" | "ACOES";
 export const ASSETS: Record<Categoria, string[]> = {
   CRIPTO: ["BTC/USD", "XRP/USD", "BCH/USD", "LTC/USD", "ETH/USD", "BNB/USD", "SOL/USD"],
   FOREX: [
-    "GBP/AUD", "EUR/NZD", "AUD/CAD", "AUD/NZD", "AUD/JPY", "CAD/CHF",
-    "CAD/JPY", "CHF/JPY", "EUR/CHF", "EUR/AUD", "EUR/CAD", "EUR/GBP",
-    "EUR/USD", "NZD/CHF", "USD/JPY", "NZD/CAD",
+    "GBP/AUD",
+    "EUR/NZD",
+    "AUD/CAD",
+    "AUD/NZD",
+    "AUD/JPY",
+    "CAD/CHF",
+    "CAD/JPY",
+    "CHF/JPY",
+    "EUR/CHF",
+    "EUR/AUD",
+    "EUR/CAD",
+    "EUR/GBP",
+    "EUR/USD",
+    "NZD/CHF",
+    "USD/JPY",
+    "NZD/CAD",
   ],
   ACOES: ["Apple", "Amazon", "McDonalds", "Microsoft", "Tesla"],
 };
@@ -47,17 +60,36 @@ export function getBanca(): number | null {
   return isFinite(n) && n > 0 ? n : null;
 }
 
-export function setBanca(v: number): void {
+const BANCA_TS_KEY = "orion.gestao.bancaUpdatedAt";
+
+export function setBanca(v: number, updatedAt: number = Date.now()): void {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(BANCA_KEY, String(v));
+  try {
+    window.localStorage.setItem(BANCA_KEY, String(v));
+    window.localStorage.setItem(BANCA_TS_KEY, String(updatedAt));
+  } catch (e) {
+    // Quota cheia / modo privado do Safari — não deixa quebrar o fluxo de gestão.
+    console.error("setBanca failed", e);
+  }
+}
+
+export function getBancaUpdatedAt(): number {
+  if (typeof window === "undefined") return 0;
+  const n = Number(window.localStorage.getItem(BANCA_TS_KEY));
+  return isFinite(n) ? n : 0;
 }
 
 export function getValorMode(): "VALOR" | "PCT" {
   if (typeof window === "undefined") return "VALOR";
-  return (window.localStorage.getItem(VALOR_MODE_KEY) as "VALOR" | "PCT") || "VALOR";
+  // Valida explicitamente em vez de cast: lixo/versão antiga no storage vira "VALOR".
+  return window.localStorage.getItem(VALOR_MODE_KEY) === "PCT" ? "PCT" : "VALOR";
 }
 
 export function setValorMode(m: "VALOR" | "PCT"): void {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(VALOR_MODE_KEY, m);
+  try {
+    window.localStorage.setItem(VALOR_MODE_KEY, m);
+  } catch (e) {
+    console.error("setValorMode failed", e);
+  }
 }

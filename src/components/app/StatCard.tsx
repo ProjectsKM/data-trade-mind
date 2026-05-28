@@ -32,7 +32,9 @@ export function StatCard({
       style={{ background: "var(--surface)", borderColor: "var(--border)" }}
     >
       <div className="flex items-center justify-between gap-2 text-muted-foreground">
-        <span className="min-w-0 truncate text-[11px] font-medium uppercase tracking-wide">{label}</span>
+        <span className="min-w-0 truncate text-[11px] font-medium uppercase tracking-wide">
+          {label}
+        </span>
         {icon && (
           <span
             className="flex-none"

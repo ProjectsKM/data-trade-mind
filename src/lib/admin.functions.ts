@@ -1,5 +1,5 @@
 import { createServerFn, createMiddleware } from "@tanstack/react-start";
-import { getCookie, setCookie, deleteCookie } from "@tanstack/react-start/server";
+import { getCookie, setCookie, deleteCookie, getRequestHeader } from "@tanstack/react-start/server";
 import { z } from "zod";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
@@ -43,6 +43,22 @@ function isAuthed() {
   return verifyToken(getCookie(COOKIE_NAME));
 }
 
+// Comparação de senha em tempo constante: compara o HMAC de cada lado, evitando
+// vazamento de timing e de comprimento da senha esperada.
+function passwordMatches(provided: string, expected: string) {
+  const a = createHmac("sha256", secret()).update(provided).digest();
+  const b = createHmac("sha256", secret()).update(expected).digest();
+  return timingSafeEqual(a, b);
+}
+
+function clientIp() {
+  return (
+    getRequestHeader("cf-connecting-ip") ||
+    getRequestHeader("x-forwarded-for")?.split(",")[0]?.trim() ||
+    "unknown"
+  );
+}
+
 const requireAdminSession = createMiddleware({ type: "function" }).server(async ({ next }) => {
   if (!isAuthed()) {
     throw new Response("Unauthorized", { status: 401 });
@@ -55,11 +71,23 @@ export const adminLogin = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const expected = process.env.ADMIN_PASSWORD;
     if (!expected) return { ok: false as const, error: "ADMIN_PASSWORD não configurado." };
-    if (data.password !== expected) return { ok: false as const, error: "Senha incorreta." };
+
+    const ip = clientIp();
+    const { data: allowed } = await supabaseAdmin.rpc("admin_login_check", { p_ip: ip });
+    if (allowed === false) {
+      return { ok: false as const, error: "Muitas tentativas. Tente novamente em alguns minutos." };
+    }
+
+    if (!passwordMatches(data.password, expected)) {
+      await supabaseAdmin.rpc("admin_login_record", { p_ip: ip, p_success: false });
+      return { ok: false as const, error: "Senha incorreta." };
+    }
+    await supabaseAdmin.rpc("admin_login_record", { p_ip: ip, p_success: true });
+
     setCookie(COOKIE_NAME, makeToken(), {
       httpOnly: true,
       secure: true,
-      sameSite: "none",
+      sameSite: "lax",
       path: "/",
       maxAge: MAX_AGE,
     });
@@ -117,21 +145,26 @@ export const listUsers = createServerFn({ method: "GET" })
 
       const profileMap = new Map((profiles ?? []).map((p) => [p.user_id, p]));
       const planMap = new Map((plans ?? []).map((p) => [p.user_id, p]));
-      const rows: AdminUserRow[] = authUsers.map((u) => {
-        const pr = profileMap.get(u.id);
-        const pl = planMap.get(u.id);
-        return {
-          user_id: u.id,
-          email: pr?.email ?? u.email ?? null,
-          name: pr?.name ?? (typeof u.user_metadata?.name === "string" ? u.user_metadata.name : null),
-          country: pr?.country ?? (typeof u.user_metadata?.country === "string" ? u.user_metadata.country : null),
-          created_at: pr?.created_at ?? u.created_at,
-          is_pro: pl?.is_pro ?? false,
-          analyses_left: pl?.analyses_left ?? 5,
-          trial_days_left: pl?.trial_days_left ?? 7,
-          trial_started_at: pl?.trial_started_at ?? null,
-        };
-      }).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      const rows: AdminUserRow[] = authUsers
+        .map((u) => {
+          const pr = profileMap.get(u.id);
+          const pl = planMap.get(u.id);
+          return {
+            user_id: u.id,
+            email: pr?.email ?? u.email ?? null,
+            name:
+              pr?.name ?? (typeof u.user_metadata?.name === "string" ? u.user_metadata.name : null),
+            country:
+              pr?.country ??
+              (typeof u.user_metadata?.country === "string" ? u.user_metadata.country : null),
+            created_at: pr?.created_at ?? u.created_at,
+            is_pro: pl?.is_pro ?? false,
+            analyses_left: pl?.analyses_left ?? 5,
+            trial_days_left: pl?.trial_days_left ?? 7,
+            trial_started_at: pl?.trial_started_at ?? null,
+          };
+        })
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
       return { users: rows };
     } catch (error) {

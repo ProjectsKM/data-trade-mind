@@ -13,15 +13,23 @@ export const Route = createFileRoute("/api/calendar")({
         const userId = await verifySupabaseUser(request);
         if (!userId) {
           return new Response(JSON.stringify({ ok: false, error: "Não autorizado." }), {
-            status: 401, headers: { "Content-Type": "application/json", ...CORS },
+            status: 401,
+            headers: { "Content-Type": "application/json", ...CORS },
           });
         }
         const { data: plan } = await supabaseAdmin
-          .from("user_plans").select("is_pro").eq("user_id", userId).maybeSingle();
+          .from("user_plans")
+          .select("is_pro")
+          .eq("user_id", userId)
+          .maybeSingle();
         if (!plan?.is_pro) {
-          return new Response(JSON.stringify({ ok: false, error: "Recurso exclusivo do Premium Anual." }), {
-            status: 402, headers: { "Content-Type": "application/json", ...CORS },
-          });
+          return new Response(
+            JSON.stringify({ ok: false, error: "Recurso exclusivo do Premium Anual." }),
+            {
+              status: 402,
+              headers: { "Content-Type": "application/json", ...CORS },
+            },
+          );
         }
         try {
           const r = await fetch("https://nfs.faireconomy.media/ff_calendar_thisweek.json", {
@@ -43,10 +51,14 @@ export const Route = createFileRoute("/api/calendar")({
             },
           });
         } catch (e) {
-          return new Response(JSON.stringify({ ok: false, error: (e as Error).message }), {
-            status: 500,
-            headers: { "Content-Type": "application/json", ...CORS },
-          });
+          console.error("calendar fetch failed", e);
+          return new Response(
+            JSON.stringify({ ok: false, error: "Falha ao carregar o calendário." }),
+            {
+              status: 502,
+              headers: { "Content-Type": "application/json", ...CORS },
+            },
+          );
         }
       },
     },

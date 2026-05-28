@@ -5,7 +5,8 @@
 const ALLOWED_ORIGIN_PATTERNS: RegExp[] = [
   /^https:\/\/[a-z0-9-]+\.lovable\.app$/i,
   /^https:\/\/[a-z0-9-]+\.lovableproject\.com$/i,
-  /^https?:\/\/localhost(?::\d+)?$/i,
+  // localhost só é permitido em desenvolvimento — nunca reflete localhost em produção.
+  ...(import.meta.env?.DEV ? [/^https?:\/\/localhost(?::\d+)?$/i] : []),
 ];
 
 function allowedOrigin(origin: string | null): string | null {

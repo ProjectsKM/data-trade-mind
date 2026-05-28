@@ -22,12 +22,12 @@ export type ReportByCategory = {
 };
 
 export type MonthlyReportData = {
-  label: string;            // ex: "Maio/2026"
+  label: string; // ex: "Maio/2026"
   totalOps: number;
   wins: number;
   losses: number;
-  winRate: number;          // 0-100
-  lucroTotal: number;       // soma de lucros (positivo) e prejuízos (negativos)
+  winRate: number; // 0-100
+  lucroTotal: number; // soma de lucros (positivo) e prejuízos (negativos)
   melhorAtivo: string | null;
   byCategory: ReportByCategory[];
 };
@@ -36,14 +36,14 @@ export type WinReportPeriod = "today" | "week" | "month" | "all";
 
 export type WinReportData = {
   period: WinReportPeriod;
-  label: string;            // ex: "Últimos 7 dias"
+  label: string; // ex: "Últimos 7 dias"
   totalOps: number;
   wins: number;
   losses: number;
   winRate: number;
   lucroTotal: number;
-  bestStreak: number;       // maior sequência de wins
-  worstStreak: number;      // maior sequência de losses
+  bestStreak: number; // maior sequência de wins
+  worstStreak: number; // maior sequência de losses
 };
 
 export type MindCard =

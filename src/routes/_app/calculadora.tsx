@@ -11,7 +11,14 @@ import {
   Filler,
 } from "chart.js";
 import { Line } from "react-chartjs-2";
-import { Calculator, DollarSign, TrendingUp, TrendingDown, Target, AlertTriangle } from "lucide-react";
+import {
+  Calculator,
+  DollarSign,
+  TrendingUp,
+  TrendingDown,
+  Target,
+  AlertTriangle,
+} from "lucide-react";
 import { PageHeader } from "@/components/app/PageHeader";
 import { StatCard } from "@/components/app/StatCard";
 import { Input } from "@/components/ui/input";
@@ -39,50 +46,61 @@ function CalcPage() {
     const protecao = [valor, +(valor * 2).toFixed(2), +(valor * 4).toFixed(2)];
     const protecaoTotal = protecao.reduce((a, b) => a + b, 0);
     const metaValor = +(banca * (meta / 100)).toFixed(2);
+    // Projeção determinística pelo VALOR ESPERADO por operação (não é aleatória):
+    // E[Δ] = risco% * banca * [ winrate% * payout% − (1 − winrate%) ].
+    // Mostra a curva esperada/composta dos parâmetros, estável a cada render.
+    const w = winrate / 100;
+    const r = risco / 100;
+    const po = payout / 100;
+    const evFactor = r * (w * po - (1 - w));
     let bancaSim = banca;
     const progressao = Array.from({ length: ops }, (_, i) => {
-      const win = Math.random() < winrate / 100;
-      const delta = win ? bancaSim * (risco / 100) * (payout / 100) : -(bancaSim * (risco / 100));
-      bancaSim = +(bancaSim + delta).toFixed(2);
-      return { op: i + 1, win, banca: bancaSim };
+      bancaSim = +(bancaSim + bancaSim * evFactor).toFixed(2);
+      return { op: i + 1, banca: bancaSim };
     });
     return { valor, lucroWin, prejLoss, protecao, protecaoTotal, metaValor, progressao };
   }, [banca, risco, payout, meta, ops, winrate]);
 
   const accentRgb = "98, 142, 230";
-  const lineData = {
-    labels: calc.progressao.map((p) => `Op ${p.op}`),
-    datasets: [
-      {
-        label: "Banca",
-        data: calc.progressao.map((p) => p.banca),
-        borderColor: `rgb(${accentRgb})`,
-        backgroundColor: `rgba(${accentRgb}, 0.12)`,
-        fill: true,
-        tension: 0.3,
-        borderWidth: 2,
-        pointRadius: 0,
-        pointHoverRadius: 4,
+  const lineData = useMemo(
+    () => ({
+      labels: calc.progressao.map((p) => `Op ${p.op}`),
+      datasets: [
+        {
+          label: "Banca",
+          data: calc.progressao.map((p) => p.banca),
+          borderColor: `rgb(${accentRgb})`,
+          backgroundColor: `rgba(${accentRgb}, 0.12)`,
+          fill: true,
+          tension: 0.3,
+          borderWidth: 2,
+          pointRadius: 0,
+          pointHoverRadius: 4,
+        },
+      ],
+    }),
+    [calc.progressao],
+  );
+  const lineOpts = useMemo(
+    () => ({
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: {
+          ticks: { color: "rgb(140, 150, 170)", font: { size: 9 } },
+          grid: { color: "rgba(255,255,255,0.04)" },
+          border: { display: false },
+        },
+        y: {
+          ticks: { color: "rgb(140, 150, 170)", font: { size: 10 } },
+          grid: { color: "rgba(255,255,255,0.04)" },
+          border: { display: false },
+        },
       },
-    ],
-  };
-  const lineOpts = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: { legend: { display: false } },
-    scales: {
-      x: {
-        ticks: { color: "rgb(140, 150, 170)", font: { size: 9 } },
-        grid: { color: "rgba(255,255,255,0.04)" },
-        border: { display: false },
-      },
-      y: {
-        ticks: { color: "rgb(140, 150, 170)", font: { size: 10 } },
-        grid: { color: "rgba(255,255,255,0.04)" },
-        border: { display: false },
-      },
-    },
-  };
+    }),
+    [],
+  );
 
   const protecaoPct = (calc.protecaoTotal / banca) * 100;
 
@@ -100,7 +118,9 @@ function CalcPage() {
           className="space-y-3 rounded-xl border p-5 fade-up transition-shadow hover:shadow-[0_18px_50px_-30px_color-mix(in_oklab,var(--accent)_50%,transparent)]"
           style={{ background: "var(--surface)", borderColor: "var(--border)" }}
         >
-          <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Parâmetros</div>
+          <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            Parâmetros
+          </div>
           <Field label="Banca inicial ($)" value={banca} onChange={setBanca} />
           <Field label="Risco por operação (%)" value={risco} onChange={setRisco} step={0.5} />
           <Field label="Payout (%)" value={payout} onChange={setPayout} />
@@ -147,7 +167,11 @@ function CalcPage() {
                 Proteção (padrão Orion)
               </div>
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <AlertTriangle className="h-3 w-3" strokeWidth={1.75} style={{ color: "var(--gold)" }} />
+                <AlertTriangle
+                  className="h-3 w-3"
+                  strokeWidth={1.75}
+                  style={{ color: "var(--gold)" }}
+                />
                 Risco total{" "}
                 <span className="font-mono font-semibold tabular" style={{ color: "var(--red)" }}>
                   ${calc.protecaoTotal.toFixed(2)} ({protecaoPct.toFixed(1)}%)
@@ -163,8 +187,13 @@ function CalcPage() {
                     className="rounded-md border p-3 text-center"
                     style={{ background: "var(--surface-2)", borderColor: "var(--border)" }}
                   >
-                    <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{labels[i]}</div>
-                    <div className="mt-1 font-mono text-lg font-semibold tabular" style={{ color: "var(--gold)" }}>
+                    <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                      {labels[i]}
+                    </div>
+                    <div
+                      className="mt-1 font-mono text-lg font-semibold tabular"
+                      style={{ color: "var(--gold)" }}
+                    >
                       ${m.toFixed(2)}
                     </div>
                   </div>
@@ -172,7 +201,9 @@ function CalcPage() {
               })}
             </div>
             <div className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
-              Padrão Orion: <strong className="text-foreground">máximo 2 proteções</strong>, cada uma <strong className="text-foreground">2× a anterior</strong>. Stop loss diário: máximo 2 loss completos.
+              Padrão Orion: <strong className="text-foreground">máximo 2 proteções</strong>, cada
+              uma <strong className="text-foreground">2× a anterior</strong>. Stop loss diário:
+              máximo 2 loss completos.
             </div>
           </div>
 
@@ -194,7 +225,9 @@ function CalcPage() {
                         : "var(--red)",
                   }}
                 >
-                  ${calc.progressao[calc.progressao.length - 1]?.banca.toFixed(2) ?? banca.toFixed(2)}
+                  $
+                  {calc.progressao[calc.progressao.length - 1]?.banca.toFixed(2) ??
+                    banca.toFixed(2)}
                 </span>
               </div>
             </div>

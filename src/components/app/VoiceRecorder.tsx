@@ -27,10 +27,21 @@ export function VoiceRecorder({ onTranscript, disabled }: Props) {
   const discardRef = useRef(false);
 
   function cleanup() {
-    if (tickRef.current) { window.clearInterval(tickRef.current); tickRef.current = null; }
-    if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null; }
-    if (streamRef.current) { streamRef.current.getTracks().forEach((t) => t.stop()); streamRef.current = null; }
-    if (audioCtxRef.current && audioCtxRef.current.state !== "closed") { void audioCtxRef.current.close(); }
+    if (tickRef.current) {
+      window.clearInterval(tickRef.current);
+      tickRef.current = null;
+    }
+    if (rafRef.current) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    }
+    if (audioCtxRef.current && audioCtxRef.current.state !== "closed") {
+      void audioCtxRef.current.close();
+    }
     audioCtxRef.current = null;
     analyserRef.current = null;
     mediaRef.current = null;
@@ -46,7 +57,10 @@ export function VoiceRecorder({ onTranscript, disabled }: Props) {
     }, 200);
   }
   function stopTick() {
-    if (tickRef.current) { window.clearInterval(tickRef.current); tickRef.current = null; }
+    if (tickRef.current) {
+      window.clearInterval(tickRef.current);
+      tickRef.current = null;
+    }
     elapsedBaseRef.current = elapsedBaseRef.current + (Date.now() - startedAtRef.current);
     setElapsed(elapsedBaseRef.current);
   }
@@ -76,7 +90,9 @@ export function VoiceRecorder({ onTranscript, disabled }: Props) {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
-      const AC = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      const AC =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       const ctx = new AC();
       audioCtxRef.current = ctx;
       const src = ctx.createMediaStreamSource(stream);
@@ -94,8 +110,12 @@ export function VoiceRecorder({ onTranscript, disabled }: Props) {
       mediaRef.current = mr;
       chunksRef.current = [];
       discardRef.current = false;
-      mr.ondataavailable = (e) => { if (e.data && e.data.size > 0) chunksRef.current.push(e.data); };
-      mr.onstop = () => { void onStop(); };
+      mr.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) chunksRef.current.push(e.data);
+      };
+      mr.onstop = () => {
+        void onStop();
+      };
       mr.start(250);
 
       elapsedBaseRef.current = 0;
@@ -117,7 +137,10 @@ export function VoiceRecorder({ onTranscript, disabled }: Props) {
     if (!mr || mr.state !== "recording") return;
     mr.pause();
     stopTick();
-    if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null; }
+    if (rafRef.current) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
     setPhase("paused");
   }
 
@@ -134,10 +157,23 @@ export function VoiceRecorder({ onTranscript, disabled }: Props) {
   function discard() {
     discardRef.current = true;
     const mr = mediaRef.current;
-    try { mr?.stop(); } catch { /* ignore */ }
-    if (tickRef.current) { window.clearInterval(tickRef.current); tickRef.current = null; }
-    if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null; }
-    if (streamRef.current) { streamRef.current.getTracks().forEach((t) => t.stop()); streamRef.current = null; }
+    try {
+      mr?.stop();
+    } catch {
+      /* ignore */
+    }
+    if (tickRef.current) {
+      window.clearInterval(tickRef.current);
+      tickRef.current = null;
+    }
+    if (rafRef.current) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    }
     setPhase("idle");
     setElapsed(0);
     elapsedBaseRef.current = 0;
@@ -146,9 +182,15 @@ export function VoiceRecorder({ onTranscript, disabled }: Props) {
   function send() {
     const mr = mediaRef.current;
     if (!mr) return;
+    // Evita clique duplo: só envia a partir de gravação/pausa, nunca durante transcrição.
+    if (phase !== "recording" && phase !== "paused") return;
     setPhase("transcribing");
     if (mr.state !== "inactive") {
-      try { mr.stop(); } catch { /* ignore */ }
+      try {
+        mr.stop();
+      } catch {
+        /* ignore */
+      }
     } else {
       void onStop();
     }
@@ -215,7 +257,11 @@ export function VoiceRecorder({ onTranscript, disabled }: Props) {
         disabled={disabled}
         title="Gravar áudio"
         className="flex h-9 w-9 flex-none items-center justify-center rounded-md border smooth hover:border-[color:var(--accent)] hover:text-[color:var(--accent)] disabled:opacity-40"
-        style={{ borderColor: "var(--border-strong)", background: "var(--surface-2)", color: "var(--text-muted)" }}
+        style={{
+          borderColor: "var(--border-strong)",
+          background: "var(--surface-2)",
+          color: "var(--text-muted)",
+        }}
       >
         <Mic className="h-4 w-4" strokeWidth={1.75} />
       </button>
@@ -224,8 +270,10 @@ export function VoiceRecorder({ onTranscript, disabled }: Props) {
 
   if (phase === "transcribing") {
     return (
-      <div className="flex h-9 items-center gap-2 rounded-md border px-3 text-xs text-muted-foreground"
-        style={{ borderColor: "var(--border-strong)", background: "var(--surface-2)" }}>
+      <div
+        className="flex h-9 items-center gap-2 rounded-md border px-3 text-xs text-muted-foreground"
+        style={{ borderColor: "var(--border-strong)", background: "var(--surface-2)" }}
+      >
         <Loader2 className="h-3.5 w-3.5 animate-spin" style={{ color: "var(--accent)" }} />
         Transcrevendo…
       </div>
@@ -238,11 +286,23 @@ export function VoiceRecorder({ onTranscript, disabled }: Props) {
   const isPaused = phase === "paused";
 
   return (
-    <div className="flex h-9 flex-1 items-center gap-2 rounded-md border px-2"
-      style={{ borderColor: "color-mix(in oklab, var(--red) 35%, var(--border-strong))", background: "var(--surface-2)" }}>
-      <span className="flex h-2 w-2 flex-none rounded-full"
-        style={{ background: isPaused ? "var(--text-dim)" : "var(--red)", animation: isPaused ? undefined : "pulse 1.4s ease-in-out infinite" }} />
-      <span className="font-mono text-[11px] tabular text-muted-foreground">{mm}:{ss}</span>
+    <div
+      className="flex h-9 flex-1 items-center gap-2 rounded-md border px-2"
+      style={{
+        borderColor: "color-mix(in oklab, var(--red) 35%, var(--border-strong))",
+        background: "var(--surface-2)",
+      }}
+    >
+      <span
+        className="flex h-2 w-2 flex-none rounded-full"
+        style={{
+          background: isPaused ? "var(--text-dim)" : "var(--red)",
+          animation: isPaused ? undefined : "pulse 1.4s ease-in-out infinite",
+        }}
+      />
+      <span className="font-mono text-[11px] tabular text-muted-foreground">
+        {mm}:{ss}
+      </span>
       <div className="flex h-5 flex-1 items-end gap-[2px]">
         {levels.map((v, i) => (
           <span

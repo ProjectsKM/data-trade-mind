@@ -27,8 +27,20 @@ import { PageHeader } from "@/components/app/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   ASSETS,
   CATEGORIA_LABEL,
@@ -64,8 +76,10 @@ function computeTimes(expiracao: 1 | 5) {
   const entry = new Date();
   entry.setSeconds(0, 0);
   entry.setMinutes(entry.getMinutes() + expiracao);
-  const p1 = new Date(entry); p1.setMinutes(p1.getMinutes() + 1);
-  const p2 = new Date(p1); p2.setMinutes(p2.getMinutes() + 1);
+  const p1 = new Date(entry);
+  p1.setMinutes(p1.getMinutes() + 1);
+  const p2 = new Date(p1);
+  p2.setMinutes(p2.getMinutes() + 1);
   return { entrada: fmtHHMM(entry), protecao1: fmtHHMM(p1), protecao2: fmtHHMM(p2) };
 }
 
@@ -81,8 +95,17 @@ function ScanPage() {
   const [drag, setDrag] = useState(false);
   const [history, setHistory] = useState<ScanHistoryItem[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
+  const mountedRef = useRef(true);
+  useEffect(
+    () => () => {
+      mountedRef.current = false;
+    },
+    [],
+  );
 
-  useEffect(() => { setHistory(loadScanHistory()); }, []);
+  useEffect(() => {
+    setHistory(loadScanHistory());
+  }, []);
 
   useEffect(() => {
     function onPaste(e: ClipboardEvent) {
@@ -169,16 +192,20 @@ function ScanPage() {
         return refreshed.session?.access_token ?? tk ?? null;
       }
 
-      const callApi = async (tk: string) => fetch("/api/ai-scan", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${tk}` },
-        body: JSON.stringify({ imageBase64: b64, mediaType, durationMin: duration }),
-      });
+      const callApi = async (tk: string) =>
+        fetch("/api/ai-scan", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${tk}` },
+          body: JSON.stringify({ imageBase64: b64, mediaType, durationMin: duration }),
+        });
 
       let token = await resolveToken();
       if (!token) {
         const msg = "Sessão expirada. Faça login novamente.";
-        setErr(msg); toast.error(msg); setStage("error"); return;
+        setErr(msg);
+        toast.error(msg);
+        setStage("error");
+        return;
       }
       let r = await callApi(token);
       if (r.status === 401) {
@@ -187,11 +214,15 @@ function ScanPage() {
         token = refreshed.session?.access_token ?? null;
         if (!token) {
           const msg = "Sessão expirada. Faça login novamente.";
-          setErr(msg); toast.error(msg); setStage("error"); return;
+          setErr(msg);
+          toast.error(msg);
+          setStage("error");
+          return;
         }
         r = await callApi(token);
       }
       const data = (await r.json()) as { ok: boolean; result?: ScanResult; error?: string };
+      if (!mountedRef.current) return;
       if (!data.ok || !data.result) {
         const msg = data.error || "Não foi possível analisar a imagem.";
         setErr(msg);
@@ -207,6 +238,7 @@ function ScanPage() {
       };
       setResult(res);
       const thumb = await makeThumb(imgData);
+      if (!mountedRef.current) return;
       setResultThumb(thumb);
       const item: ScanHistoryItem = {
         id: crypto.randomUUID(),
@@ -248,16 +280,27 @@ function ScanPage() {
   }
 
   const planBadge = state.isPro ? (
-    <Badge variant="outline" className="border-[color:var(--accent)]/30 bg-[color:var(--accent)]/10 text-[color:var(--accent)]">
+    <Badge
+      variant="outline"
+      className="border-[color:var(--accent)]/30 bg-[color:var(--accent)]/10 text-[color:var(--accent)]"
+    >
       Acesso Anual
     </Badge>
   ) : (
-    <Link to="/upgrade" viewTransition preload="intent" className="group smooth press hover:opacity-80">
+    <Link
+      to="/upgrade"
+      viewTransition
+      preload="intent"
+      className="group smooth press hover:opacity-80"
+    >
       <Badge
         variant="outline"
         className="gap-1.5 font-mono text-[10px] tracking-wide transition-transform group-hover:-translate-y-px"
       >
-        <span className="h-1.5 w-1.5 rounded-full blink-dot" style={{ background: "var(--gold)" }} />
+        <span
+          className="h-1.5 w-1.5 rounded-full blink-dot"
+          style={{ background: "var(--gold)" }}
+        />
         {state.analysesLeft} análises no trial
       </Badge>
     </Link>
@@ -290,16 +333,24 @@ function ScanPage() {
             className="cursor-pointer rounded-xl border border-dashed p-12 text-center smooth hover:border-[color:var(--accent)]"
             style={{
               borderColor: drag ? "var(--accent)" : "var(--border-strong)",
-              background: drag ? "color-mix(in oklab, var(--accent) 5%, transparent)" : "var(--surface)",
+              background: drag
+                ? "color-mix(in oklab, var(--accent) 5%, transparent)"
+                : "var(--surface)",
             }}
           >
             <div
               className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-lg border"
-              style={{ background: "var(--surface-2)", borderColor: "var(--border)", color: "var(--accent)" }}
+              style={{
+                background: "var(--surface-2)",
+                borderColor: "var(--border)",
+                color: "var(--accent)",
+              }}
             >
               <Upload className="h-5 w-5" strokeWidth={1.75} />
             </div>
-            <div className="font-display text-base font-semibold">Solte ou clique para enviar o gráfico</div>
+            <div className="font-display text-base font-semibold">
+              Solte ou clique para enviar o gráfico
+            </div>
             <div className="mt-1 text-sm text-muted-foreground">PNG, JPG ou WEBP · até 5 MB</div>
             <div className="mt-3 hidden font-mono text-[10px] uppercase tracking-wider text-[color:var(--text-dim)] sm:block">
               ou pressione Ctrl + V
@@ -333,43 +384,79 @@ function ScanPage() {
               borderColor: "color-mix(in oklab, var(--accent) 14%, transparent)",
             }}
           >
-            <Info className="mt-0.5 h-3.5 w-3.5 flex-none" strokeWidth={1.75} style={{ color: "var(--accent)" }} />
-            <span>Garanta que velas, indicadores e horário estejam visíveis no print para uma análise mais precisa.</span>
+            <Info
+              className="mt-0.5 h-3.5 w-3.5 flex-none"
+              strokeWidth={1.75}
+              style={{ color: "var(--accent)" }}
+            />
+            <span>
+              Garanta que velas, indicadores e horário estejam visíveis no print para uma análise
+              mais precisa.
+            </span>
           </div>
 
           {history.length > 0 && (
-            <div className="rounded-xl border" style={{ background: "var(--surface)", borderColor: "var(--border)" }}>
+            <div
+              className="rounded-xl border"
+              style={{ background: "var(--surface)", borderColor: "var(--border)" }}
+            >
               <div className="flex items-center justify-between px-4 py-3">
                 <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
                   <History className="h-3.5 w-3.5" strokeWidth={1.75} />
                   Histórico de análises
                 </div>
-                <span className="font-mono text-[10px] text-[color:var(--text-dim)]">{history.length}</span>
+                <span className="font-mono text-[10px] text-[color:var(--text-dim)]">
+                  {history.length}
+                </span>
               </div>
               <div className="grid gap-2 px-3 pb-3 sm:grid-cols-2">
                 {history.slice(0, 8).map((h) => {
                   const compra = h.result.direcao === "COMPRA";
                   return (
-                    <div key={h.id} className="group relative flex gap-3 rounded-lg border p-2 smooth hover:border-[color:var(--accent)]"
-                      style={{ background: "var(--surface-2)", borderColor: "var(--border)" }}>
-                      <button onClick={() => openHistoryItem(h)} className="flex flex-1 gap-3 text-left">
-                        <img src={h.thumb} alt="" className="h-14 w-20 flex-none rounded object-cover" />
+                    <div
+                      key={h.id}
+                      className="group relative flex gap-3 rounded-lg border p-2 smooth hover:border-[color:var(--accent)]"
+                      style={{ background: "var(--surface-2)", borderColor: "var(--border)" }}
+                    >
+                      <button
+                        onClick={() => openHistoryItem(h)}
+                        className="flex flex-1 gap-3 text-left"
+                      >
+                        <img
+                          src={h.thumb}
+                          alt=""
+                          className="h-14 w-20 flex-none rounded object-cover"
+                        />
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-1.5">
-                            <span className="text-xs font-semibold" style={{ color: compra ? "var(--green)" : "var(--red)" }}>
+                            <span
+                              className="text-xs font-semibold"
+                              style={{ color: compra ? "var(--green)" : "var(--red)" }}
+                            >
                               {compra ? "Compra" : "Venda"}
                             </span>
-                            <span className="font-mono text-[10px] text-muted-foreground">{h.result.confianca}%</span>
+                            <span className="font-mono text-[10px] text-muted-foreground">
+                              {h.result.confianca}%
+                            </span>
                           </div>
                           <div className="mt-0.5 font-mono text-[10px] text-muted-foreground">
                             Entrada {h.result.entrada} · M{h.expiracaoMin}
                           </div>
                           <div className="font-mono text-[10px] text-[color:var(--text-dim)]">
-                            {new Date(h.createdAt).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                            {new Date(h.createdAt).toLocaleString("pt-BR", {
+                              day: "2-digit",
+                              month: "2-digit",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
                           </div>
                         </div>
                       </button>
-                      <button onClick={() => deleteHistoryItem(h.id)} aria-label="Excluir análise" className="absolute right-1.5 top-1.5 text-muted-foreground transition-opacity hover:text-[color:var(--red)] sm:opacity-0 sm:group-hover:opacity-100">
+                      <button
+                        onClick={() => deleteHistoryItem(h.id)}
+                        aria-label="Excluir análise"
+                        className="absolute right-1.5 top-1.5 text-muted-foreground transition-opacity hover:text-[color:var(--red)] sm:opacity-0 sm:group-hover:opacity-100"
+                      >
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
                     </div>
@@ -387,7 +474,11 @@ function ScanPage() {
             className="overflow-hidden rounded-xl border"
             style={{ background: "var(--surface)", borderColor: "var(--border)" }}
           >
-            <img src={imgData} alt="preview" className="mx-auto max-h-[360px] w-full object-contain" />
+            <img
+              src={imgData}
+              alt="preview"
+              className="mx-auto max-h-[360px] w-full object-contain"
+            />
           </div>
           <div
             className="rounded-xl border p-5"
@@ -406,8 +497,16 @@ function ScanPage() {
                     className="rounded-md border py-2.5 text-sm font-medium font-mono smooth press"
                     style={
                       active
-                        ? { background: "color-mix(in oklab, var(--accent) 14%, transparent)", color: "var(--accent)", borderColor: "color-mix(in oklab, var(--accent) 35%, transparent)" }
-                        : { background: "var(--surface-2)", color: "var(--text-muted)", borderColor: "var(--border-strong)" }
+                        ? {
+                            background: "color-mix(in oklab, var(--accent) 14%, transparent)",
+                            color: "var(--accent)",
+                            borderColor: "color-mix(in oklab, var(--accent) 35%, transparent)",
+                          }
+                        : {
+                            background: "var(--surface-2)",
+                            color: "var(--text-muted)",
+                            borderColor: "var(--border-strong)",
+                          }
                     }
                   >
                     {d < 60 ? `M${d}` : "H1"}
@@ -429,8 +528,16 @@ function ScanPage() {
                     className="rounded-md border py-2.5 text-sm font-medium font-mono smooth press"
                     style={
                       active
-                        ? { background: "color-mix(in oklab, var(--accent) 14%, transparent)", color: "var(--accent)", borderColor: "color-mix(in oklab, var(--accent) 35%, transparent)" }
-                        : { background: "var(--surface-2)", color: "var(--text-muted)", borderColor: "var(--border-strong)" }
+                        ? {
+                            background: "color-mix(in oklab, var(--accent) 14%, transparent)",
+                            color: "var(--accent)",
+                            borderColor: "color-mix(in oklab, var(--accent) 35%, transparent)",
+                          }
+                        : {
+                            background: "var(--surface-2)",
+                            color: "var(--text-muted)",
+                            borderColor: "var(--border-strong)",
+                          }
                     }
                   >
                     {d} min
@@ -439,7 +546,8 @@ function ScanPage() {
               })}
             </div>
             <div className="mt-2 flex items-center gap-1.5 text-[10px] text-[color:var(--text-dim)]">
-              <Clock className="h-3 w-3" /> Entrada será {expiracao} min após o scan; proteções a cada 1 min depois.
+              <Clock className="h-3 w-3" /> Entrada será {expiracao} min após o scan; proteções a
+              cada 1 min depois.
             </div>
 
             <div className="mt-5 flex gap-2">
@@ -460,9 +568,15 @@ function ScanPage() {
           className="flex flex-col items-center rounded-xl border px-6 py-16 text-center fade-in"
           style={{ background: "var(--surface)", borderColor: "var(--border)" }}
         >
-          <Loader2 className="mb-4 h-8 w-8 animate-spin" style={{ color: "var(--accent)" }} strokeWidth={1.5} />
+          <Loader2
+            className="mb-4 h-8 w-8 animate-spin"
+            style={{ color: "var(--accent)" }}
+            strokeWidth={1.5}
+          />
           <div className="font-display text-base font-semibold">Analisando o gráfico</div>
-          <div className="mt-1 text-sm text-muted-foreground">A IA está identificando padrões e tendências…</div>
+          <div className="mt-1 text-sm text-muted-foreground">
+            A IA está identificando padrões e tendências…
+          </div>
         </div>
       )}
 
@@ -475,8 +589,14 @@ function ScanPage() {
           }}
         >
           <div className="flex items-start gap-2.5">
-            <AlertTriangle className="mt-0.5 h-4 w-4 flex-none" strokeWidth={1.75} style={{ color: "var(--red)" }} />
-            <div className="text-sm font-medium" style={{ color: "var(--red)" }}>{err}</div>
+            <AlertTriangle
+              className="mt-0.5 h-4 w-4 flex-none"
+              strokeWidth={1.75}
+              style={{ color: "var(--red)" }}
+            />
+            <div className="text-sm font-medium" style={{ color: "var(--red)" }}>
+              {err}
+            </div>
           </div>
           <Button variant="outline" onClick={reset} className="mt-4 gap-2">
             <RefreshCw className="h-3.5 w-3.5" strokeWidth={1.75} />
@@ -485,7 +605,9 @@ function ScanPage() {
         </div>
       )}
 
-      {stage === "result" && result && <ResultView r={result} thumb={resultThumb} onReset={reset} />}
+      {stage === "result" && result && (
+        <ResultView r={result} thumb={resultThumb} onReset={reset} />
+      )}
     </div>
   );
 }
@@ -509,7 +631,11 @@ function ActionTile({
     >
       <span
         className="flex h-9 w-9 flex-none items-center justify-center rounded-md border smooth group-hover:text-[color:var(--accent)]"
-        style={{ background: "var(--surface-2)", borderColor: "var(--border)", color: "var(--text-muted)" }}
+        style={{
+          background: "var(--surface-2)",
+          borderColor: "var(--border)",
+          color: "var(--text-muted)",
+        }}
       >
         {icon}
       </span>
@@ -530,8 +656,15 @@ function ResultView({ r, thumb, onReset }: { r: ScanResult; thumb: string; onRes
   return (
     <div className="space-y-4 fade-up">
       {thumb && (
-        <div className="overflow-hidden rounded-xl border" style={{ background: "var(--surface)", borderColor: "var(--border)" }}>
-          <img src={thumb} alt="gráfico analisado" className="mx-auto max-h-[260px] w-full object-contain" />
+        <div
+          className="overflow-hidden rounded-xl border"
+          style={{ background: "var(--surface)", borderColor: "var(--border)" }}
+        >
+          <img
+            src={thumb}
+            alt="gráfico analisado"
+            className="mx-auto max-h-[260px] w-full object-contain"
+          />
         </div>
       )}
 
@@ -573,8 +706,13 @@ function ResultView({ r, thumb, onReset }: { r: ScanResult; thumb: string; onRes
             </div>
           </div>
           <div className="flex items-center gap-4 md:flex-col md:items-end">
-            <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Confiança</div>
-            <div className="font-display text-3xl font-semibold tabular" style={{ color: confColor }}>
+            <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+              Confiança
+            </div>
+            <div
+              className="font-display text-3xl font-semibold tabular"
+              style={{ color: confColor }}
+            >
               {conf}%
             </div>
           </div>
@@ -590,7 +728,9 @@ function ResultView({ r, thumb, onReset }: { r: ScanResult; thumb: string; onRes
               className="rounded-md border p-3 text-center"
               style={{ background: "var(--surface-2)", borderColor: "var(--border)" }}
             >
-              <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{l}</div>
+              <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                {l}
+              </div>
               <div className="mt-1 font-mono text-sm font-semibold tabular">{v || "—"}</div>
             </div>
           ))}
@@ -600,7 +740,11 @@ function ResultView({ r, thumb, onReset }: { r: ScanResult; thumb: string; onRes
       {(r.justificativa || r.assertividade) && (
         <div
           className="rounded-xl border p-4 text-sm leading-relaxed text-muted-foreground"
-          style={{ background: "var(--surface)", borderColor: "var(--border)", borderLeft: "2px solid var(--accent)" }}
+          style={{
+            background: "var(--surface)",
+            borderColor: "var(--border)",
+            borderLeft: "2px solid var(--accent)",
+          }}
         >
           {r.justificativa || r.assertividade}
         </div>
@@ -618,7 +762,9 @@ function ResultView({ r, thumb, onReset }: { r: ScanResult; thumb: string; onRes
             className="rounded-xl border p-3"
             style={{ background: "var(--surface)", borderColor: "var(--border)" }}
           >
-            <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{l}</div>
+            <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+              {l}
+            </div>
             <div className="mt-1 text-sm font-semibold">{v || "—"}</div>
           </div>
         ))}
@@ -662,8 +808,15 @@ function ResultView({ r, thumb, onReset }: { r: ScanResult; thumb: string; onRes
           </div>
           <ul className="divide-y" style={{ borderColor: "var(--border)" }}>
             {r.riscos.map((p) => (
-              <li key={p} className="flex items-start gap-2 py-2 text-xs text-muted-foreground first:pt-0">
-                <AlertCircle className="mt-0.5 h-3.5 w-3.5 flex-none" strokeWidth={1.75} style={{ color: "var(--gold)" }} />
+              <li
+                key={p}
+                className="flex items-start gap-2 py-2 text-xs text-muted-foreground first:pt-0"
+              >
+                <AlertCircle
+                  className="mt-0.5 h-3.5 w-3.5 flex-none"
+                  strokeWidth={1.75}
+                  style={{ color: "var(--gold)" }}
+                />
                 <span>{p}</span>
               </li>
             ))}
@@ -676,7 +829,11 @@ function ResultView({ r, thumb, onReset }: { r: ScanResult; thumb: string; onRes
           <ImageIcon className="h-4 w-4" strokeWidth={1.75} />
           Nova análise
         </Button>
-        <Button onClick={() => setOpenReg(true)} className="flex-1 gap-2" style={{ background: "var(--gradient-primary)", color: "var(--accent-foreground)" }}>
+        <Button
+          onClick={() => setOpenReg(true)}
+          className="flex-1 gap-2"
+          style={{ background: "var(--gradient-primary)", color: "var(--accent-foreground)" }}
+        >
           <ClipboardList className="h-4 w-4" strokeWidth={1.75} />
           Registrar operação
         </Button>
@@ -693,13 +850,23 @@ function ChipSection({ label, children }: { label: string; children: React.React
       className="rounded-xl border p-4"
       style={{ background: "var(--surface)", borderColor: "var(--border)" }}
     >
-      <div className="mb-2.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{label}</div>
+      <div className="mb-2.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+        {label}
+      </div>
       <div className="flex flex-wrap gap-1.5">{children}</div>
     </div>
   );
 }
 
-function RegisterTradeDialog({ open, onOpenChange, scan }: { open: boolean; onOpenChange: (o: boolean) => void; scan: ScanResult }) {
+function RegisterTradeDialog({
+  open,
+  onOpenChange,
+  scan,
+}: {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  scan: ScanResult;
+}) {
   const { addTrade } = useAppState();
   const initialCat: Categoria = (scan.ativo && categoriaForAtivo(scan.ativo)) || "CRIPTO";
   const [categoria, setCategoria] = useState<Categoria>(initialCat);
@@ -714,11 +881,15 @@ function RegisterTradeDialog({ open, onOpenChange, scan }: { open: boolean; onOp
   const [res, setRes] = useState<"WIN" | "LOSS">("WIN");
   const [payout, setPayout] = useState(String(payoutForCategoria(initialCat)));
   const [valor, setValor] = useState("");
-  const [valorMode, setValorMode] = useState<"VALOR" | "PCT">(() => (typeof window !== "undefined" ? getValorMode() : "VALOR"));
+  const [valorMode, setValorMode] = useState<"VALOR" | "PCT">(() =>
+    typeof window !== "undefined" ? getValorMode() : "VALOR",
+  );
   const [obs, setObs] = useState("");
   const [busy, setBusy] = useState(false);
   const [banca, setBancaSt] = useState<number | null>(null);
-  useEffect(() => { if (open) setBancaSt(getBanca()); }, [open]);
+  useEffect(() => {
+    if (open) setBancaSt(getBanca());
+  }, [open]);
 
   function changeCat(c: Categoria) {
     setCategoria(c);
@@ -729,10 +900,16 @@ function RegisterTradeDialog({ open, onOpenChange, scan }: { open: boolean; onOp
   async function submit() {
     const v = parseFloat(valor);
     const p = parseFloat(payout);
-    if (!isFinite(v) || v <= 0 || !isFinite(p)) { toast.error("Preencha valor e payout."); return; }
+    if (!isFinite(v) || v <= 0 || !isFinite(p)) {
+      toast.error("Preencha valor e payout.");
+      return;
+    }
     let finalValor = v;
     if (valorMode === "PCT") {
-      if (!banca || banca <= 0) { toast.error("Defina a banca na aba Gestão antes de operar em %."); return; }
+      if (!banca || banca <= 0) {
+        toast.error("Defina a banca na aba Gestão antes de operar em %.");
+        return;
+      }
       finalValor = +(banca * (v / 100)).toFixed(2);
     }
     setBusy(true);
@@ -764,27 +941,47 @@ function RegisterTradeDialog({ open, onOpenChange, scan }: { open: boolean; onOp
         </DialogHeader>
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
-            <label className="mb-1 block text-[10px] uppercase tracking-wider text-muted-foreground">Categoria</label>
+            <label className="mb-1 block text-[10px] uppercase tracking-wider text-muted-foreground">
+              Categoria
+            </label>
             <Select value={categoria} onValueChange={(v) => changeCat(v as Categoria)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
-                {(Object.keys(ASSETS) as Categoria[]).map((c) => <SelectItem key={c} value={c}>{CATEGORIA_LABEL[c]}</SelectItem>)}
+                {(Object.keys(ASSETS) as Categoria[]).map((c) => (
+                  <SelectItem key={c} value={c}>
+                    {CATEGORIA_LABEL[c]}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
           <div>
-            <label className="mb-1 block text-[10px] uppercase tracking-wider text-muted-foreground">Ativo</label>
+            <label className="mb-1 block text-[10px] uppercase tracking-wider text-muted-foreground">
+              Ativo
+            </label>
             <Select value={ativo} onValueChange={setAtivo}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
-                {ASSETS[categoria].map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}
+                {ASSETS[categoria].map((a) => (
+                  <SelectItem key={a} value={a}>
+                    {a}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
           <div>
-            <label className="mb-1 block text-[10px] uppercase tracking-wider text-muted-foreground">Direção</label>
+            <label className="mb-1 block text-[10px] uppercase tracking-wider text-muted-foreground">
+              Direção
+            </label>
             <Select value={dir} onValueChange={(v) => setDir(v as "COMPRA" | "VENDA")}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="COMPRA">Compra</SelectItem>
                 <SelectItem value="VENDA">Venda</SelectItem>
@@ -792,9 +989,13 @@ function RegisterTradeDialog({ open, onOpenChange, scan }: { open: boolean; onOp
             </Select>
           </div>
           <div>
-            <label className="mb-1 block text-[10px] uppercase tracking-wider text-muted-foreground">Resultado</label>
+            <label className="mb-1 block text-[10px] uppercase tracking-wider text-muted-foreground">
+              Resultado
+            </label>
             <Select value={res} onValueChange={(v) => setRes(v as "WIN" | "LOSS")}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="WIN">Win</SelectItem>
                 <SelectItem value="LOSS">Loss</SelectItem>
@@ -806,17 +1007,33 @@ function RegisterTradeDialog({ open, onOpenChange, scan }: { open: boolean; onOp
               Valor {valorMode === "PCT" ? "(% da banca)" : "(USD)"}
             </label>
             <div className="flex gap-1.5">
-              <Input type="number" step="0.01" value={valor} onChange={(e) => setValor(e.target.value)} placeholder={valorMode === "PCT" ? "Ex: 2" : "Ex: 5.00"} />
-              <div className="inline-flex rounded-md border p-0.5" style={{ borderColor: "var(--border-strong)", background: "var(--surface-2)" }}>
+              <Input
+                type="number"
+                step="0.01"
+                value={valor}
+                onChange={(e) => setValor(e.target.value)}
+                placeholder={valorMode === "PCT" ? "Ex: 2" : "Ex: 5.00"}
+              />
+              <div
+                className="inline-flex rounded-md border p-0.5"
+                style={{ borderColor: "var(--border-strong)", background: "var(--surface-2)" }}
+              >
                 {(["VALOR", "PCT"] as const).map((m) => {
                   const active = valorMode === m;
                   return (
                     <button
                       key={m}
                       type="button"
-                      onClick={() => { setValorMode(m); persistValorMode(m); }}
+                      onClick={() => {
+                        setValorMode(m);
+                        persistValorMode(m);
+                      }}
                       className="rounded px-2 text-[11px] font-semibold smooth"
-                      style={active ? { background: "var(--accent)", color: "var(--accent-foreground)" } : { color: "var(--text-muted)" }}
+                      style={
+                        active
+                          ? { background: "var(--accent)", color: "var(--accent-foreground)" }
+                          : { color: "var(--text-muted)" }
+                      }
                     >
                       {m === "VALOR" ? "$" : "%"}
                     </button>
@@ -836,16 +1053,22 @@ function RegisterTradeDialog({ open, onOpenChange, scan }: { open: boolean; onOp
             )}
           </div>
           <div>
-            <label className="mb-1 block text-[10px] uppercase tracking-wider text-muted-foreground">Payout %</label>
+            <label className="mb-1 block text-[10px] uppercase tracking-wider text-muted-foreground">
+              Payout %
+            </label>
             <Input type="number" value={payout} onChange={(e) => setPayout(e.target.value)} />
           </div>
           <div className="sm:col-span-2">
-            <label className="mb-1 block text-[10px] uppercase tracking-wider text-muted-foreground">Observação</label>
+            <label className="mb-1 block text-[10px] uppercase tracking-wider text-muted-foreground">
+              Observação
+            </label>
             <Input value={obs} onChange={(e) => setObs(e.target.value)} placeholder="Opcional" />
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>Cancelar</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>
+            Cancelar
+          </Button>
           <Button onClick={() => void submit()} disabled={busy} className="gap-1.5">
             <Plus className="h-4 w-4" /> Registrar
           </Button>

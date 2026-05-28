@@ -52,6 +52,16 @@ export function clearScanHistory() {
 export async function makeThumb(dataUrl: string, maxW = 480): Promise<string> {
   if (typeof window === "undefined") return dataUrl;
   return new Promise((resolve) => {
+    let settled = false;
+    const done = (v: string) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve(v);
+    };
+    // Fallback: se onload/onerror nunca dispararem (data URL malformada que não
+    // erra), não trava o chamador para sempre.
+    const timer = setTimeout(() => done(dataUrl), 8000);
     const img = new Image();
     img.onload = () => {
       const ratio = Math.min(1, maxW / img.width);
@@ -61,15 +71,15 @@ export async function makeThumb(dataUrl: string, maxW = 480): Promise<string> {
       c.width = w;
       c.height = h;
       const ctx = c.getContext("2d");
-      if (!ctx) return resolve(dataUrl);
+      if (!ctx) return done(dataUrl);
       ctx.drawImage(img, 0, 0, w, h);
       try {
-        resolve(c.toDataURL("image/jpeg", 0.7));
+        done(c.toDataURL("image/jpeg", 0.7));
       } catch {
-        resolve(dataUrl);
+        done(dataUrl);
       }
     };
-    img.onerror = () => resolve(dataUrl);
+    img.onerror = () => done(dataUrl);
     img.src = dataUrl;
   });
 }
