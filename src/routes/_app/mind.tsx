@@ -1,6 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState, useCallback } from "react";
-import { Brain, Send, Trash2, Plus, MessageSquare, Menu, X, PanelLeftClose, PanelLeftOpen, ArrowDown } from "lucide-react";
+import { memo, useEffect, useMemo, useRef, useState, useCallback } from "react";
+import {
+  Brain,
+  Send,
+  Trash2,
+  Plus,
+  MessageSquare,
+  Menu,
+  X,
+  PanelLeftClose,
+  PanelLeftOpen,
+  ArrowDown,
+} from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { toast } from "sonner";
@@ -11,6 +22,7 @@ import { VoiceRecorder } from "@/components/app/VoiceRecorder";
 import { getBanca } from "@/lib/assets";
 import { MindCardRenderer } from "@/components/app/MindCards";
 import { CARD_PREFIX, parseCard, serializeCard, type MindCard } from "@/lib/mind-cards";
+import { useVirtualKeyboard } from "@/hooks/use-virtual-keyboard";
 
 export const Route = createFileRoute("/_app/mind")({
   head: () => ({ meta: [{ title: "OrionMind — OrionHub" }] }),
@@ -49,7 +61,42 @@ function MindPage() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
   const autoFollowRef = useRef(true);
-  useEffect(() => { autoFollowRef.current = autoFollow; }, [autoFollow]);
+  useEffect(() => {
+    autoFollowRef.current = autoFollow;
+  }, [autoFollow]);
+  const kbHeight = useVirtualKeyboard();
+  const kbOpen = kbHeight > 0;
+
+  // rAF-throttled batching para updates de stream — evita 60+ re-renders/s
+  // do React + reparse do markdown a cada delta.
+  const rafIdRef = useRef<number | null>(null);
+  const pendingReplyRef = useRef("");
+  const flushReply = useCallback(() => {
+    if (rafIdRef.current !== null) return;
+    rafIdRef.current = requestAnimationFrame(() => {
+      rafIdRef.current = null;
+      const text = pendingReplyRef.current;
+      if (!text) return;
+      setMessages((m) => {
+        const copy = m.slice();
+        for (let i = copy.length - 1; i >= 0; i--) {
+          const it = copy[i];
+          if (it.role === "assistant" && !it.content.startsWith(CARD_PREFIX)) {
+            copy[i] = { ...it, content: text };
+            return copy;
+          }
+        }
+        copy.push({ role: "assistant", content: text, ts: new Date().toISOString() });
+        return copy;
+      });
+    });
+  }, []);
+  useEffect(
+    () => () => {
+      if (rafIdRef.current !== null) cancelAnimationFrame(rafIdRef.current);
+    },
+    [],
+  );
   // Threads created locally in this session — skip the DB reload effect for them
   // (it would race with the streaming assistant message and wipe local state).
   const skipLoadRef = useRef<Set<string>>(new Set());
@@ -72,7 +119,9 @@ function MindPage() {
     return data ?? [];
   }, [user?.id]);
 
-  useEffect(() => { void refreshThreads(); }, [refreshThreads]);
+  useEffect(() => {
+    void refreshThreads();
+  }, [refreshThreads]);
 
   // Restore last active thread after threads load
   useEffect(() => {
@@ -90,7 +139,10 @@ function MindPage() {
 
   // Load messages for active thread
   useEffect(() => {
-    if (!activeId) { setMessages([]); return; }
+    if (!activeId) {
+      setMessages([]);
+      return;
+    }
     if (skipLoadRef.current.has(activeId)) {
       skipLoadRef.current.delete(activeId);
       return;
@@ -103,19 +155,30 @@ function MindPage() {
       .order("created_at", { ascending: true })
       .then(({ data }) => {
         if (cancel) return;
-        setMessages((data ?? []).map((m) => ({ id: m.id, role: m.role as ChatMsg["role"], content: m.content, ts: m.created_at })));
+        setMessages(
+          (data ?? []).map((m) => ({
+            id: m.id,
+            role: m.role as ChatMsg["role"],
+            content: m.content,
+            ts: m.created_at,
+          })),
+        );
       });
-    return () => { cancel = true; };
+    return () => {
+      cancel = true;
+    };
   }, [activeId]);
 
   // Smart auto-scroll: only follow when user is already near the bottom.
   const scrollToBottom = useCallback((smooth = true) => {
-    const el = scrollRef.current; if (!el) return;
+    const el = scrollRef.current;
+    if (!el) return;
     el.scrollTo({ top: el.scrollHeight, behavior: smooth ? "smooth" : "auto" });
   }, []);
 
   useEffect(() => {
-    const el = scrollRef.current; if (!el) return;
+    const el = scrollRef.current;
+    if (!el) return;
     const onScroll = () => {
       const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
       setAutoFollow(nearBottom);
@@ -125,7 +188,10 @@ function MindPage() {
   }, []);
 
   // Scroll to bottom when switching threads / first load.
-  useEffect(() => { scrollToBottom(false); setAutoFollow(true); }, [activeId, scrollToBottom]);
+  useEffect(() => {
+    scrollToBottom(false);
+    setAutoFollow(true);
+  }, [activeId, scrollToBottom]);
 
   // While streaming, follow only if user hasn't scrolled away.
   useEffect(() => {
@@ -133,12 +199,16 @@ function MindPage() {
   }, [messages, autoFollow, scrollToBottom]);
 
   useEffect(() => {
-    const ta = taRef.current; if (!ta) return;
+    const ta = taRef.current;
+    if (!ta) return;
     ta.style.height = "auto";
     ta.style.height = Math.min(ta.scrollHeight, 160) + "px";
   }, [input]);
 
-  const display = useMemo<ChatMsg[]>(() => (messages.length === 0 ? [STARTER] : messages), [messages]);
+  const display = useMemo<ChatMsg[]>(
+    () => (messages.length === 0 ? [STARTER] : messages),
+    [messages],
+  );
 
   function newChat() {
     if (typeof window !== "undefined") window.localStorage.removeItem("orion.mind.activeThreadId");
@@ -152,7 +222,10 @@ function MindPage() {
   async function deleteThread(id: string) {
     if (!user) return;
     const { error } = await supabase.from("mind_threads").delete().eq("id", id);
-    if (error) { toast.error("Não foi possível excluir a conversa."); return; }
+    if (error) {
+      toast.error("Não foi possível excluir a conversa.");
+      return;
+    }
     setThreads((t) => t.filter((x) => x.id !== id));
     if (activeId === id) newChat();
     toast.success("Conversa excluída.");
@@ -173,7 +246,10 @@ function MindPage() {
         .insert({ user_id: user.id, title })
         .select("id,title,updated_at")
         .single();
-      if (error || !data) { toast.error("Erro ao criar conversa."); return; }
+      if (error || !data) {
+        toast.error("Erro ao criar conversa.");
+        return;
+      }
       threadId = data.id;
       skipLoadRef.current.add(threadId);
       setActiveId(threadId);
@@ -182,7 +258,9 @@ function MindPage() {
 
     const userMsg: ChatMsg = { role: "user", content: t, ts: new Date().toISOString() };
     setMessages((m) => [...m, userMsg]);
-    await supabase.from("mind_messages").insert({ user_id: user.id, role: "user", content: t, thread_id: threadId } as never);
+    await supabase
+      .from("mind_messages")
+      .insert({ user_id: user.id, role: "user", content: t, thread_id: threadId } as never);
 
     setBusy(true);
     setAutoFollow(true);
@@ -215,14 +293,15 @@ function MindPage() {
         .limit(15);
       const banca = getBanca();
 
-      const doFetch = (tk: string) => fetch("/api/ai-mind", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${tk}`,
-        },
-        body: JSON.stringify({ messages: history, banca, recentTrades: recentRows ?? [] }),
-      });
+      const doFetch = (tk: string) =>
+        fetch("/api/ai-mind", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${tk}`,
+          },
+          body: JSON.stringify({ messages: history, banca, recentTrades: recentRows ?? [] }),
+        });
 
       let r = await doFetch(token);
       // Retry uma vez se 401 (token pode ter expirado entre refresh e fetch)
@@ -246,7 +325,10 @@ function MindPage() {
       const receivedCards: MindCard[] = [];
       if (ctype.includes("text/event-stream") && r.body) {
         // Add placeholder assistant message we will fill incrementally.
-        setMessages((m) => [...m, { role: "assistant", content: "", ts: new Date().toISOString() }]);
+        setMessages((m) => [
+          ...m,
+          { role: "assistant", content: "", ts: new Date().toISOString() },
+        ]);
         setStreaming(true);
         const reader = r.body.getReader();
         const decoder = new TextDecoder();
@@ -266,49 +348,76 @@ function MindPage() {
               const j = JSON.parse(payload);
               if (typeof j.delta === "string") {
                 replyText += j.delta;
-                setMessages((m) => {
-                  const copy = m.slice();
-                  // Garante que o último elemento é a mensagem em construção (assistant
-                  // texto) e não um card recém-emitido pelo backend.
-                  for (let i = copy.length - 1; i >= 0; i--) {
-                    const it = copy[i];
-                    if (it.role === "assistant" && !it.content.startsWith(CARD_PREFIX)) {
-                      copy[i] = { ...it, content: replyText };
-                      return copy;
-                    }
-                  }
-                  // Não achou um placeholder de texto — cria um novo.
-                  copy.push({ role: "assistant", content: replyText, ts: new Date().toISOString() });
-                  return copy;
-                });
+                pendingReplyRef.current = replyText;
+                flushReply();
               } else if (j.card) {
                 const card = j.card as MindCard;
                 receivedCards.push(card);
                 const serialized = serializeCard(card);
                 // Adiciona o card como uma nova mensagem assistant separada
                 // (vai aparecer ANTES do parágrafo final de comentário da IA).
-                setMessages((m) => [...m, { role: "assistant", content: serialized, ts: new Date().toISOString() }]);
+                setMessages((m) => [
+                  ...m,
+                  { role: "assistant", content: serialized, ts: new Date().toISOString() },
+                ]);
                 // Persiste no Supabase imediatamente — o card é o evento real,
                 // o texto final é só comentário da IA e será salvo abaixo.
                 if (user) {
-                  void supabase.from("mind_messages").insert({ user_id: user.id, role: "assistant", content: serialized, thread_id: threadId } as never);
+                  void supabase
+                    .from("mind_messages")
+                    .insert({
+                      user_id: user.id,
+                      role: "assistant",
+                      content: serialized,
+                      thread_id: threadId,
+                    } as never);
                 }
               } else if (j.error) {
                 errored = true;
                 toast.error(j.error);
               }
-            } catch { /* ignore */ }
+            } catch {
+              /* ignore */
+            }
           }
         }
         setStreaming(false);
+        // Flush final pra garantir que o último delta apareceu antes
+        // de qualquer lógica de persistência ou fallback abaixo.
+        if (rafIdRef.current !== null) {
+          cancelAnimationFrame(rafIdRef.current);
+          rafIdRef.current = null;
+        }
+        if (replyText && pendingReplyRef.current === replyText) {
+          setMessages((m) => {
+            const copy = m.slice();
+            for (let i = copy.length - 1; i >= 0; i--) {
+              const it = copy[i];
+              if (it.role === "assistant" && !it.content.startsWith(CARD_PREFIX)) {
+                if (it.content !== replyText) copy[i] = { ...it, content: replyText };
+                return copy;
+              }
+            }
+            copy.push({ role: "assistant", content: replyText, ts: new Date().toISOString() });
+            return copy;
+          });
+        }
       } else {
         const data = (await r.json()) as { ok: boolean; reply?: string; error?: string };
-        if (!data.ok) { errored = true; toast.error(data.error || "Erro na resposta da IA."); }
+        if (!data.ok) {
+          errored = true;
+          toast.error(data.error || "Erro na resposta da IA.");
+        }
         replyText = data.ok ? data.reply || "Sem resposta." : `⚠️ ${data.error || "Erro."}`;
-        setMessages((m) => [...m, { role: "assistant", content: replyText, ts: new Date().toISOString() }]);
+        setMessages((m) => [
+          ...m,
+          { role: "assistant", content: replyText, ts: new Date().toISOString() },
+        ]);
       }
       if (!replyText && receivedCards.length === 0) {
-        replyText = errored ? "⚠️ Não consegui responder agora." : "Sem resposta.";
+        replyText = errored
+          ? "⚠️ Não consegui responder agora. Tente de novo em alguns segundos."
+          : "Não recebi resposta. Tente reformular ou enviar novamente.";
         setMessages((m) => {
           const copy = m.slice();
           for (let i = copy.length - 1; i >= 0; i--) {
@@ -327,13 +436,27 @@ function MindPage() {
       }
       // Persiste o texto final apenas se houver algo
       if (replyText) {
-        await supabase.from("mind_messages").insert({ user_id: user.id, role: "assistant", content: replyText, thread_id: threadId } as never);
+        await supabase
+          .from("mind_messages")
+          .insert({
+            user_id: user.id,
+            role: "assistant",
+            content: replyText,
+            thread_id: threadId,
+          } as never);
       }
-      await supabase.from("mind_threads").update({ updated_at: new Date().toISOString() }).eq("id", threadId);
+      await supabase
+        .from("mind_threads")
+        .update({ updated_at: new Date().toISOString() })
+        .eq("id", threadId);
       void refreshThreads();
     } catch {
       toast.error("Erro de conexão. Tente novamente.");
-      const reply: ChatMsg = { role: "assistant", content: "⚠️ Erro de conexão. Tente novamente.", ts: new Date().toISOString() };
+      const reply: ChatMsg = {
+        role: "assistant",
+        content: "⚠️ Erro de conexão. Tente novamente.",
+        ts: new Date().toISOString(),
+      };
       setMessages((m) => [...m, reply]);
     } finally {
       setBusy(false);
@@ -349,10 +472,16 @@ function MindPage() {
       {/* Sidebar */}
       <aside
         className={`absolute inset-y-0 left-0 z-30 flex flex-col border-r p-3 transition-all sm:relative sm:translate-x-0 ${openSidebar ? "translate-x-0" : "-translate-x-full"} ${collapsed ? "sm:hidden" : "w-72"}`}
-        style={{ background: "color-mix(in oklab, var(--surface) 92%, transparent)", borderColor: "var(--border)", backdropFilter: "blur(14px)" }}
+        style={{
+          background: "color-mix(in oklab, var(--surface) 92%, transparent)",
+          borderColor: "var(--border)",
+          backdropFilter: "blur(14px)",
+        }}
       >
         <div className="flex items-center justify-between gap-2 pb-2">
-          <div className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Conversas</div>
+          <div className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+            Conversas
+          </div>
           <div className="flex items-center gap-1">
             <button
               onClick={() => setCollapsed(true)}
@@ -361,7 +490,12 @@ function MindPage() {
             >
               <PanelLeftClose className="h-4 w-4" />
             </button>
-            <button onClick={() => setOpenSidebar(false)} className="sm:hidden text-muted-foreground"><X className="h-4 w-4" /></button>
+            <button
+              onClick={() => setOpenSidebar(false)}
+              className="sm:hidden text-muted-foreground"
+            >
+              <X className="h-4 w-4" />
+            </button>
           </div>
         </div>
         <button
@@ -373,7 +507,9 @@ function MindPage() {
         </button>
         <div className="flex-1 overflow-y-auto pr-1">
           {threads.length === 0 && (
-            <div className="px-2 py-6 text-center text-xs text-muted-foreground">Nenhuma conversa ainda.</div>
+            <div className="px-2 py-6 text-center text-xs text-muted-foreground">
+              Nenhuma conversa ainda.
+            </div>
           )}
           {threads.map((t) => {
             const active = t.id === activeId;
@@ -383,15 +519,24 @@ function MindPage() {
                 className="group mb-0.5 flex items-center gap-2 rounded-md px-2 py-2 text-sm smooth"
                 style={
                   active
-                    ? { background: "color-mix(in oklab, var(--accent) 14%, var(--surface-2))", color: "var(--foreground)" }
+                    ? {
+                        background: "color-mix(in oklab, var(--accent) 14%, var(--surface-2))",
+                        color: "var(--foreground)",
+                      }
                     : { color: "var(--text-muted)" }
                 }
               >
                 <button
-                  onClick={() => { setActiveId(t.id); setOpenSidebar(false); }}
+                  onClick={() => {
+                    setActiveId(t.id);
+                    setOpenSidebar(false);
+                  }}
                   className="flex flex-1 items-center gap-2 truncate text-left"
                 >
-                  <MessageSquare className="h-3.5 w-3.5 flex-none" style={{ color: active ? "var(--accent)" : "var(--text-dim)" }} />
+                  <MessageSquare
+                    className="h-3.5 w-3.5 flex-none"
+                    style={{ color: active ? "var(--accent)" : "var(--text-dim)" }}
+                  />
                   <span className="truncate">{t.title}</span>
                 </button>
                 <button
@@ -408,13 +553,21 @@ function MindPage() {
       </aside>
 
       {openSidebar && (
-        <div className="fixed inset-0 z-20 bg-black/40 sm:hidden" onClick={() => setOpenSidebar(false)} />
+        <div
+          className="fixed inset-0 z-20 bg-black/40 sm:hidden"
+          onClick={() => setOpenSidebar(false)}
+        />
       )}
 
       {/* Chat area */}
       <div className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-        <header className="flex flex-none items-center gap-3 border-b px-5 py-3" style={{ borderColor: "var(--border)" }}>
-          <button onClick={() => setOpenSidebar(true)} className="sm:hidden text-muted-foreground"><Menu className="h-5 w-5" /></button>
+        <header
+          className="flex flex-none items-center gap-3 border-b px-5 py-3"
+          style={{ borderColor: "var(--border)" }}
+        >
+          <button onClick={() => setOpenSidebar(true)} className="sm:hidden text-muted-foreground">
+            <Menu className="h-5 w-5" />
+          </button>
           {collapsed && (
             <button
               onClick={() => setCollapsed(false)}
@@ -425,8 +578,14 @@ function MindPage() {
               <PanelLeftOpen className="h-4 w-4" />
             </button>
           )}
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg border"
-            style={{ background: "color-mix(in oklab, var(--accent) 10%, transparent)", borderColor: "color-mix(in oklab, var(--accent) 28%, transparent)", color: "var(--accent)" }}>
+          <div
+            className="flex h-9 w-9 items-center justify-center rounded-lg border"
+            style={{
+              background: "color-mix(in oklab, var(--accent) 10%, transparent)",
+              borderColor: "color-mix(in oklab, var(--accent) 28%, transparent)",
+              color: "var(--accent)",
+            }}
+          >
             <Brain className="h-4 w-4" strokeWidth={1.75} />
           </div>
           <div className="flex-1 min-w-0">
@@ -434,15 +593,23 @@ function MindPage() {
               {threads.find((t) => t.id === activeId)?.title || "Nova conversa"}
             </div>
             <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-              <span className="h-1.5 w-1.5 rounded-full blink-dot" style={{ background: "var(--green)" }} />
+              <span
+                className="h-1.5 w-1.5 rounded-full blink-dot"
+                style={{ background: "var(--green)" }}
+              />
               <span style={{ color: "var(--green)" }}>OrionMind online</span>
             </div>
           </div>
         </header>
 
-        <div ref={scrollRef} className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-6 pb-20 sm:px-5">
+        <div
+          ref={scrollRef}
+          className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-6 pb-20 sm:px-5"
+        >
           <div className="mx-auto flex max-w-3xl flex-col gap-4">
-            {display.map((m, i) => <Bubble key={i} m={m} initials={initials} />)}
+            {display.map((m, i) => (
+              <Bubble key={i} m={m} initials={initials} />
+            ))}
             {busy && !streaming && (
               <div className="flex items-end gap-2.5 fade-in">
                 <Avatar isAssistant />
@@ -452,9 +619,12 @@ function MindPage() {
             {empty && !busy && (
               <div className="grid gap-2 pt-2 sm:grid-cols-2">
                 {SUGGESTIONS.map((s) => (
-                  <button key={s} onClick={() => send(s)}
+                  <button
+                    key={s}
+                    onClick={() => send(s)}
                     className="rounded-lg border px-3 py-2.5 text-left text-xs text-muted-foreground smooth hover:border-[color:var(--accent)] hover:text-foreground"
-                    style={{ background: "var(--surface)", borderColor: "var(--border)" }}>
+                    style={{ background: "var(--surface)", borderColor: "var(--border)" }}
+                  >
                     {s}
                   </button>
                 ))}
@@ -465,27 +635,68 @@ function MindPage() {
 
         {!autoFollow && (
           <button
-            onClick={() => { setAutoFollow(true); scrollToBottom(true); }}
+            onClick={() => {
+              setAutoFollow(true);
+              scrollToBottom(true);
+            }}
             className="pointer-events-auto absolute bottom-28 left-1/2 z-10 -translate-x-1/2 rounded-full border px-3 py-1.5 text-xs shadow-md smooth hover:border-[color:var(--accent)] hover:text-[color:var(--accent)]"
-            style={{ background: "var(--surface-2)", borderColor: "var(--border-strong)", color: "var(--text-muted)" }}
+            style={{
+              background: "var(--surface-2)",
+              borderColor: "var(--border-strong)",
+              color: "var(--text-muted)",
+            }}
           >
-            <span className="inline-flex items-center gap-1.5"><ArrowDown className="h-3 w-3" /> Rolar para o final</span>
+            <span className="inline-flex items-center gap-1.5">
+              <ArrowDown className="h-3 w-3" /> Rolar para o final
+            </span>
           </button>
         )}
 
-        <div className="flex-none border-t px-4 py-3 sm:px-5" style={{ borderColor: "var(--border)", background: "color-mix(in oklab, var(--background) 92%, transparent)", backdropFilter: "blur(14px)", paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom, 0px))" }}>
+        <div
+          className="flex-none border-t px-4 py-3 sm:px-5"
+          style={{
+            borderColor: "var(--border)",
+            background: "color-mix(in oklab, var(--background) 92%, transparent)",
+            backdropFilter: "blur(14px)",
+            paddingBottom: kbOpen ? "0.75rem" : "calc(0.75rem + env(safe-area-inset-bottom, 0px))",
+          }}
+        >
           <div className="mx-auto max-w-3xl">
-            <div className="flex items-end gap-2 rounded-xl border p-2 smooth focus-within:border-[color:var(--accent)]"
-              style={{ background: "var(--surface)", borderColor: "var(--border-strong)" }}>
-              <textarea ref={taRef} value={input} onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(); } }}
-                placeholder="Pergunte ao OrionMind…" rows={1}
-                className="flex-1 resize-none bg-transparent px-2 py-2 text-sm outline-none placeholder:text-[color:var(--text-dim)]" />
+            <div
+              className="flex items-end gap-2 rounded-xl border p-2 smooth focus-within:border-[color:var(--accent)]"
+              style={{ background: "var(--surface)", borderColor: "var(--border-strong)" }}
+            >
+              <textarea
+                ref={taRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    void send();
+                  }
+                }}
+                onFocus={() => {
+                  // iOS Safari: garante que o input fica visível após o teclado abrir.
+                  setTimeout(
+                    () => taRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" }),
+                    300,
+                  );
+                }}
+                placeholder="Pergunte ao OrionMind…"
+                rows={1}
+                className="flex-1 resize-none bg-transparent px-2 py-2 text-sm outline-none placeholder:text-[color:var(--text-dim)]"
+              />
               <VoiceRecorder
                 disabled={busy}
                 onTranscript={(t) => setInput((cur) => (cur ? cur + " " : "") + t)}
               />
-              <Button onClick={() => void send()} disabled={busy || !input.trim()} size="icon" className="h-9 w-9 flex-none">
+              <Button
+                onClick={() => void send()}
+                disabled={busy || !input.trim()}
+                size="icon"
+                className="h-9 w-9 flex-none"
+              >
                 <Send className="h-4 w-4" strokeWidth={1.75} />
               </Button>
             </div>
@@ -499,15 +710,27 @@ function MindPage() {
 function Avatar({ isAssistant, initials }: { isAssistant?: boolean; initials?: string }) {
   if (isAssistant) {
     return (
-      <div className="flex h-7 w-7 flex-none items-center justify-center rounded-md border"
-        style={{ background: "color-mix(in oklab, var(--accent) 12%, transparent)", borderColor: "color-mix(in oklab, var(--accent) 30%, transparent)", color: "var(--accent)" }}>
+      <div
+        className="flex h-7 w-7 flex-none items-center justify-center rounded-md border"
+        style={{
+          background: "color-mix(in oklab, var(--accent) 12%, transparent)",
+          borderColor: "color-mix(in oklab, var(--accent) 30%, transparent)",
+          color: "var(--accent)",
+        }}
+      >
         <Brain className="h-3.5 w-3.5" strokeWidth={1.75} />
       </div>
     );
   }
   return (
-    <div className="flex h-7 w-7 flex-none items-center justify-center rounded-md border text-[10px] font-semibold"
-      style={{ background: "var(--surface-2)", borderColor: "var(--border-strong)", color: "var(--text-muted)" }}>
+    <div
+      className="flex h-7 w-7 flex-none items-center justify-center rounded-md border text-[10px] font-semibold"
+      style={{
+        background: "var(--surface-2)",
+        borderColor: "var(--border-strong)",
+        color: "var(--text-muted)",
+      }}
+    >
       {initials}
     </div>
   );
@@ -550,35 +773,107 @@ function Bubble({ m, initials }: { m: ChatMsg; initials: string }) {
   return (
     <div className={`flex items-end gap-2.5 fade-in ${isUser ? "flex-row-reverse" : ""}`}>
       <Avatar isAssistant={!isUser} initials={initials} />
-      <div className={`max-w-[82%] rounded-xl border px-4 py-2.5 text-sm leading-relaxed ${isUser ? "rounded-br-sm" : "rounded-bl-sm"}`}
-        style={isUser
-          ? { background: "color-mix(in oklab, var(--accent) 14%, transparent)", borderColor: "color-mix(in oklab, var(--accent) 32%, transparent)", color: "var(--foreground)" }
-          : { background: "var(--surface-2)", borderColor: "var(--border)" }}>
-        {isUser ? <span style={{ whiteSpace: "pre-wrap" }}>{m.content}</span> : <MarkdownContent text={m.content} />}
+      <div
+        className={`max-w-[82%] rounded-xl border px-4 py-2.5 text-sm leading-relaxed ${isUser ? "rounded-br-sm" : "rounded-bl-sm"}`}
+        style={
+          isUser
+            ? {
+                background: "color-mix(in oklab, var(--accent) 14%, transparent)",
+                borderColor: "color-mix(in oklab, var(--accent) 32%, transparent)",
+                color: "var(--foreground)",
+              }
+            : { background: "var(--surface-2)", borderColor: "var(--border)" }
+        }
+      >
+        {isUser ? (
+          <span style={{ whiteSpace: "pre-wrap" }}>{m.content}</span>
+        ) : (
+          <MarkdownContent text={m.content} />
+        )}
       </div>
     </div>
   );
 }
 
-function MarkdownContent({ text }: { text: string }) {
+const MarkdownContent = memo(function MarkdownContent({ text }: { text: string }) {
   return (
     <div className="markdown-body">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
-          h1: ({ children }) => <h2 className="font-display mt-3 mb-2 text-base font-semibold tracking-tight first:mt-0" style={{ color: "var(--foreground)" }}>{children}</h2>,
-          h2: ({ children }) => <h3 className="font-display mt-3 mb-1.5 text-[15px] font-semibold tracking-tight first:mt-0" style={{ color: "var(--foreground)" }}>{children}</h3>,
-          h3: ({ children }) => <h4 className="font-display mt-2.5 mb-1 text-sm font-semibold tracking-tight first:mt-0" style={{ color: "var(--accent)" }}>{children}</h4>,
-          h4: ({ children }) => <h5 className="font-display mt-2 mb-1 text-[13px] font-semibold uppercase tracking-wider first:mt-0" style={{ color: "var(--text-muted)" }}>{children}</h5>,
-          p: ({ children }) => <p className="my-1.5 first:mt-0 last:mb-0" style={{ whiteSpace: "pre-wrap" }}>{children}</p>,
+          h1: ({ children }) => (
+            <h2
+              className="font-display mt-3 mb-2 text-base font-semibold tracking-tight first:mt-0"
+              style={{ color: "var(--foreground)" }}
+            >
+              {children}
+            </h2>
+          ),
+          h2: ({ children }) => (
+            <h3
+              className="font-display mt-3 mb-1.5 text-[15px] font-semibold tracking-tight first:mt-0"
+              style={{ color: "var(--foreground)" }}
+            >
+              {children}
+            </h3>
+          ),
+          h3: ({ children }) => (
+            <h4
+              className="font-display mt-2.5 mb-1 text-sm font-semibold tracking-tight first:mt-0"
+              style={{ color: "var(--accent)" }}
+            >
+              {children}
+            </h4>
+          ),
+          h4: ({ children }) => (
+            <h5
+              className="font-display mt-2 mb-1 text-[13px] font-semibold uppercase tracking-wider first:mt-0"
+              style={{ color: "var(--text-muted)" }}
+            >
+              {children}
+            </h5>
+          ),
+          p: ({ children }) => (
+            <p className="my-1.5 first:mt-0 last:mb-0" style={{ whiteSpace: "pre-wrap" }}>
+              {children}
+            </p>
+          ),
           ul: ({ children }) => <ul className="my-1.5 list-disc space-y-0.5 pl-5">{children}</ul>,
-          ol: ({ children }) => <ol className="my-1.5 list-decimal space-y-0.5 pl-5">{children}</ol>,
+          ol: ({ children }) => (
+            <ol className="my-1.5 list-decimal space-y-0.5 pl-5">{children}</ol>
+          ),
           li: ({ children }) => <li className="leading-relaxed">{children}</li>,
-          strong: ({ children }) => <strong style={{ color: "var(--foreground)" }}>{children}</strong>,
+          strong: ({ children }) => (
+            <strong style={{ color: "var(--foreground)" }}>{children}</strong>
+          ),
           em: ({ children }) => <em className="italic">{children}</em>,
-          code: ({ children }) => <code className="rounded px-1 py-0.5 font-mono text-[12px]" style={{ background: "var(--surface-3, var(--surface))", color: "var(--accent)" }}>{children}</code>,
-          blockquote: ({ children }) => <blockquote className="my-2 border-l-2 pl-3 italic" style={{ borderColor: "var(--accent)", color: "var(--text-muted)" }}>{children}</blockquote>,
-          a: ({ children, href }) => <a href={href} target="_blank" rel="noreferrer" className="underline" style={{ color: "var(--accent)" }}>{children}</a>,
+          code: ({ children }) => (
+            <code
+              className="rounded px-1 py-0.5 font-mono text-[12px]"
+              style={{ background: "var(--surface-3, var(--surface))", color: "var(--accent)" }}
+            >
+              {children}
+            </code>
+          ),
+          blockquote: ({ children }) => (
+            <blockquote
+              className="my-2 border-l-2 pl-3 italic"
+              style={{ borderColor: "var(--accent)", color: "var(--text-muted)" }}
+            >
+              {children}
+            </blockquote>
+          ),
+          a: ({ children, href }) => (
+            <a
+              href={href}
+              target="_blank"
+              rel="noreferrer"
+              className="underline"
+              style={{ color: "var(--accent)" }}
+            >
+              {children}
+            </a>
+          ),
           hr: () => <hr className="my-3" style={{ borderColor: "var(--border)" }} />,
         }}
       >
@@ -586,4 +881,4 @@ function MarkdownContent({ text }: { text: string }) {
       </ReactMarkdown>
     </div>
   );
-}
+});

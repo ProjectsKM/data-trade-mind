@@ -4,8 +4,20 @@ import { z } from "zod";
 import { corsHeaders, jsonResponse } from "@/lib/cors";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { verifySupabaseUser } from "@/lib/verify-supabase-jwt.server";
-import { ASSETS, payoutForCategoria, categoriaForAtivo, calcLucro, type Categoria } from "@/lib/assets";
-import type { MindCard, MonthlyReportData, ReportByCategory, WinReportData, WinReportPeriod } from "@/lib/mind-cards";
+import {
+  ASSETS,
+  payoutForCategoria,
+  categoriaForAtivo,
+  calcLucro,
+  type Categoria,
+} from "@/lib/assets";
+import type {
+  MindCard,
+  MonthlyReportData,
+  ReportByCategory,
+  WinReportData,
+  WinReportPeriod,
+} from "@/lib/mind-cards";
 
 const OPENAI_URL = "https://api.openai.com/v1/chat/completions";
 const MODEL = "gpt-4o-mini";
@@ -105,19 +117,27 @@ Quando o usuário pedir **relatório**, **resumo**, **balanço**, ou perguntar s
 `;
 
 const Body = z.object({
-  messages: z.array(z.object({ role: z.enum(["user", "assistant"]), content: z.string().min(1).max(8000) })).min(1).max(40),
+  messages: z
+    .array(z.object({ role: z.enum(["user", "assistant"]), content: z.string().min(1).max(8000) }))
+    .min(1)
+    .max(40),
   banca: z.number().positive().nullable().optional(),
-  recentTrades: z.array(z.object({
-    id: z.string(),
-    ativo: z.string(),
-    data: z.string(),
-    dir: z.string(),
-    valor: z.number(),
-    payout: z.number(),
-    res: z.string(),
-    lucro: z.number(),
-    obs: z.string().nullable().optional(),
-  })).max(50).optional(),
+  recentTrades: z
+    .array(
+      z.object({
+        id: z.string(),
+        ativo: z.string(),
+        data: z.string(),
+        dir: z.string(),
+        valor: z.number(),
+        payout: z.number(),
+        res: z.string(),
+        lucro: z.number(),
+        obs: z.string().nullable().optional(),
+      }),
+    )
+    .max(50)
+    .optional(),
 });
 
 const TOOLS = [
@@ -125,7 +145,8 @@ const TOOLS = [
     type: "function" as const,
     function: {
       name: "register_trade",
-      description: "Registra uma operação na planilha de gestão do usuário. Use somente quando o usuário pedir explicitamente, e somente quando tiver todos os campos obrigatórios.",
+      description:
+        "Registra uma operação na planilha de gestão do usuário. Use somente quando o usuário pedir explicitamente, e somente quando tiver todos os campos obrigatórios.",
       parameters: {
         type: "object",
         properties: {
@@ -133,7 +154,10 @@ const TOOLS = [
           dir: { type: "string", enum: ["COMPRA", "VENDA"], description: "Direção da operação." },
           valor: { type: "number", description: "Valor da entrada em USD. Número positivo." },
           res: { type: "string", enum: ["WIN", "LOSS"], description: "Resultado da operação." },
-          payout: { type: "number", description: "Payout em %. Opcional — se omitido usa padrão da categoria." },
+          payout: {
+            type: "number",
+            description: "Payout em %. Opcional — se omitido usa padrão da categoria.",
+          },
           obs: { type: "string", description: "Observação opcional." },
         },
         required: ["ativo", "dir", "valor", "res"],
@@ -145,7 +169,8 @@ const TOOLS = [
     type: "function" as const,
     function: {
       name: "update_trade",
-      description: "Edita uma operação existente na planilha. Use o id de uma das operações recentes listadas no contexto. Só envie os campos que devem mudar. Lucro e payout são recalculados automaticamente quando valor, payout ou resultado mudam.",
+      description:
+        "Edita uma operação existente na planilha. Use o id de uma das operações recentes listadas no contexto. Só envie os campos que devem mudar. Lucro e payout são recalculados automaticamente quando valor, payout ou resultado mudam.",
       parameters: {
         type: "object",
         properties: {
@@ -166,7 +191,8 @@ const TOOLS = [
     type: "function" as const,
     function: {
       name: "delete_trade",
-      description: "Exclui uma operação da planilha pelo id. Use somente após confirmação explícita do usuário.",
+      description:
+        "Exclui uma operação da planilha pelo id. Use somente após confirmação explícita do usuário.",
       parameters: {
         type: "object",
         properties: { id: { type: "string" } },
@@ -179,13 +205,15 @@ const TOOLS = [
     type: "function" as const,
     function: {
       name: "get_monthly_report",
-      description: "Gera relatório completo do mês: total de operações, win rate, lucro acumulado e quebra por categoria de ativo. Use quando o usuário pedir relatório mensal, resumo do mês ou similar.",
+      description:
+        "Gera relatório completo do mês: total de operações, win rate, lucro acumulado e quebra por categoria de ativo. Use quando o usuário pedir relatório mensal, resumo do mês ou similar.",
       parameters: {
         type: "object",
         properties: {
           month: {
             type: "string",
-            description: "Mês alvo no formato YYYY-MM. Omita ou use 'current' para o mês corrente. Use 'previous' para o mês anterior.",
+            description:
+              "Mês alvo no formato YYYY-MM. Omita ou use 'current' para o mês corrente. Use 'previous' para o mês anterior.",
           },
         },
         additionalProperties: false,
@@ -196,14 +224,16 @@ const TOOLS = [
     type: "function" as const,
     function: {
       name: "get_win_report",
-      description: "Gera relatório de wins/losses em um período. Use quando o usuário pedir balanço de vitórias, quantos wins teve no dia/semana/mês, ou histórico de resultados.",
+      description:
+        "Gera relatório de wins/losses em um período. Use quando o usuário pedir balanço de vitórias, quantos wins teve no dia/semana/mês, ou histórico de resultados.",
       parameters: {
         type: "object",
         properties: {
           period: {
             type: "string",
             enum: ["today", "week", "month", "all"],
-            description: "Período do relatório. 'today' = hoje, 'week' = últimos 7 dias, 'month' = últimos 30 dias, 'all' = todo o histórico.",
+            description:
+              "Período do relatório. 'today' = hoje, 'week' = últimos 7 dias, 'month' = últimos 30 dias, 'all' = todo o histórico.",
           },
         },
         required: ["period"],
@@ -270,16 +300,26 @@ async function executeRegisterTrade(
   banca: number | null | undefined,
 ): Promise<ToolResult> {
   if (!banca || banca <= 0) {
-    return { ok: false, message: "BANCA_NAO_DEFINIDA: O usuário ainda não definiu a banca inicial em /gestao. Peça para ele definir a banca antes de registrar operações." };
+    return {
+      ok: false,
+      message:
+        "BANCA_NAO_DEFINIDA: O usuário ainda não definiu a banca inicial em /gestao. Peça para ele definir a banca antes de registrar operações.",
+    };
   }
   const parsed = TradeArgs.safeParse(rawArgs);
   if (!parsed.success) {
-    return { ok: false, message: `Argumentos inválidos: ${parsed.error.issues.map(i => i.message).join("; ")}` };
+    return {
+      ok: false,
+      message: `Argumentos inválidos: ${parsed.error.issues.map((i) => i.message).join("; ")}`,
+    };
   }
   const a = parsed.data;
   const norm = normalizeAtivo(a.ativo);
   if (!norm) {
-    return { ok: false, message: `Ativo "${a.ativo}" não reconhecido. Peça ao usuário um ativo válido.` };
+    return {
+      ok: false,
+      message: `Ativo "${a.ativo}" não reconhecido. Peça ao usuário um ativo válido.`,
+    };
   }
   const payout = a.payout ?? payoutForCategoria(norm.categoria);
   const lucro = calcLucro(a.valor, payout, a.res);
@@ -328,10 +368,18 @@ async function executeUpdateTrade(
   rawArgs: unknown,
 ): Promise<ToolResult> {
   const parsed = UpdateArgs.safeParse(rawArgs);
-  if (!parsed.success) return { ok: false, message: `Argumentos inválidos: ${parsed.error.issues.map(i => i.message).join("; ")}` };
+  if (!parsed.success)
+    return {
+      ok: false,
+      message: `Argumentos inválidos: ${parsed.error.issues.map((i) => i.message).join("; ")}`,
+    };
   const a = parsed.data;
   const { data: existing, error: e1 } = await supabase
-    .from("trades").select("*").eq("id", a.id).eq("user_id", userId).maybeSingle();
+    .from("trades")
+    .select("*")
+    .eq("id", a.id)
+    .eq("user_id", userId)
+    .maybeSingle();
   if (e1 || !existing) return { ok: false, message: `Operação ${a.id} não encontrada.` };
 
   let ativo = existing.ativo as string;
@@ -344,7 +392,8 @@ async function executeUpdateTrade(
   }
   const valor = a.valor ?? Number(existing.valor);
   const res = (a.res ?? existing.res) as "WIN" | "LOSS";
-  const payout = a.payout ?? (a.ativo ? payoutForCategoria(categoria ?? "CRIPTO") : Number(existing.payout));
+  const payout =
+    a.payout ?? (a.ativo ? payoutForCategoria(categoria ?? "CRIPTO") : Number(existing.payout));
   const lucro = calcLucro(valor, payout, res);
   const dir = (a.dir ?? existing.dir) as "COMPRA" | "VENDA";
 
@@ -352,7 +401,11 @@ async function executeUpdateTrade(
   if (a.dir) patch.dir = a.dir;
   if (a.obs !== undefined) patch.obs = a.obs;
 
-  const { error: e2 } = await supabase.from("trades").update(patch as never).eq("id", a.id).eq("user_id", userId);
+  const { error: e2 } = await supabase
+    .from("trades")
+    .update(patch as never)
+    .eq("id", a.id)
+    .eq("user_id", userId);
   if (e2) return { ok: false, message: `Falha ao atualizar: ${e2.message}` };
   return {
     ok: true,
@@ -383,9 +436,17 @@ async function executeDeleteTrade(
   const parsed = DeleteArgs.safeParse(rawArgs);
   if (!parsed.success) return { ok: false, message: "ID inválido." };
   const { data: existing, error: e1 } = await supabase
-    .from("trades").select("ativo, valor, lucro, res").eq("id", parsed.data.id).eq("user_id", userId).maybeSingle();
+    .from("trades")
+    .select("ativo, valor, lucro, res")
+    .eq("id", parsed.data.id)
+    .eq("user_id", userId)
+    .maybeSingle();
   if (e1 || !existing) return { ok: false, message: `Operação ${parsed.data.id} não encontrada.` };
-  const { error } = await supabase.from("trades").delete().eq("id", parsed.data.id).eq("user_id", userId);
+  const { error } = await supabase
+    .from("trades")
+    .delete()
+    .eq("id", parsed.data.id)
+    .eq("user_id", userId);
   if (error) return { ok: false, message: `Falha ao excluir: ${error.message}` };
   return {
     ok: true,
@@ -412,7 +473,12 @@ function resolveMonthRange(monthArg: string | undefined): { from: Date; to: Date
   let month = now.getMonth(); // 0-indexed
   const normalized = (monthArg ?? "current").toLowerCase();
   if (normalized === "previous") {
-    if (month === 0) { month = 11; year -= 1; } else { month -= 1; }
+    if (month === 0) {
+      month = 11;
+      year -= 1;
+    } else {
+      month -= 1;
+    }
   } else if (/^\d{4}-\d{2}$/.test(normalized)) {
     const [yy, mm] = normalized.split("-").map(Number);
     year = yy;
@@ -420,7 +486,20 @@ function resolveMonthRange(monthArg: string | undefined): { from: Date; to: Date
   }
   const from = new Date(year, month, 1, 0, 0, 0, 0);
   const to = new Date(year, month + 1, 1, 0, 0, 0, 0);
-  const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+  const monthNames = [
+    "Janeiro",
+    "Fevereiro",
+    "Março",
+    "Abril",
+    "Maio",
+    "Junho",
+    "Julho",
+    "Agosto",
+    "Setembro",
+    "Outubro",
+    "Novembro",
+    "Dezembro",
+  ];
   return { from, to, label: `${monthNames[month]}/${year}` };
 }
 
@@ -451,10 +530,15 @@ async function executeMonthlyReport(
   const winRate = closed ? Math.round((wins / closed) * 100) : 0;
 
   const winsByAsset = new Map<string, number>();
-  for (const r of rows) if (r.res === "WIN") winsByAsset.set(r.ativo, (winsByAsset.get(r.ativo) ?? 0) + 1);
+  for (const r of rows)
+    if (r.res === "WIN") winsByAsset.set(r.ativo, (winsByAsset.get(r.ativo) ?? 0) + 1);
   let melhorAtivo: string | null = null;
   let topWins = 0;
-  for (const [a, n] of winsByAsset) if (n > topWins) { topWins = n; melhorAtivo = a; }
+  for (const [a, n] of winsByAsset)
+    if (n > topWins) {
+      topWins = n;
+      melhorAtivo = a;
+    }
 
   const byCatMap = new Map<ReportByCategory["categoria"], ReportByCategory>();
   for (const r of rows) {
@@ -487,7 +571,8 @@ async function executeMonthlyReport(
 function resolveWinPeriod(period: WinReportPeriod): { from: Date; label: string } {
   const now = new Date();
   if (period === "today") {
-    const from = new Date(now); from.setHours(0, 0, 0, 0);
+    const from = new Date(now);
+    from.setHours(0, 0, 0, 0);
     return { from, label: "Hoje" };
   }
   if (period === "week") {
@@ -531,8 +616,15 @@ async function executeWinReport(
   let curWin = 0;
   let curLoss = 0;
   for (const r of rows) {
-    if (r.res === "WIN") { curWin += 1; curLoss = 0; if (curWin > bestStreak) bestStreak = curWin; }
-    else if (r.res === "LOSS") { curLoss += 1; curWin = 0; if (curLoss > worstStreak) worstStreak = curLoss; }
+    if (r.res === "WIN") {
+      curWin += 1;
+      curLoss = 0;
+      if (curWin > bestStreak) bestStreak = curWin;
+    } else if (r.res === "LOSS") {
+      curLoss += 1;
+      curWin = 0;
+      if (curLoss > worstStreak) worstStreak = curLoss;
+    }
   }
 
   const report: WinReportData = {
@@ -564,26 +656,46 @@ export const Route = createFileRoute("/api/ai-mind")({
 
         // Premium Anual obrigatório.
         const { data: plan } = await supabaseAdmin
-          .from("user_plans").select("is_pro").eq("user_id", userId).maybeSingle();
-        if (!plan?.is_pro) return jsonResponse({ ok: false, error: "Recurso exclusivo do Premium Anual." }, 402, request);
+          .from("user_plans")
+          .select("is_pro")
+          .eq("user_id", userId)
+          .maybeSingle();
+        if (!plan?.is_pro)
+          return jsonResponse(
+            { ok: false, error: "Recurso exclusivo do Premium Anual." },
+            402,
+            request,
+          );
 
         let body: z.infer<typeof Body>;
-        try { body = Body.parse(await request.json()); } catch { return jsonResponse({ ok: false, error: "Mensagens inválidas." }, 400, request); }
+        try {
+          body = Body.parse(await request.json());
+        } catch {
+          return jsonResponse({ ok: false, error: "Mensagens inválidas." }, 400, request);
+        }
         const apiKey = process.env.OPENAI_API_KEY;
-        if (!apiKey) return jsonResponse({ ok: false, error: "API key não configurada." }, 500, request);
+        if (!apiKey)
+          return jsonResponse({ ok: false, error: "API key não configurada." }, 500, request);
 
         const ctxParts: string[] = [];
         if (body.banca && body.banca > 0) {
           ctxParts.push(`Banca inicial definida pelo usuário: $${body.banca.toFixed(2)}.`);
         } else {
-          ctxParts.push(`O usuário AINDA NÃO definiu a banca inicial em /gestao. Se ele pedir para registrar uma operação, peça primeiro para ele definir a banca lá.`);
+          ctxParts.push(
+            `O usuário AINDA NÃO definiu a banca inicial em /gestao. Se ele pedir para registrar uma operação, peça primeiro para ele definir a banca lá.`,
+          );
         }
         if (body.recentTrades && body.recentTrades.length > 0) {
-          const list = body.recentTrades.slice(0, 10).map((t) => {
-            const dt = new Date(t.data).toLocaleString("pt-BR");
-            return `- id=${t.id} | ${dt} | ${t.ativo} ${t.dir} $${t.valor} payout ${t.payout}% ${t.res} lucro $${t.lucro}${t.obs ? ` obs="${t.obs}"` : ""}`;
-          }).join("\n");
-          ctxParts.push(`Últimas operações do usuário (use o id exato para editar/excluir):\n${list}`);
+          const list = body.recentTrades
+            .slice(0, 10)
+            .map((t) => {
+              const dt = new Date(t.data).toLocaleString("pt-BR");
+              return `- id=${t.id} | ${dt} | ${t.ativo} ${t.dir} $${t.valor} payout ${t.payout}% ${t.res} lucro $${t.lucro}${t.obs ? ` obs="${t.obs}"` : ""}`;
+            })
+            .join("\n");
+          ctxParts.push(
+            `Últimas operações do usuário (use o id exato para editar/excluir):\n${list}`,
+          );
         } else {
           ctxParts.push("O usuário ainda não tem operações registradas.");
         }
@@ -601,11 +713,16 @@ export const Route = createFileRoute("/api/ai-mind")({
               controller.enqueue(encoder.encode(`data: ${JSON.stringify(obj)}\n\n`));
             const sendDone = () => controller.enqueue(encoder.encode(`data: [DONE]\n\n`));
             const pendingCards: MindCard[] = [];
+            let totalText = "";
+            let hadError = false;
             try {
               for (let iter = 0; iter < 4; iter++) {
                 const r = await fetch(OPENAI_URL, {
                   method: "POST",
-                  headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+                  headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${apiKey}`,
+                  },
                   body: JSON.stringify({
                     model: MODEL,
                     messages,
@@ -619,7 +736,13 @@ export const Route = createFileRoute("/api/ai-mind")({
                 if (!r.ok || !r.body) {
                   const txt = !r.ok ? await r.text().catch(() => "") : "";
                   console.error("ai-mind error", r.status, txt);
-                  send({ error: r.status === 429 ? "Muitas mensagens em sequência. Aguarde." : "Falha ao consultar a IA." });
+                  send({
+                    error:
+                      r.status === 429
+                        ? "Muitas mensagens em sequência. Aguarde."
+                        : "Falha ao consultar a IA.",
+                  });
+                  hadError = true;
                   break;
                 }
 
@@ -627,7 +750,10 @@ export const Route = createFileRoute("/api/ai-mind")({
                 const decoder = new TextDecoder();
                 let buf = "";
                 let assistantContent = "";
-                const toolCalls = new Map<number, { id: string; type: "function"; function: { name: string; arguments: string } }>();
+                const toolCalls = new Map<
+                  number,
+                  { id: string; type: "function"; function: { name: string; arguments: string } }
+                >();
                 let finishReason: string | undefined;
 
                 streamLoop: while (true) {
@@ -661,6 +787,7 @@ export const Route = createFileRoute("/api/ai-mind")({
                       const delta = choice.delta;
                       if (delta?.content) {
                         assistantContent += delta.content;
+                        totalText += delta.content;
                         send({ delta: delta.content });
                       }
                       if (delta?.tool_calls) {
@@ -678,23 +805,39 @@ export const Route = createFileRoute("/api/ai-mind")({
                             if (tcDelta.id) tc.id = tcDelta.id;
                             if (tcDelta.function?.name) tc.function.name = tcDelta.function.name;
                           }
-                          if (tcDelta.function?.arguments) tc.function.arguments += tcDelta.function.arguments;
+                          if (tcDelta.function?.arguments)
+                            tc.function.arguments += tcDelta.function.arguments;
                         }
                       }
                       if (choice.finish_reason) finishReason = choice.finish_reason;
-                    } catch { /* ignore malformed chunk */ }
+                    } catch {
+                      /* ignore malformed chunk */
+                    }
                   }
                 }
 
                 if (finishReason === "tool_calls" && toolCalls.size > 0) {
                   const accumulated = Array.from(toolCalls.values());
-                  messages.push({ role: "assistant", content: assistantContent || null, tool_calls: accumulated });
+                  messages.push({
+                    role: "assistant",
+                    content: assistantContent || null,
+                    tool_calls: accumulated,
+                  });
                   for (const tc of accumulated) {
                     let result: ToolResult;
                     let args: unknown = {};
-                    try { args = JSON.parse(tc.function.arguments || "{}"); } catch { args = {}; }
+                    try {
+                      args = JSON.parse(tc.function.arguments || "{}");
+                    } catch {
+                      args = {};
+                    }
                     if (tc.function.name === "register_trade") {
-                      result = await executeRegisterTrade(supabaseAdmin, userId, args, body.banca ?? null);
+                      result = await executeRegisterTrade(
+                        supabaseAdmin,
+                        userId,
+                        args,
+                        body.banca ?? null,
+                      );
                     } else if (tc.function.name === "update_trade") {
                       result = await executeUpdateTrade(supabaseAdmin, userId, args);
                     } else if (tc.function.name === "delete_trade") {
@@ -704,18 +847,36 @@ export const Route = createFileRoute("/api/ai-mind")({
                     } else if (tc.function.name === "get_win_report") {
                       result = await executeWinReport(supabaseAdmin, userId, args);
                     } else {
-                      result = { ok: false, message: `Ferramenta desconhecida: ${tc.function.name}` };
+                      result = {
+                        ok: false,
+                        message: `Ferramenta desconhecida: ${tc.function.name}`,
+                      };
                     }
                     if (result.ok && result.card) {
                       pendingCards.push(result.card);
                     }
                     // Para o modelo, mandamos apenas o status sem o card (evita repetição).
-                    messages.push({ role: "tool", tool_call_id: tc.id, content: JSON.stringify({ ok: result.ok, message: result.message }) });
+                    messages.push({
+                      role: "tool",
+                      tool_call_id: tc.id,
+                      content: JSON.stringify({ ok: result.ok, message: result.message }),
+                    });
                   }
                   continue;
                 }
 
                 break;
+              }
+              // Fallback: se o stream terminou sem erro mas a IA não produziu
+              // nem texto nem card, envia uma resposta padrão (em vez de o
+              // frontend mostrar "Sem resposta."). Mesma coisa se houve card
+              // mas zero texto — garante que sempre tem algum comentário.
+              if (!hadError && !totalText.trim()) {
+                const fallback =
+                  pendingCards.length > 0
+                    ? "Pronto, registrado."
+                    : "Não consegui processar agora. Pode reformular?";
+                send({ delta: fallback });
               }
               // Emite cards acumulados DEPOIS de todo o texto,
               // logo antes do [DONE] — evita buffering do CF Workers.
@@ -728,7 +889,11 @@ export const Route = createFileRoute("/api/ai-mind")({
               send({ error: "Erro de conexão com a IA." });
               sendDone();
             } finally {
-              try { controller.close(); } catch { /* already closed */ }
+              try {
+                controller.close();
+              } catch {
+                /* already closed */
+              }
             }
           },
         });
@@ -738,7 +903,7 @@ export const Route = createFileRoute("/api/ai-mind")({
           headers: {
             "Content-Type": "text/event-stream; charset=utf-8",
             "Cache-Control": "no-cache, no-transform",
-            "Connection": "keep-alive",
+            Connection: "keep-alive",
             "X-Accel-Buffering": "no",
             ...corsHeaders(request),
           },

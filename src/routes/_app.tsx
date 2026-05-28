@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { logout, useAppState, useUser } from "@/lib/store";
 import { PremiumGate, type GateKey } from "@/components/app/PremiumGate";
+import { useVirtualKeyboard } from "@/hooks/use-virtual-keyboard";
 
 export const Route = createFileRoute("/_app")({
   component: AppLayout,
@@ -34,6 +35,8 @@ function AppLayout() {
   const { user, ready } = useUser();
   const { state } = useAppState();
   const loc = useLocation();
+  const kbHeight = useVirtualKeyboard();
+  const kbOpen = kbHeight > 0;
 
   useEffect(() => {
     if (ready && !user) nav({ to: "/login" });
@@ -41,11 +44,16 @@ function AppLayout() {
 
   if (!ready || !user) {
     return (
-      <div className="relative flex min-h-screen items-center justify-center fade-in" style={{ background: "var(--background)" }}>
+      <div
+        className="relative flex min-h-screen items-center justify-center fade-in"
+        style={{ background: "var(--background)" }}
+      >
         <BgFx />
         <div className="relative z-10 flex flex-col items-center gap-3">
           <Loader2 className="h-5 w-5 animate-spin" style={{ color: "var(--accent)" }} />
-          <span className="font-display text-[10px] uppercase tracking-[0.3em] text-muted-foreground">Carregando</span>
+          <span className="font-display text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+            Carregando
+          </span>
         </div>
       </div>
     );
@@ -77,14 +85,24 @@ function AppLayout() {
   const isGated = !!gatedFeature && !state.isPro;
 
   return (
-    <div data-orion-app-shell="true" className="relative flex h-dvh overflow-hidden flex-col" style={{ background: "var(--background)" }}>
+    <div
+      data-orion-app-shell="true"
+      className="relative flex h-dvh overflow-hidden flex-col"
+      style={{ background: "var(--background)" }}
+    >
       <BgFx />
 
       <header
         className="sticky top-0 z-50 flex h-14 flex-none items-center justify-between border-b px-5 backdrop-blur-xl fade-down"
-        style={{ background: "color-mix(in oklab, var(--background) 78%, transparent)", borderColor: "var(--border-strong)" }}
+        style={{
+          background: "color-mix(in oklab, var(--background) 78%, transparent)",
+          borderColor: "var(--border-strong)",
+        }}
       >
-        <Link to="/dashboard" className="font-display text-lg font-semibold tracking-tight smooth hover:opacity-90">
+        <Link
+          to="/dashboard"
+          className="font-display text-lg font-semibold tracking-tight smooth hover:opacity-90"
+        >
           Orion<span style={{ color: "var(--accent)" }}>Hub</span>
         </Link>
         <div className="flex items-center gap-3">
@@ -99,13 +117,20 @@ function AppLayout() {
                     borderColor: "color-mix(in oklab, var(--accent) 40%, transparent)",
                     boxShadow: "0 0 18px color-mix(in oklab, var(--accent) 30%, transparent)",
                   }
-                : { background: "var(--surface)", color: "var(--text-muted)", borderColor: "var(--border-strong)" }
+                : {
+                    background: "var(--surface)",
+                    color: "var(--text-muted)",
+                    borderColor: "var(--border-strong)",
+                  }
             }
           >
             {state.isPro ? "Acesso Anual" : "Comprar acesso"}
           </Link>
           <button
-            onClick={() => { logout(); nav({ to: "/" }); }}
+            onClick={() => {
+              logout();
+              nav({ to: "/" });
+            }}
             aria-label="Sair"
             className="hidden h-8 w-8 items-center justify-center rounded-md border text-muted-foreground smooth hover:border-[color:var(--red)] hover:text-[color:var(--red)] sm:inline-flex"
             style={{ borderColor: "var(--border)" }}
@@ -116,7 +141,11 @@ function AppLayout() {
             to="/perfil"
             aria-label="Perfil"
             className="flex h-10 w-10 sm:h-8 sm:w-8 items-center justify-center rounded-md border text-[11px] font-semibold smooth hover:border-[color:var(--accent)] hover:text-[color:var(--accent)]"
-            style={{ background: "var(--surface-2)", borderColor: "var(--border-strong)", color: "var(--foreground)" }}
+            style={{
+              background: "var(--surface-2)",
+              borderColor: "var(--border-strong)",
+              color: "var(--foreground)",
+            }}
           >
             {user.email.slice(0, 2).toUpperCase()}
           </Link>
@@ -126,9 +155,15 @@ function AppLayout() {
       <div className="relative z-10 flex min-h-0 flex-1 overflow-hidden">
         <nav
           className="hidden w-56 flex-none flex-col gap-0.5 border-r p-3 sm:flex slide-in-left"
-          style={{ background: "color-mix(in oklab, var(--surface) 78%, transparent)", borderColor: "var(--border)", backdropFilter: "blur(14px)" }}
+          style={{
+            background: "color-mix(in oklab, var(--surface) 78%, transparent)",
+            borderColor: "var(--border)",
+            backdropFilter: "blur(14px)",
+          }}
         >
-          <div className="px-2 pb-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Workspace</div>
+          <div className="px-2 pb-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+            Workspace
+          </div>
           {tabs.map(({ to, Icon, label, desc }) => {
             const active = loc.pathname.startsWith(to);
             return (
@@ -143,7 +178,8 @@ function AppLayout() {
                     ? {
                         background: "color-mix(in oklab, var(--accent) 14%, var(--surface-2))",
                         color: "var(--foreground)",
-                        boxShadow: "0 0 24px -10px color-mix(in oklab, var(--accent) 70%, transparent)",
+                        boxShadow:
+                          "0 0 24px -10px color-mix(in oklab, var(--accent) 70%, transparent)",
                       }
                     : { color: "var(--text-muted)" }
                 }
@@ -151,7 +187,10 @@ function AppLayout() {
                 {active && (
                   <span
                     className="absolute inset-y-1 left-0 w-0.5 rounded-r"
-                    style={{ background: "var(--gradient-primary)", boxShadow: "0 0 10px var(--accent)" }}
+                    style={{
+                      background: "var(--gradient-primary)",
+                      boxShadow: "0 0 10px var(--accent)",
+                    }}
                   />
                 )}
                 <Icon
@@ -159,7 +198,9 @@ function AppLayout() {
                   strokeWidth={1.75}
                   style={{
                     color: active ? "var(--accent)" : "var(--text-dim)",
-                    filter: active ? "drop-shadow(0 0 6px color-mix(in oklab, var(--accent) 70%, transparent))" : "none",
+                    filter: active
+                      ? "drop-shadow(0 0 6px color-mix(in oklab, var(--accent) 70%, transparent))"
+                      : "none",
                   }}
                 />
                 <div className="flex flex-col leading-tight">
@@ -172,11 +213,21 @@ function AppLayout() {
         </nav>
 
         <nav
+          aria-hidden={kbOpen}
           className="fixed inset-x-0 bottom-0 z-40 flex justify-around border-t py-2 backdrop-blur-xl sm:hidden fade-up"
-          style={{ background: "color-mix(in oklab, var(--surface) 88%, transparent)", borderColor: "var(--border)", paddingBottom: "calc(0.5rem + env(safe-area-inset-bottom, 0px))" }}
+          style={{
+            background: "color-mix(in oklab, var(--surface) 88%, transparent)",
+            borderColor: "var(--border)",
+            paddingBottom: "calc(0.5rem + env(safe-area-inset-bottom, 0px))",
+            transform: kbOpen ? "translateY(100%)" : undefined,
+            transition: "transform 180ms ease",
+            pointerEvents: kbOpen ? "none" : undefined,
+          }}
         >
           {tabs
-            .filter(({ to }) => ["/dashboard", "/scan", "/mind", "/gestao", "/noticias"].includes(to))
+            .filter(({ to }) =>
+              ["/dashboard", "/scan", "/mind", "/gestao", "/noticias"].includes(to),
+            )
             .map(({ to, Icon, label }) => {
               const active = loc.pathname.startsWith(to);
               return (
@@ -188,7 +239,9 @@ function AppLayout() {
                   className="flex flex-1 flex-col items-center gap-0.5 px-1 py-2 text-[10px] font-medium smooth press"
                   style={{
                     color: active ? "var(--accent)" : "var(--text-dim)",
-                    filter: active ? "drop-shadow(0 0 6px color-mix(in oklab, var(--accent) 60%, transparent))" : "none",
+                    filter: active
+                      ? "drop-shadow(0 0 6px color-mix(in oklab, var(--accent) 60%, transparent))"
+                      : "none",
                   }}
                 >
                   <Icon className="h-4 w-4" strokeWidth={1.75} />
@@ -200,7 +253,11 @@ function AppLayout() {
 
         <main
           className={`relative min-h-0 flex-1 sm:!pb-0 ${isFullHeightRoute ? "overflow-hidden" : "overflow-y-auto"}`}
-          style={{ paddingBottom: "calc(4.5rem + env(safe-area-inset-bottom, 0px))" }}
+          style={{
+            paddingBottom: kbOpen
+              ? `${kbHeight}px`
+              : "calc(4.5rem + env(safe-area-inset-bottom, 0px))",
+          }}
         >
           {isGated ? (
             <PremiumGate feature={GATED[gatedFeature!]}>
