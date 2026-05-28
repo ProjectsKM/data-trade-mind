@@ -264,6 +264,72 @@ button, a, [role="button"] { transition: background-color .15s ease, color .15s 
 @keyframes thinkingPulse { 0%, 100% { opacity: .65; } 50% { opacity: 1; } }
 .thinking-text { animation: thinkingPulse 1.6s infinite ease-in-out; }
 
+/* Landing: marquee horizontal infinito (brokers, parceiros) */
+@keyframes marqueeScroll {
+  0%   { transform: translate3d(0, 0, 0); }
+  100% { transform: translate3d(-50%, 0, 0); }
+}
+.marquee-track {
+  display: inline-flex;
+  gap: 3rem;
+  animation: marqueeScroll 28s linear infinite;
+  will-change: transform;
+}
+.marquee-container { mask-image: linear-gradient(90deg, transparent, black 8%, black 92%, transparent); }
+.marquee-container:hover .marquee-track { animation-play-state: paused; }
+
+/* Landing: float horizontal pra crypto bubbles ambient */
+@keyframes floatX {
+  0%, 100% { transform: translateX(0) translateY(0); }
+  50%      { transform: translateX(8px) translateY(-12px); }
+}
+.float-xy { animation: floatX 7s ease-in-out infinite; will-change: transform; }
+
+/* Landing: chat message entrada com fade + slide */
+@keyframes chatIn {
+  from { opacity: 0; transform: translateY(8px) scale(.97); }
+  to   { opacity: 1; transform: translateY(0)   scale(1); }
+}
+.chat-in { animation: chatIn .35s cubic-bezier(.22,.9,.36,1) both; }
+
+/* Landing: tab indicator slide entre tabs */
+@keyframes tabIndicator {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+.tab-indicator { animation: tabIndicator .45s cubic-bezier(.22,.9,.36,1) both; transform-origin: left; }
+
+/* Landing: bento card mouse spotlight via CSS variables */
+.bento-glow {
+  position: relative;
+  isolation: isolate;
+}
+.bento-glow::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    280px circle at var(--mx, 50%) var(--my, 50%),
+    color-mix(in oklab, var(--accent) 18%, transparent),
+    transparent 60%
+  );
+  opacity: 0;
+  transition: opacity .25s ease;
+  pointer-events: none;
+  z-index: 1;
+}
+.bento-glow:hover::before { opacity: 1; }
+.bento-glow > * { position: relative; z-index: 2; }
+
+/* Landing: count-up reveal pulse */
+@keyframes counterPop {
+  0%   { transform: scale(.85); opacity: 0; }
+  60%  { transform: scale(1.08); opacity: 1; }
+  100% { transform: scale(1); }
+}
+.counter-pop { animation: counterPop .6s cubic-bezier(.34,1.56,.64,1) both; }
+
 /* Skeleton: respiração suave pra placeholders de loading */
 @keyframes skeletonPulse {
   0%, 100% { opacity: 0.5; }
