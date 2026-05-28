@@ -264,6 +264,19 @@ button, a, [role="button"] { transition: background-color .15s ease, color .15s 
 @keyframes thinkingPulse { 0%, 100% { opacity: .65; } 50% { opacity: 1; } }
 .thinking-text { animation: thinkingPulse 1.6s infinite ease-in-out; }
 
+/* OrionMind: cursor pulsante enquanto a IA está digitando */
+@keyframes streamCursor { 0%, 50% { opacity: 1; } 50.01%, 100% { opacity: 0; } }
+.stream-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  background: var(--accent);
+  border-radius: 1px;
+  animation: streamCursor 1s steps(1) infinite;
+}
+
 /* ── MindCards premium animations ─────────────────────────────────────── */
 
 /* 1. cardReveal: materialização rápida com scale + translate */

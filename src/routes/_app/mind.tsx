@@ -611,9 +611,22 @@ function MindPage() {
           className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-6 pb-20 sm:px-5"
         >
           <div className="mx-auto flex max-w-3xl flex-col gap-4">
-            {display.map((m, i) => (
-              <Bubble key={i} m={m} initials={initials} />
-            ))}
+            {display.map((m, i) => {
+              const isLast = i === display.length - 1;
+              const isStreamingBubble =
+                streaming &&
+                isLast &&
+                m.role === "assistant" &&
+                !m.content.startsWith(CARD_PREFIX);
+              return (
+                <Bubble
+                  key={i}
+                  m={m}
+                  initials={initials}
+                  isStreaming={isStreamingBubble}
+                />
+              );
+            })}
             {busy && !streaming && (
               <div className="flex items-end gap-2.5 fade-in">
                 <Avatar isAssistant />
@@ -761,7 +774,15 @@ function ThinkingBubble() {
   );
 }
 
-function Bubble({ m, initials }: { m: ChatMsg; initials: string }) {
+const Bubble = memo(function Bubble({
+  m,
+  initials,
+  isStreaming,
+}: {
+  m: ChatMsg;
+  initials: string;
+  isStreaming: boolean;
+}) {
   const isUser = m.role === "user";
 
   // Mensagem do tipo card: renderiza o componente visual sem bubble wrapper.
@@ -794,13 +815,21 @@ function Bubble({ m, initials }: { m: ChatMsg; initials: string }) {
       >
         {isUser ? (
           <span style={{ whiteSpace: "pre-wrap" }}>{m.content}</span>
+        ) : isStreaming ? (
+          // Durante o stream, render texto puro (sem markdown) +
+          // cursor pulsante. Evita re-parse do markdown a cada frame
+          // (que era a maior causa de lag percebido).
+          <span style={{ whiteSpace: "pre-wrap" }}>
+            {m.content}
+            <span className="stream-cursor" aria-hidden="true" />
+          </span>
         ) : (
           <MarkdownContent text={m.content} />
         )}
       </div>
     </div>
   );
-}
+});
 
 const MarkdownContent = memo(function MarkdownContent({ text }: { text: string }) {
   return (

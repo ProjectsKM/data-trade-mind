@@ -14,6 +14,7 @@ import {
 import { logout, useAppState, useUser } from "@/lib/store";
 import { PremiumGate, type GateKey } from "@/components/app/PremiumGate";
 import { useVirtualKeyboard } from "@/hooks/use-virtual-keyboard";
+import { hydrateBancaFromCloud } from "@/lib/banca-sync";
 
 export const Route = createFileRoute("/_app")({
   component: AppLayout,
@@ -41,6 +42,13 @@ function AppLayout() {
   useEffect(() => {
     if (ready && !user) nav({ to: "/login" });
   }, [ready, user, nav]);
+
+  // Sincroniza banca da cloud (user_metadata) pro localStorage logo após
+  // login — garante que /mind, /scan etc enxerguem a banca mesmo se foi
+  // definida em outro device/browser.
+  useEffect(() => {
+    if (ready && user) void hydrateBancaFromCloud();
+  }, [ready, user?.id]);
 
   if (!ready || !user) {
     return (
