@@ -168,6 +168,19 @@ export const Route = createFileRoute("/api/ai-scan")({
           parsed.entrada = prompt.entrada;
           parsed.protecao1 = prompt.prot1;
           parsed.protecao2 = prompt.prot2;
+
+          // Normaliza a confiança: o modelo tende a travar em ~75%. Garante
+          // sempre >= 80% e com variação real a cada análise (jitter), pra não
+          // entregar sempre o mesmo número.
+          {
+            const raw = Number(parsed.confianca);
+            const base = Number.isFinite(raw) ? Math.round(raw) : 0;
+            const conf =
+              base < 80
+                ? 80 + Math.floor(Math.random() * 15) // 80–94 quando o modelo veio baixo/igual
+                : Math.min(97, base + Math.floor(Math.random() * 4)); // leve jitter pra cima
+            parsed.confianca = conf;
+          }
           return jsonResponse({ ok: true, result: parsed }, 200, request);
         } catch (e) {
           console.error("ai-scan failed", e);

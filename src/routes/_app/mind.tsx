@@ -11,11 +11,12 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   ArrowDown,
+  ImagePlus,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useUser, type ChatMsg } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
 import { VoiceRecorder } from "@/components/app/VoiceRecorder";
 import { getBanca } from "@/lib/assets";
 import { CARD_PREFIX, parseCard, serializeCard, type MindCard } from "@/lib/mind-cards";
@@ -98,6 +99,11 @@ function MindPage() {
     if (typeof window === "undefined") return false;
     return window.localStorage.getItem("orion.mind.sidebarCollapsed") === "1";
   });
+  // Imagem anexada (print de gráfico) pra análise por visão.
+  const [attach, setAttach] = useState<{ b64: string; mediaType: string; preview: string } | null>(
+    null,
+  );
+  const fileRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
   const autoFollowRef = useRef(true);
@@ -299,10 +305,43 @@ function MindPage() {
     toast.success("Conversa excluída.");
   }
 
+  function onPickImage(file: File | undefined) {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Envie um arquivo de imagem (print do gráfico).");
+      return;
+    }
+    if (file.size > 5_000_000) {
+      toast.error("Imagem muito grande (máx 5 MB).");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = String(reader.result || "");
+      const comma = dataUrl.indexOf(",");
+      const b64 = comma >= 0 ? dataUrl.slice(comma + 1) : "";
+      const mt = (dataUrl.match(/^data:(image\/[a-z+]+);/)?.[1] || file.type) as string;
+      const mediaType = ["image/png", "image/jpeg", "image/webp", "image/gif"].includes(mt)
+        ? mt
+        : "image/png";
+      if (!b64) {
+        toast.error("Não consegui ler a imagem.");
+        return;
+      }
+      setAttach({ b64, mediaType, preview: dataUrl });
+      setTimeout(() => taRef.current?.focus(), 50);
+    };
+    reader.onerror = () => toast.error("Falha ao ler a imagem.");
+    reader.readAsDataURL(file);
+  }
+
   async function send(text?: string) {
     const t = (text ?? input).trim();
-    if (!t || busy || !user) return;
+    const img = attach;
+    // Permite enviar só com imagem (sem texto).
+    if ((!t && !img) || busy || !user) return;
     setInput("");
+    setAttach(null);
     // Reset do buffer do throttle pra evitar stale text de envios anteriores.
     pendingReplyRef.current = "";
 
@@ -310,7 +349,7 @@ function MindPage() {
 
     // Create thread on first message
     if (!threadId) {
-      const title = t.slice(0, 60);
+      const title = (t || (img ? "Análise de gráfico" : "")).slice(0, 60);
       const { data, error } = await supabase
         .from("mind_threads")
         .insert({ user_id: user.id, title })
@@ -326,16 +365,23 @@ function MindPage() {
       setThreads([data, ...threads]);
     }
 
+    // Quando só há imagem (sem texto), usa um prompt padrão de análise — o
+    // backend exige content >= 1 char e a IA precisa de instrução textual.
+    const effectiveText = t || "Analise este gráfico e explique o cenário de operação.";
     const userMsg: ChatMsg = {
       id: crypto.randomUUID(),
       role: "user",
-      content: t,
+      content: effectiveText,
       ts: new Date().toISOString(),
+      image: img?.preview,
     };
     setMessages((m) => [...m, userMsg]);
-    await supabase
-      .from("mind_messages")
-      .insert({ user_id: user.id, role: "user", content: t, thread_id: threadId } as never);
+    await supabase.from("mind_messages").insert({
+      user_id: user.id,
+      role: "user",
+      content: effectiveText,
+      thread_id: threadId,
+    } as never);
 
     setBusy(true);
     setAutoFollow(true);
@@ -381,7 +427,12 @@ function MindPage() {
             "Content-Type": "application/json",
             Authorization: `Bearer ${tk}`,
           },
-          body: JSON.stringify({ messages: history, banca, recentTrades: recentRows ?? [] }),
+          body: JSON.stringify({
+            messages: history,
+            banca,
+            recentTrades: recentRows ?? [],
+            image: img ? { imageBase64: img.b64, mediaType: img.mediaType } : undefined,
+          }),
           signal: controller.signal,
         });
 
@@ -779,52 +830,129 @@ function MindPage() {
           }}
         >
           <div className="mx-auto max-w-3xl">
+            {/* input hidden de arquivo */}
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/png,image/jpeg,image/webp,image/gif"
+              className="hidden"
+              onChange={(e) => {
+                onPickImage(e.target.files?.[0]);
+                e.target.value = "";
+              }}
+            />
+
+            {/* Pílula de input estilo ChatGPT/Apple: cantos suaves, sombra
+                sutil, foco com anel accent. Anexo de imagem aparece dentro. */}
             <div
-              className="flex items-end gap-2 rounded-xl border p-2 smooth focus-within:border-[color:var(--accent)]"
-              style={{ background: "var(--surface)", borderColor: "var(--border-strong)" }}
+              className="rounded-[24px] border p-2 smooth focus-within:border-[color:var(--accent)] focus-within:shadow-[0_0_0_4px_color-mix(in_oklab,var(--accent)_12%,transparent)]"
+              style={{
+                background: "var(--surface)",
+                borderColor: "var(--border-strong)",
+                boxShadow: "0 8px 28px -18px rgba(0,0,0,.5)",
+              }}
             >
-              <textarea
-                ref={taRef}
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    void send();
-                  }
-                }}
-                onFocus={() => {
-                  // iOS Safari: garante que o input fica visível após o teclado abrir.
-                  // Só roda em mobile (coarse pointer) — em desktop causa jump desnecessário.
-                  if (typeof window === "undefined") return;
-                  if (!window.matchMedia?.("(pointer: coarse)").matches) return;
-                  setTimeout(
-                    () => taRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" }),
-                    300,
-                  );
-                }}
-                placeholder="Pergunte ao OrionMind…"
-                rows={1}
-                // iOS Safari faz auto-zoom em inputs com font-size < 16px
-                // ao focar — o que reajustava o layout inteiro do /mind.
-                // text-base (16px) no mobile elimina o zoom; volta a 14px
-                // (text-sm) em sm+ pra manter a estética compacta no desktop.
-                className="flex-1 resize-none bg-transparent px-2 py-2 text-base outline-none placeholder:text-[color:var(--text-dim)] sm:text-sm"
-              />
-              <VoiceRecorder
-                disabled={busy}
-                onTranscript={(t) => setInput((cur) => (cur ? cur + " " : "") + t)}
-              />
-              <Button
-                onClick={() => void send()}
-                disabled={busy || !input.trim()}
-                size="icon"
-                aria-label="Enviar mensagem"
-                className="h-9 w-9 flex-none"
-              >
-                <Send className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
-              </Button>
+              {/* Preview da imagem anexada */}
+              {attach && (
+                <div className="mb-2 flex items-center gap-2 px-1.5 pt-1">
+                  <div className="relative">
+                    <img
+                      src={attach.preview}
+                      alt="Prévia do gráfico"
+                      className="h-14 w-14 rounded-lg border object-cover"
+                      style={{ borderColor: "var(--border-strong)" }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setAttach(null)}
+                      aria-label="Remover imagem"
+                      className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full border text-white smooth press"
+                      style={{ background: "var(--red)", borderColor: "var(--background)" }}
+                    >
+                      <X className="h-3 w-3" strokeWidth={2.5} />
+                    </button>
+                  </div>
+                  <span className="text-xs text-muted-foreground">
+                    Gráfico anexado — descreva ou só envie pra eu analisar.
+                  </span>
+                </div>
+              )}
+
+              <div className="flex items-end gap-1.5">
+                {/* Anexar imagem */}
+                <button
+                  type="button"
+                  onClick={() => fileRef.current?.click()}
+                  disabled={busy}
+                  aria-label="Anexar gráfico"
+                  title="Anexar gráfico"
+                  className="flex h-9 w-9 flex-none items-center justify-center rounded-full smooth press hover:bg-[color:var(--surface-2)] disabled:opacity-40"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  <ImagePlus className="h-[18px] w-[18px]" strokeWidth={1.75} />
+                </button>
+
+                <textarea
+                  ref={taRef}
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      void send();
+                    }
+                  }}
+                  onPaste={(e) => {
+                    // Colar print (Ctrl+V) anexa direto.
+                    const file = Array.from(e.clipboardData.files).find((f) =>
+                      f.type.startsWith("image/"),
+                    );
+                    if (file) {
+                      e.preventDefault();
+                      onPickImage(file);
+                    }
+                  }}
+                  onFocus={() => {
+                    if (typeof window === "undefined") return;
+                    if (!window.matchMedia?.("(pointer: coarse)").matches) return;
+                    setTimeout(
+                      () => taRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" }),
+                      300,
+                    );
+                  }}
+                  placeholder="Pergunte ao OrionMind ou anexe um gráfico…"
+                  rows={1}
+                  className="flex-1 resize-none self-center bg-transparent px-1 py-2 text-base outline-none placeholder:text-[color:var(--text-dim)] sm:text-sm"
+                />
+
+                <VoiceRecorder
+                  disabled={busy}
+                  onTranscript={(t) => setInput((cur) => (cur ? cur + " " : "") + t)}
+                />
+
+                <button
+                  type="button"
+                  onClick={() => void send()}
+                  disabled={busy || (!input.trim() && !attach)}
+                  aria-label="Enviar mensagem"
+                  className="flex h-9 w-9 flex-none items-center justify-center rounded-full text-white smooth press hover:-translate-y-px disabled:translate-y-0 disabled:opacity-30"
+                  style={{
+                    background: "var(--accent)",
+                    boxShadow:
+                      "0 6px 16px -8px color-mix(in oklab, var(--accent) 70%, transparent)",
+                  }}
+                >
+                  {busy ? (
+                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                  ) : (
+                    <Send className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
+                  )}
+                </button>
+              </div>
             </div>
+            <p className="mt-1.5 text-center text-[10px] text-muted-foreground/70">
+              O OrionMind pode cometer erros. Confirme antes de operar.
+            </p>
           </div>
         </div>
       </div>
@@ -975,7 +1103,17 @@ const Bubble = memo(function Bubble({
         }
       >
         {isUser ? (
-          <span style={{ whiteSpace: "pre-wrap" }}>{m.content}</span>
+          <span style={{ whiteSpace: "pre-wrap" }}>
+            {m.image && (
+              <img
+                src={m.image}
+                alt="Gráfico enviado"
+                className="mb-2 max-h-52 w-full rounded-lg border object-cover"
+                style={{ borderColor: "color-mix(in oklab, var(--accent) 30%, transparent)" }}
+              />
+            )}
+            {m.content}
+          </span>
         ) : isStreaming ? (
           // Durante o stream, render texto puro (sem markdown) +
           // cursor pulsante. Evita re-parse do markdown a cada frame

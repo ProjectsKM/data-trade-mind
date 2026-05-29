@@ -115,6 +115,16 @@ Quando o usuário pedir **relatório**, **resumo**, **balanço**, ou perguntar s
 - **get_win_report**: para "quantos wins eu tive hoje/essa semana/esse mês", "minhas vitórias", "balanço de wins". Aceita parâmetro \`period\` (today | week | month | all).
 - Após a ferramenta executar, NÃO repita os dados em texto — o card visual já mostra tudo. Apenas faça um comentário interpretativo curto (1-2 frases) com tom de mentor: "Bom mês, mas atenção ao drawdown na semana 3.", "Win rate consistente — mantenha a disciplina.", "Sequência negativa — pare de operar hoje e reveja o setup.". NUNCA liste os números do relatório no texto.
 - Se o usuário ainda não tem operações registradas, a ferramenta retorna sem dados — nesse caso, responda sugerindo registrar a primeira operação.
+
+## ANÁLISE DE GRÁFICO (quando o usuário enviar uma imagem/print)
+Quando a mensagem contiver uma imagem de gráfico, analise-a como mentor e **explique o cenário de operação** de forma clara e organizada, em português simples. Estruture a resposta assim (use markdown, com **negrito** nos rótulos):
+- **Ativo e timeframe** (se der pra identificar; senão diga que não dá).
+- **Tendência e contexto**: alta, baixa ou lateral, e o que sustenta isso no gráfico.
+- **Suporte e resistência**: os níveis/zonas mais relevantes que você vê.
+- **Padrões**: candles ou formações relevantes (em português — engolfo, martelo, topo duplo, etc).
+- **Direção provável**: COMPRA ou VENDA, com o nível de confiança em palavras (alta/média/baixa) e o porquê.
+- **Gestão Orion**: lembre da entrada de 1%, no máximo 2 proteções e o stop diário.
+NUNCA prometa lucro. Sempre reforce que é leitura de contexto e que a decisão é do trader. Se a imagem não for um gráfico de trading, diga isso gentilmente e peça um print do gráfico. Mantenha tom de mentor, acolhedor e direto.
 `;
 
 const Body = z.object({
@@ -138,6 +148,13 @@ const Body = z.object({
       }),
     )
     .max(50)
+    .optional(),
+  // Imagem opcional (print de gráfico) pra análise por visão.
+  image: z
+    .object({
+      imageBase64: z.string().min(100).max(7_000_000),
+      mediaType: z.enum(["image/png", "image/jpeg", "image/webp", "image/gif"]),
+    })
     .optional(),
 });
 
@@ -729,6 +746,31 @@ export const Route = createFileRoute("/api/ai-mind")({
           },
           ...body.messages.map((m) => ({ role: m.role, content: m.content })),
         ];
+
+        // Visão: se veio uma imagem (print de gráfico), transforma a ÚLTIMA
+        // mensagem do usuário num conteúdo multimodal (texto + imagem) pra
+        // o modelo analisar o gráfico. gpt-4o-mini suporta visão.
+        if (body.image) {
+          const dataUrl = `data:${body.image.mediaType};base64,${body.image.imageBase64}`;
+          for (let i = messages.length - 1; i >= 0; i--) {
+            if (messages[i].role === "user") {
+              const txt = String(messages[i].content ?? "");
+              messages[i] = {
+                role: "user",
+                content: [
+                  { type: "image_url", image_url: { url: dataUrl, detail: "high" } },
+                  {
+                    type: "text",
+                    text:
+                      txt ||
+                      "Analise este gráfico e explique o cenário de operação: direção provável, suporte/resistência, padrões e o que observar.",
+                  },
+                ],
+              };
+              break;
+            }
+          }
+        }
 
         const encoder = new TextEncoder();
         const stream = new ReadableStream<Uint8Array>({

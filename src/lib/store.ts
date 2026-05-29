@@ -45,7 +45,15 @@ export type ScanResult = {
   createdAt?: string;
 };
 
-export type ChatMsg = { id?: string; role: "user" | "assistant"; content: string; ts?: string };
+export type ChatMsg = {
+  id?: string;
+  role: "user" | "assistant";
+  content: string;
+  ts?: string;
+  // Preview (data URL) de uma imagem anexada pelo usuário. Apenas local —
+  // não é persistido no banco (a análise é efêmera, o texto da resposta fica).
+  image?: string;
+};
 
 export type AppState = {
   isPro: boolean;

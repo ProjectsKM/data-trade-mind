@@ -294,26 +294,25 @@ export function VoiceRecorder({ onTranscript, disabled }: Props) {
       }}
     >
       <span
-        className="flex h-2 w-2 flex-none rounded-full"
-        style={{
-          background: isPaused ? "var(--text-dim)" : "var(--red)",
-          animation: isPaused ? undefined : "pulse 1.4s ease-in-out infinite",
-        }}
+        className={`flex h-2 w-2 flex-none rounded-full ${isPaused ? "" : "blink-dot"}`}
+        style={{ background: isPaused ? "var(--text-dim)" : "var(--red)" }}
       />
       <span className="font-mono text-[11px] tabular text-muted-foreground">
         {mm}:{ss}
       </span>
-      <div className="flex h-5 flex-1 items-end gap-[2px]">
+      {/* Waveform estilo Apple: barras centralizadas verticalmente, arredondadas */}
+      <div className="flex h-6 flex-1 items-center justify-center gap-[2px]">
         {levels.map((v, i) => (
           <span
             key={i}
-            className="flex-1 rounded-sm"
+            className="flex-1 rounded-full"
             style={{
-              height: `${Math.max(8, v * 100)}%`,
+              height: `${Math.max(12, Math.min(100, v * 120))}%`,
+              minHeight: 3,
               background: isPaused
-                ? "color-mix(in oklab, var(--text-dim) 50%, transparent)"
-                : `color-mix(in oklab, var(--accent) ${30 + v * 60}%, transparent)`,
-              transition: "height 90ms linear",
+                ? "color-mix(in oklab, var(--text-dim) 55%, transparent)"
+                : `color-mix(in oklab, var(--accent) ${45 + v * 55}%, transparent)`,
+              transition: "height 100ms cubic-bezier(.2,.7,.2,1)",
             }}
           />
         ))}
