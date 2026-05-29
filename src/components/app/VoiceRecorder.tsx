@@ -87,6 +87,11 @@ export function VoiceRecorder({ onTranscript, disabled }: Props) {
 
   async function start() {
     if (disabled) return;
+    // getUserMedia só funciona em contexto seguro (HTTPS ou localhost).
+    if (!navigator.mediaDevices?.getUserMedia) {
+      toast.error("Seu navegador não suporta gravação de áudio (ou o site não está em HTTPS).");
+      return;
+    }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
@@ -95,6 +100,12 @@ export function VoiceRecorder({ onTranscript, disabled }: Props) {
         (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       const ctx = new AC();
       audioCtxRef.current = ctx;
+      // Chrome/iOS criam o AudioContext "suspended" até um gesto — sem resume
+      // o analyser não recebe dados e a waveform fica parada (parece que o mic
+      // não foi detectado, mesmo gravando normalmente).
+      if (ctx.state === "suspended") {
+        await ctx.resume().catch(() => undefined);
+      }
       const src = ctx.createMediaStreamSource(stream);
       const analyser = ctx.createAnalyser();
       analyser.fftSize = 256;
@@ -126,7 +137,18 @@ export function VoiceRecorder({ onTranscript, disabled }: Props) {
       startSpectrum();
     } catch (err) {
       console.error(err);
-      toast.error("Não foi possível acessar o microfone.");
+      const name = (err as { name?: string })?.name;
+      if (name === "NotAllowedError" || name === "SecurityError") {
+        toast.error(
+          "Permissão de microfone negada. Libere o acesso nas configurações do navegador.",
+        );
+      } else if (name === "NotFoundError" || name === "DevicesNotFoundError") {
+        toast.error("Nenhum microfone encontrado neste dispositivo.");
+      } else if (name === "NotReadableError") {
+        toast.error("O microfone está em uso por outro app. Feche e tente de novo.");
+      } else {
+        toast.error("Não foi possível acessar o microfone.");
+      }
       cleanup();
       setPhase("idle");
     }
@@ -212,8 +234,13 @@ export function VoiceRecorder({ onTranscript, disabled }: Props) {
     setPhase("transcribing");
     try {
       const blob = new Blob(chunks, { type: mime });
-      const { data: sess } = await supabase.auth.getSession();
-      const token = sess.session?.access_token;
+      // Refresh defensivo — token expirado dava 401 silencioso na transcrição.
+      const { data: refreshed } = await supabase.auth.refreshSession();
+      let token = refreshed.session?.access_token;
+      if (!token) {
+        const { data: sess } = await supabase.auth.getSession();
+        token = sess.session?.access_token;
+      }
       if (!token) {
         toast.error("Sessão expirada. Faça login novamente.");
         setPhase("idle");

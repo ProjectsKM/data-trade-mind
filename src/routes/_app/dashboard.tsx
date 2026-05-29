@@ -174,6 +174,7 @@ function DashboardPage() {
                 <Link
                   key={t.id}
                   to="/mind"
+                  search={{ t: t.id }}
                   viewTransition
                   preload="intent"
                   className="group flex items-center gap-2 rounded-md border px-3 py-2 text-sm smooth press hover:-translate-y-px hover:border-[color:var(--accent)]"

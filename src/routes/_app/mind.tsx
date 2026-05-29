@@ -31,6 +31,11 @@ const MindCardRenderer = lazy(() =>
 );
 
 export const Route = createFileRoute("/_app/mind")({
+  // ?t=<threadId> abre uma conversa específica (ex: vindo do histórico no
+  // dashboard). Sem isso, os links do dashboard só abriam o /mind genérico.
+  validateSearch: (s: Record<string, unknown>): { t?: string } => ({
+    t: typeof s.t === "string" && s.t ? s.t : undefined,
+  }),
   head: () => ({ meta: [{ title: "OrionMind — OrionHub" }] }),
   component: MindPage,
 });
@@ -193,12 +198,25 @@ function MindPage() {
     void refreshThreads();
   }, [refreshThreads]);
 
+  // Abre a conversa pedida via ?t=<id> (ex: clique no histórico do dashboard).
+  // Tem prioridade sobre o restore do localStorage.
+  const search = Route.useSearch();
+  useEffect(() => {
+    const wanted = search.t;
+    if (!wanted || threads.length === 0) return;
+    if (threads.some((t) => t.id === wanted)) {
+      setActiveId(wanted);
+      setOpenSidebar(false);
+    }
+  }, [search.t, threads]);
+
   // Restore last active thread after threads load
   useEffect(() => {
     if (activeId || threads.length === 0 || typeof window === "undefined") return;
+    if (search.t) return; // o effect acima cuida do deep-link
     const last = window.localStorage.getItem("orion.mind.activeThreadId");
     if (last && threads.some((t) => t.id === last)) setActiveId(last);
-  }, [threads, activeId]);
+  }, [threads, activeId, search.t]);
 
   // Persist active thread
   useEffect(() => {
