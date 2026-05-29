@@ -1,5 +1,6 @@
 // Supabase-backed auth + per-user app state.
 import { useEffect, useState, useCallback, useRef } from "react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { User as AuthUser } from "@supabase/supabase-js";
 
@@ -297,6 +298,7 @@ export function useAppState() {
       .single();
     if (error || !data) {
       console.error("addTrade", error);
+      toast.error("Não foi possível registrar a operação. Tente novamente.");
       return;
     }
     const created: Trade = {
@@ -316,11 +318,18 @@ export function useAppState() {
   const updateTrade = useCallback(async (id: string, patch: Partial<Trade>) => {
     const uid = userIdRef.current;
     if (!uid) return;
-    setState((s) => ({
-      ...s,
-      tradeList: s.tradeList.map((t) => (t.id === id ? { ...t, ...patch } : t)),
-    }));
-    await supabase
+    // Update otimista + rollback se o Supabase falhar. Antes era
+    // fire-and-await sem checar erro: a UI mostrava a alteração mas o banco
+    // não salvava, e o usuário não ficava sabendo (dado divergente até reload).
+    let prevTrade: Trade | undefined;
+    setState((s) => {
+      prevTrade = s.tradeList.find((t) => t.id === id);
+      return {
+        ...s,
+        tradeList: s.tradeList.map((t) => (t.id === id ? { ...t, ...patch } : t)),
+      };
+    });
+    const { error } = await supabase
       .from("trades")
       .update({
         ...(patch.ativo !== undefined && { ativo: patch.ativo }),
@@ -333,11 +342,35 @@ export function useAppState() {
         ...(patch.obs !== undefined && { obs: patch.obs ?? null }),
       })
       .eq("id", id);
+    if (error) {
+      console.error("updateTrade", error);
+      toast.error("Não foi possível salvar a alteração.");
+      if (prevTrade) {
+        const restored = prevTrade;
+        setState((s) => ({
+          ...s,
+          tradeList: s.tradeList.map((t) => (t.id === id ? restored : t)),
+        }));
+      }
+    }
   }, []);
 
   const deleteTrade = useCallback(async (id: string) => {
-    setState((s) => ({ ...s, tradeList: s.tradeList.filter((t) => t.id !== id) }));
-    await supabase.from("trades").delete().eq("id", id);
+    // Remoção otimista + restauração se o Supabase falhar.
+    let prevList: Trade[] | null = null;
+    setState((s) => {
+      prevList = s.tradeList;
+      return { ...s, tradeList: s.tradeList.filter((t) => t.id !== id) };
+    });
+    const { error } = await supabase.from("trades").delete().eq("id", id);
+    if (error) {
+      console.error("deleteTrade", error);
+      toast.error("Não foi possível excluir a operação.");
+      if (prevList) {
+        const restored = prevList;
+        setState((s) => ({ ...s, tradeList: restored }));
+      }
+    }
   }, []);
 
   const addScan = useCallback(async (r: ScanResult) => {

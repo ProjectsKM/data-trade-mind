@@ -150,7 +150,9 @@ function parseNumber(raw: string | undefined): number {
     .replace(/[\s$R€]/gi, "");
   if (!s) return NaN;
   const neg = s.startsWith("-") || (s.startsWith("(") && s.endsWith(")"));
-  s = s.replace(/^[-(]/, "").replace(/\)$/, "");
+  // Remove parênteses contábeis E sinal de uma vez. Antes, "(-50)" virava
+  // "-50" após tirar só o "(", e o neg=true reaplicava o sinal → +50.
+  s = s.replace(/^\(/, "").replace(/\)$/, "").replace(/^-/, "");
   const lastComma = s.lastIndexOf(",");
   const lastDot = s.lastIndexOf(".");
   if (lastComma > lastDot) {
@@ -1317,8 +1319,10 @@ function EditTradeDialog({
             onClick={() => {
               const v = parseFloat(valor);
               const p = parseFloat(payout);
-              if (!ativo.trim() || !isFinite(v) || v <= 0 || !isFinite(p) || p < 0) {
-                toast.error("Verifique os campos.");
+              // payout precisa ser > 0: com payout 0 o calcLucro de um WIN
+              // retorna lucro 0 (dado falso). Antes `p < 0` deixava 0 passar.
+              if (!ativo.trim() || !isFinite(v) || v <= 0 || !isFinite(p) || p <= 0) {
+                toast.error("Verifique os campos. O payout deve ser maior que zero.");
                 return;
               }
               void onSave({
