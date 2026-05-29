@@ -57,13 +57,16 @@ function AuthScene() {
 
 /* ──────────────────── Curva de capital (assinatura) ──────────────────── */
 
+// viewBox com a MESMA proporção (~3.6:1) do container renderizado: assim o
+// preserveAspectRatio="none" quase não distorce, o ponto fica redondo e a
+// linha não estica. A espessura é fixada via vector-effect (não escala).
 const CURVE =
-  "M0,200 C40,184 62,188 98,168 C134,148 152,156 188,126 C224,96 242,120 274,104 C306,88 326,98 358,70 C390,42 410,58 436,40 C442,36 446,30 450,24";
+  "M6,114 C54,108 82,110 122,99 C162,88 188,92 226,77 C264,62 292,70 330,57 C368,44 396,50 430,36 C444,30 452,32 460,26";
 
 function EquityCurve({ className = "" }: { className?: string }) {
   return (
     <svg
-      viewBox="0 0 460 230"
+      viewBox="0 0 480 132"
       className={className}
       fill="none"
       preserveAspectRatio="none"
@@ -80,7 +83,7 @@ function EquityCurve({ className = "" }: { className?: string }) {
         </linearGradient>
       </defs>
       {/* área sob a curva */}
-      <path className="auth-area" d={`${CURVE} L450,230 L0,230 Z`} fill="url(#auth-fill)" />
+      <path className="auth-area" d={`${CURVE} L460,132 L6,132 Z`} fill="url(#auth-fill)" />
       {/* linha que se desenha */}
       <path
         className="auth-draw"
@@ -90,19 +93,20 @@ function EquityCurve({ className = "" }: { className?: string }) {
         strokeWidth={2.5}
         strokeLinecap="round"
         strokeLinejoin="round"
+        vectorEffect="non-scaling-stroke"
         style={{
-          filter: "drop-shadow(0 0 6px color-mix(in oklab, var(--accent) 55%, transparent))",
+          filter: "drop-shadow(0 0 5px color-mix(in oklab, var(--accent) 55%, transparent))",
         }}
       />
       {/* ponto líder pulsante */}
       <circle
-        cx={450}
-        cy={24}
-        r={9}
+        cx={460}
+        cy={26}
+        r={6}
         fill="color-mix(in oklab, var(--accent) 22%, transparent)"
         className="auth-dot"
       />
-      <circle cx={450} cy={24} r={3.5} fill="var(--accent)" />
+      <circle cx={460} cy={26} r={2.6} fill="var(--accent)" />
     </svg>
   );
 }
