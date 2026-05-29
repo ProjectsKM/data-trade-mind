@@ -22,23 +22,33 @@ import {
 function AuthScene() {
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
-      {/* halos */}
-      <div
-        className="absolute -left-24 top-[-10%] h-[32rem] w-[32rem] rounded-full opacity-25 blur-[130px] float-y"
-        style={{ background: "var(--accent)" }}
-      />
-      <div
-        className="absolute -right-24 bottom-[-12%] h-[26rem] w-[26rem] rounded-full opacity-20 blur-[120px]"
-        style={{ background: "var(--electric)", animation: "float 6s ease-in-out infinite 1.5s" }}
-      />
-      {/* grid animado */}
-      <div className="absolute inset-0 auth-grid opacity-70" />
-      {/* vinheta */}
+      {/* aurora em camadas — dá cor e profundidade ao fundo */}
       <div
         className="absolute inset-0"
         style={{
           background:
-            "radial-gradient(ellipse at 50% 0%, transparent 55%, color-mix(in oklab, var(--background) 80%, transparent))",
+            "radial-gradient(ellipse 110% 80% at 50% -12%, color-mix(in oklab, var(--accent) 16%, transparent), transparent 58%)," +
+            "radial-gradient(ellipse 90% 70% at 102% 105%, color-mix(in oklab, var(--electric) 14%, transparent), transparent 55%)," +
+            "radial-gradient(ellipse 80% 65% at -5% 92%, color-mix(in oklab, var(--accent) 9%, transparent), transparent 60%)",
+        }}
+      />
+      {/* halos que flutuam suavemente */}
+      <div
+        className="absolute left-[6%] top-[10%] h-80 w-80 rounded-full opacity-30 blur-[120px] float-y"
+        style={{ background: "var(--accent)" }}
+      />
+      <div
+        className="absolute right-[4%] bottom-[8%] h-72 w-72 rounded-full opacity-25 blur-[120px]"
+        style={{ background: "var(--electric)", animation: "float 7s ease-in-out infinite 1.2s" }}
+      />
+      {/* grid sutil com máscara radial */}
+      <div className="absolute inset-0 auth-grid opacity-55" />
+      {/* vinheta — foca o centro */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(ellipse 75% 65% at 50% 42%, transparent 38%, color-mix(in oklab, var(--background) 72%, transparent))",
         }}
       />
     </div>
@@ -559,23 +569,42 @@ export function AuthLayout({
             </div>
           </div>
 
+          {/* borda em gradiente ESTÁTICA (1px) — nada girando */}
           <div
-            className="ring-gradient rounded-3xl"
-            style={{ boxShadow: "0 50px 100px -30px rgba(0,0,0,.6)" }}
+            className="rounded-[26px] p-px"
+            style={{
+              background:
+                "linear-gradient(155deg, color-mix(in oklab, var(--accent) 55%, transparent), color-mix(in oklab, var(--border-strong) 70%, transparent) 36%, color-mix(in oklab, var(--border) 80%, transparent) 64%, color-mix(in oklab, var(--electric) 38%, transparent))",
+              boxShadow:
+                "0 42px 90px -34px rgba(0,0,0,.75), 0 0 70px -28px color-mix(in oklab, var(--accent) 38%, transparent)",
+            }}
           >
             <div
-              className="rounded-3xl border p-7 backdrop-blur-2xl sm:p-8"
-              style={{
-                background: "color-mix(in oklab, var(--surface) 90%, transparent)",
-                borderColor: "color-mix(in oklab, var(--accent) 14%, var(--border-strong))",
-              }}
+              className="relative overflow-hidden rounded-[25px] p-7 backdrop-blur-2xl sm:p-8"
+              style={{ background: "color-mix(in oklab, var(--surface) 93%, transparent)" }}
             >
-              <AuthSwitch mode={mode} />
+              {/* brilho superior interno (highlight de vidro) */}
+              <div
+                className="pointer-events-none absolute inset-x-8 top-0 h-px"
+                style={{
+                  background:
+                    "linear-gradient(90deg, transparent, color-mix(in oklab, var(--foreground) 45%, transparent), transparent)",
+                }}
+              />
+              {/* glow accent difuso no topo */}
+              <div
+                className="pointer-events-none absolute -top-20 left-1/2 h-40 w-3/4 -translate-x-1/2 rounded-full opacity-40 blur-[60px]"
+                style={{ background: "var(--accent)" }}
+              />
 
-              <h2 className="font-display text-[1.6rem] font-black tracking-tight">{title}</h2>
-              <p className="mt-1 text-[13px] text-muted-foreground">{subtitle}</p>
+              <div className="relative">
+                <AuthSwitch mode={mode} />
 
-              {children}
+                <h2 className="font-display text-[1.6rem] font-black tracking-tight">{title}</h2>
+                <p className="mt-1 text-[13px] text-muted-foreground">{subtitle}</p>
+
+                {children}
+              </div>
             </div>
           </div>
 
