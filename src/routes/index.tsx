@@ -1,30 +1,27 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   LineChart,
   BrainCircuit,
   ClipboardList,
   Calculator,
-  Zap,
-  ShieldCheck,
-  Target,
-  Languages,
-  Menu,
-  X,
   Newspaper,
   Bitcoin,
-  Mic,
-  Cloud,
-  Trophy,
-  Sparkles,
-  Star,
-  Quote,
+  ShieldCheck,
   ArrowRight,
+  ArrowUpRight,
   CheckCircle2,
-  TrendingUp,
   Check,
   Crown,
   Activity,
+  Menu,
+  X,
+  Star,
+  Quote,
+  Mic,
+  Zap,
+  Target,
+  Cloud,
   type LucideIcon,
 } from "lucide-react";
 import { useUser, type User } from "@/lib/store";
@@ -37,13 +34,13 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "OrionHub usa IA para analisar gráficos de qualquer broker em menos de 2 segundos. Gerencie trades, converse com seu mentor IA e opere com mais clareza. Acesso anual por R$2.500.",
+          "OrionHub analisa gráficos de qualquer broker com IA em menos de 2 segundos. Mentor IA 24/7, planilha automática e calendário econômico. A plataforma do trader Gabriel Dutra — Orion Capital.",
       },
       { property: "og:title", content: "OrionHub — Trading Inteligente com IA" },
       {
         property: "og:description",
         content:
-          "Análise de gráficos por IA em 2s, planilha de trades automática, mentor IA 24/7, calendário econômico e radar cripto. A plataforma completa do trader Gabriel Dutra — Orion Capital.",
+          "Análise de gráficos por IA em 2s, planilha automática, mentor IA 24/7 e radar cripto. A plataforma completa do trader Gabriel Dutra.",
       },
       { property: "og:type", content: "website" },
       { property: "og:url", content: "https://orionmindhub.projetoskm0.workers.dev/" },
@@ -64,18 +61,22 @@ function Reveal({ children, className = "" }: { children: React.ReactNode; class
 function LandingPage() {
   const { user } = useUser();
   return (
-    <div id="main-content" tabIndex={-1} className="min-h-screen bg-background text-foreground outline-none">
+    <div
+      id="main-content"
+      tabIndex={-1}
+      className="min-h-screen overflow-x-hidden bg-background text-foreground outline-none"
+    >
       <Nav user={user} />
       <Hero user={user} />
-      <BrokerMarquee />
+      <LogoMarquee />
       <Reveal>
-        <LiveDemoSection />
+        <ScanShowcase />
       </Reveal>
       <Reveal>
-        <BentoFeatures />
+        <FeaturesBento />
       </Reveal>
       <Reveal>
-        <StatsSection />
+        <StatsBand />
       </Reveal>
       <Reveal>
         <MentorSection />
@@ -87,16 +88,37 @@ function LandingPage() {
         <TestimonialsSection />
       </Reveal>
       <Reveal>
-        <PricingSection />
+        <PricingSection user={user} />
       </Reveal>
       <Reveal>
         <FaqSection />
       </Reveal>
       <Reveal>
-        <CtaSection />
+        <CtaSection user={user} />
       </Reveal>
       <Footer />
     </div>
+  );
+}
+
+// ─── Brand mark ─────────────────────────────────────────────────────────────
+
+function Wordmark({ className = "text-lg" }: { className?: string }) {
+  return (
+    <span
+      className={`inline-flex items-center gap-2 font-display font-bold tracking-tight ${className}`}
+    >
+      <span
+        className="inline-flex h-7 w-7 items-center justify-center rounded-[9px]"
+        style={{
+          background: "linear-gradient(135deg, var(--accent), var(--electric))",
+          boxShadow: "0 6px 18px -8px color-mix(in oklab, var(--accent) 70%, transparent)",
+        }}
+      >
+        <Activity className="h-4 w-4 text-white" strokeWidth={2.5} />
+      </span>
+      Orion<span style={{ color: "var(--electric)" }}>Hub</span>
+    </span>
   );
 }
 
@@ -106,15 +128,15 @@ function Nav({ user }: { user: User | null }) {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const links: Array<[string, string]> = [
-    ["#demo", "Demo"],
-    ["#tools", "Ferramentas"],
-    ["#how", "Como funciona"],
-    ["#pricing", "Planos"],
+    ["#produto", "Produto"],
+    ["#recursos", "Recursos"],
+    ["#como", "Como funciona"],
+    ["#planos", "Planos"],
     ["#faq", "FAQ"],
   ];
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 12);
+    const onScroll = () => setScrolled(window.scrollY > 8);
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
@@ -122,104 +144,91 @@ function Nav({ user }: { user: User | null }) {
 
   return (
     <nav
-      className="fixed inset-x-0 top-0 z-50 flex items-center justify-between px-6 py-4 backdrop-blur-xl fade-down smooth md:px-12"
+      className="fixed inset-x-0 top-0 z-50 fade-down"
       style={{
         background: scrolled
-          ? "color-mix(in oklab, var(--background) 92%, transparent)"
-          : "color-mix(in oklab, var(--background) 70%, transparent)",
+          ? "color-mix(in oklab, var(--background) 88%, transparent)"
+          : "transparent",
         borderBottom: scrolled
-          ? "1px solid color-mix(in oklab, var(--accent) 12%, transparent)"
+          ? "1px solid color-mix(in oklab, var(--foreground) 8%, transparent)"
           : "1px solid transparent",
-        boxShadow: scrolled
-          ? "0 8px 32px -16px color-mix(in oklab, var(--accent) 25%, transparent)"
-          : "none",
+        backdropFilter: scrolled ? "blur(16px)" : "none",
+        transition: "background .3s, border-color .3s, backdrop-filter .3s",
       }}
     >
-      <Link
-        to="/"
-        className="group inline-flex items-center gap-2 text-[22px] font-black tracking-tight smooth hover:opacity-90"
-      >
-        <span
-          className="relative inline-flex h-7 w-7 items-center justify-center rounded-lg transition-transform group-hover:rotate-[-6deg]"
-          style={{
-            background: "linear-gradient(135deg, var(--accent), var(--electric))",
-            boxShadow: "0 6px 16px -8px color-mix(in oklab, var(--accent) 60%, transparent)",
-          }}
-        >
-          <Activity className="h-3.5 w-3.5 text-white" strokeWidth={2.5} />
-        </span>
-        Orion<span style={{ color: "var(--electric)" }}>Hub</span>
-      </Link>
-      <div className="hidden items-center gap-7 md:flex">
-        {links.map(([h, l]) => (
-          <a
-            key={h}
-            href={h}
-            className="group relative text-sm font-medium text-muted-foreground smooth hover:text-foreground"
-          >
-            {l}
-            <span
-              className="absolute -bottom-1 left-0 h-px w-0 smooth group-hover:w-full"
-              style={{ background: "var(--electric)" }}
-            />
-          </a>
-        ))}
-      </div>
-      <div className="flex items-center gap-3">
-        {user ? (
-          <Link
-            to="/dashboard"
-            viewTransition
-            preload="intent"
-            className="rounded-full px-5 py-2.5 text-sm font-bold text-white smooth press hover:-translate-y-0.5 pulse-glow"
-            style={{ background: "var(--accent)" }}
-          >
-            Abrir App →
-          </Link>
-        ) : (
-          <>
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3.5 sm:px-6">
+        <Link to="/" className="smooth hover:opacity-90">
+          <Wordmark className="text-[19px]" />
+        </Link>
+        <div className="hidden items-center gap-1 md:flex">
+          {links.map(([h, l]) => (
+            <a
+              key={h}
+              href={h}
+              className="rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground smooth hover:bg-[color:var(--surface-2)] hover:text-foreground"
+            >
+              {l}
+            </a>
+          ))}
+        </div>
+        <div className="flex items-center gap-2">
+          {user ? (
             <Link
-              to="/login"
+              to="/dashboard"
               viewTransition
               preload="intent"
-              className="hidden text-sm font-medium text-muted-foreground smooth hover:text-foreground sm:inline"
+              className="inline-flex items-center gap-1.5 rounded-full px-5 py-2.5 text-sm font-semibold text-white smooth press hover:-translate-y-px"
+              style={{ background: "var(--accent)" }}
             >
-              Entrar
+              Abrir app
+              <ArrowRight className="h-3.5 w-3.5" />
             </Link>
-            <Link
-              to="/signup"
-              viewTransition
-              preload="intent"
-              className="hidden rounded-full px-5 py-2.5 text-sm font-bold text-white smooth press hover:-translate-y-0.5 sm:inline-flex"
-              style={{
-                background: "var(--accent)",
-                boxShadow: "0 0 30px color-mix(in oklab, var(--accent) 25%, transparent)",
-              }}
-            >
-              Comprar acesso
-            </Link>
-          </>
-        )}
-        <button
-          onClick={() => setOpen((v) => !v)}
-          aria-label={open ? "Fechar menu" : "Abrir menu"}
-          className="flex h-11 w-11 items-center justify-center rounded-lg border smooth md:hidden"
-          style={{ borderColor: "var(--border-strong)", background: "var(--surface)" }}
-        >
-          {open ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
-        </button>
+          ) : (
+            <>
+              <Link
+                to="/login"
+                viewTransition
+                preload="intent"
+                className="hidden rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground smooth hover:text-foreground sm:inline-flex"
+              >
+                Entrar
+              </Link>
+              <Link
+                to="/signup"
+                viewTransition
+                preload="intent"
+                className="hidden rounded-full px-5 py-2.5 text-sm font-semibold text-white smooth press hover:-translate-y-px sm:inline-flex"
+                style={{
+                  background: "var(--accent)",
+                  boxShadow: "0 8px 24px -10px color-mix(in oklab, var(--accent) 70%, transparent)",
+                }}
+              >
+                Começar
+              </Link>
+            </>
+          )}
+          <button
+            onClick={() => setOpen((v) => !v)}
+            aria-label={open ? "Fechar menu" : "Abrir menu"}
+            className="flex h-10 w-10 items-center justify-center rounded-lg border text-foreground smooth md:hidden"
+            style={{ borderColor: "var(--border-strong)", background: "var(--surface)" }}
+          >
+            {open ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+          </button>
+        </div>
       </div>
 
       {open && (
         <div
-          onClick={() => setOpen(false)}
-          className="absolute inset-x-3 top-[calc(100%+8px)] z-40 rounded-2xl border p-4 backdrop-blur-xl shadow-2xl md:hidden fade-down"
+          className="mx-3 rounded-2xl border p-3 backdrop-blur-xl fade-down md:hidden"
           style={{
-            background: "color-mix(in oklab, var(--surface) 96%, transparent)",
+            background: "color-mix(in oklab, var(--surface) 97%, transparent)",
             borderColor: "var(--border-strong)",
+            boxShadow: "0 30px 60px -24px rgba(0,0,0,.6)",
           }}
+          onClick={() => setOpen(false)}
         >
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-0.5">
             {links.map(([h, l]) => (
               <a
                 key={h}
@@ -238,10 +247,10 @@ function Nav({ user }: { user: User | null }) {
                   to="/dashboard"
                   viewTransition
                   preload="intent"
-                  className="rounded-full px-5 py-2.5 text-center text-sm font-bold text-white"
+                  className="rounded-full px-5 py-2.5 text-center text-sm font-semibold text-white"
                   style={{ background: "var(--accent)" }}
                 >
-                  Abrir App →
+                  Abrir app →
                 </Link>
               ) : (
                 <>
@@ -257,10 +266,10 @@ function Nav({ user }: { user: User | null }) {
                     to="/signup"
                     viewTransition
                     preload="intent"
-                    className="rounded-full px-5 py-2.5 text-center text-sm font-bold text-white"
+                    className="rounded-full px-5 py-2.5 text-center text-sm font-semibold text-white"
                     style={{ background: "var(--accent)" }}
                   >
-                    Comprar acesso
+                    Começar
                   </Link>
                 </>
               )}
@@ -272,322 +281,249 @@ function Nav({ user }: { user: User | null }) {
   );
 }
 
+// ─── Background atmosphere (shared, subtle) ─────────────────────────────────
+
+function HeroBackdrop() {
+  return (
+    <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
+      {/* Signature mesh glow at top */}
+      <div
+        className="absolute left-1/2 top-[-10%] h-[640px] w-[1100px] max-w-[140vw] -translate-x-1/2"
+        style={{
+          background:
+            "radial-gradient(closest-side, color-mix(in oklab, var(--accent) 22%, transparent), transparent 70%)",
+          filter: "blur(8px)",
+        }}
+      />
+      <div
+        className="absolute right-[-8%] top-[18%] h-[420px] w-[420px]"
+        style={{
+          background:
+            "radial-gradient(closest-side, color-mix(in oklab, var(--electric) 16%, transparent), transparent 70%)",
+        }}
+      />
+      {/* Faint grid, masked to fade out */}
+      <div
+        className="absolute inset-0 opacity-[0.5]"
+        style={{
+          backgroundImage:
+            "linear-gradient(color-mix(in oklab, var(--foreground) 4%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in oklab, var(--foreground) 4%, transparent) 1px, transparent 1px)",
+          backgroundSize: "56px 56px",
+          maskImage: "radial-gradient(ellipse 90% 60% at 50% 25%, black 20%, transparent 80%)",
+        }}
+      />
+    </div>
+  );
+}
+
 // ─── Hero ─────────────────────────────────────────────────────────────────
 
 function Hero({ user }: { user: User | null }) {
   return (
-    <section className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-6 pb-24 pt-32 text-center">
-      {/* Aurora background */}
-      <div
-        className="absolute inset-0 float-y"
-        style={{
-          background:
-            "radial-gradient(ellipse 80% 60% at 50% 30%, color-mix(in oklab, var(--accent) 10%, transparent) 0%, transparent 65%)",
-        }}
-      />
-      {/* Grid overlay */}
-      <div
-        className="absolute inset-0 opacity-50"
-        style={{
-          backgroundImage:
-            "linear-gradient(color-mix(in oklab, var(--accent) 4%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in oklab, var(--accent) 4%, transparent) 1px, transparent 1px)",
-          backgroundSize: "60px 60px",
-          maskImage: "radial-gradient(ellipse at center, black 30%, transparent 75%)",
-        }}
-      />
-      {/* Floating crypto symbols */}
-      <FloatingSymbols />
+    <section className="relative overflow-hidden px-5 pb-20 pt-28 sm:px-6 sm:pt-36">
+      <HeroBackdrop />
+      <div className="relative z-10 mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-[1.05fr_1fr] lg:gap-10">
+        {/* Copy column */}
+        <div className="text-center lg:text-left">
+          <div
+            className="fade-down inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] font-medium"
+            style={{
+              background: "color-mix(in oklab, var(--accent) 8%, transparent)",
+              borderColor: "color-mix(in oklab, var(--accent) 24%, transparent)",
+            }}
+          >
+            <span
+              className="h-1.5 w-1.5 rounded-full blink-dot"
+              style={{ background: "var(--electric)" }}
+            />
+            <span className="text-muted-foreground">
+              Metodologia <span className="font-semibold text-foreground">Gabriel Dutra</span> ·
+              Orion Capital
+            </span>
+          </div>
 
-      <div className="relative z-10 flex flex-col items-center">
-        <div
-          className="mb-7 inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-semibold uppercase tracking-wider fade-down"
-          style={{
-            background: "color-mix(in oklab, var(--accent) 8%, transparent)",
-            border: "1px solid color-mix(in oklab, var(--accent) 22%, transparent)",
-            color: "var(--electric)",
-          }}
-        >
-          <span
-            className="h-1.5 w-1.5 rounded-full blink-dot"
-            style={{ background: "var(--electric)" }}
-          />
-          Metodologia{" "}
-          <span
-            className="font-bold tracking-normal normal-case"
-            style={{ color: "var(--foreground)" }}
+          <h1
+            className="fade-up mt-6 font-display text-[clamp(38px,5.6vw,68px)] font-bold leading-[1.04] tracking-[-0.02em]"
+            style={{ animationDelay: "40ms" }}
           >
-            Gabriel Dutra
-          </span>{" "}
-          · Orion Capital
-        </div>
-        <h1 className="max-w-5xl text-[clamp(40px,7vw,90px)] font-black leading-[0.98] tracking-tighter fade-up">
-          Sua mente de trader,
-          <br />
-          <span className="gradient-text">amplificada</span> por IA.
-        </h1>
-        <p
-          className="mx-auto mt-6 max-w-xl text-[clamp(15px,2vw,19px)] leading-relaxed text-muted-foreground fade-up"
-          style={{ animationDelay: "60ms" }}
-        >
-          Analise gráficos, gerencie sua planilha, converse com seu mentor IA e descubra padrões.
-          Tudo em um só lugar.
-        </p>
-        <div
-          className="mt-11 flex flex-wrap items-center justify-center gap-3.5 fade-up"
-          style={{ animationDelay: "120ms" }}
-        >
-          <Link
-            to={user ? "/dashboard" : "/signup"}
-            viewTransition
-            preload="intent"
-            className="group inline-flex items-center gap-2 rounded-full px-6 py-3.5 text-sm font-bold text-white smooth press hover:-translate-y-0.5 pulse-glow ring-2 ring-[color:var(--accent)]/30 sm:px-9 sm:py-4 sm:text-base"
-            style={{ background: "var(--accent)" }}
+            Leia qualquer gráfico
+            <br className="hidden sm:block" /> com <span className="gradient-text">IA</span> em{" "}
+            <span className="font-mono tabular" style={{ color: "var(--electric)" }}>
+              2s
+            </span>
+            .
+          </h1>
+
+          <p
+            className="fade-up mx-auto mt-5 max-w-md text-[15px] leading-relaxed text-muted-foreground sm:text-[17px] lg:mx-0"
+            style={{ animationDelay: "100ms" }}
           >
-            {user ? "Abrir App" : "Quero acesso anual"}
-            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-          </Link>
-          <a
-            href="#demo"
-            className="group inline-flex items-center gap-2 rounded-full border px-5 py-3.5 text-sm font-semibold text-muted-foreground/90 smooth hover:text-foreground hover:border-[color:var(--accent)] sm:px-8 sm:py-4 sm:text-base"
-            style={{ borderColor: "var(--border-strong)" }}
+            Envie o print de qualquer broker e receba direção, suporte/resistência e horário de
+            entrada. Mais mentor IA 24/7, planilha automática e calendário econômico — num só lugar.
+          </p>
+
+          <div
+            className="fade-up mt-8 flex flex-wrap items-center justify-center gap-3 lg:justify-start"
+            style={{ animationDelay: "160ms" }}
           >
-            Ver demonstração
-            <span className="transition-transform group-hover:translate-x-0.5">→</span>
-          </a>
-        </div>
-        <div
-          className="mt-6 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[11px] uppercase tracking-wider text-muted-foreground fade-up"
-          style={{ animationDelay: "180ms" }}
-        >
-          <span className="inline-flex items-center gap-1.5">
-            <ShieldCheck className="h-3 w-3" style={{ color: "var(--green)" }} />
-            Garantia 7 dias
-          </span>
-          <span className="opacity-40">·</span>
-          <span>Pagamento único</span>
-          <span className="opacity-40">·</span>
-          <span>Sem renovação automática</span>
-          <span className="opacity-40">·</span>
-          <span>Suporte humano</span>
+            <Link
+              to={user ? "/dashboard" : "/signup"}
+              viewTransition
+              preload="intent"
+              className="group inline-flex items-center gap-2 rounded-full px-7 py-3.5 text-[15px] font-semibold text-white smooth press hover:-translate-y-0.5"
+              style={{
+                background: "var(--accent)",
+                boxShadow: "0 14px 40px -14px color-mix(in oklab, var(--accent) 75%, transparent)",
+              }}
+            >
+              {user ? "Abrir app" : "Começar agora"}
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+            </Link>
+            <a
+              href="#produto"
+              className="inline-flex items-center gap-2 rounded-full border px-6 py-3.5 text-[15px] font-medium text-muted-foreground smooth hover:border-[color:var(--accent)] hover:text-foreground"
+              style={{ borderColor: "var(--border-strong)" }}
+            >
+              Ver o produto
+            </a>
+          </div>
+
+          <div
+            className="fade-up mt-7 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[12px] text-muted-foreground lg:justify-start"
+            style={{ animationDelay: "220ms" }}
+          >
+            <span className="inline-flex items-center gap-1.5">
+              <ShieldCheck className="h-3.5 w-3.5" style={{ color: "var(--green)" }} />
+              Garantia de 7 dias
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <Check className="h-3.5 w-3.5" style={{ color: "var(--green)" }} />
+              Pagamento único
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <Check className="h-3.5 w-3.5" style={{ color: "var(--green)" }} />
+              Funciona em qualquer broker
+            </span>
+          </div>
         </div>
 
-        {/* Floating mockup teaser */}
-        <div className="mt-14 w-full max-w-4xl fade-up" style={{ animationDelay: "240ms" }}>
-          <FloatingChatTeaser />
+        {/* Product column */}
+        <div className="fade-up relative" style={{ animationDelay: "200ms" }}>
+          <ProductPanel />
         </div>
       </div>
     </section>
   );
 }
 
-function FloatingSymbols() {
-  // Parallax leve baseado em scroll — translateY proporcional ao scrollY
-  // pra dar profundidade. rAF throttle pra não pesar.
-  const [scrollY, setScrollY] = useState(0);
-  useEffect(() => {
-    let raf: number | null = null;
-    const onScroll = () => {
-      if (raf !== null) return;
-      raf = requestAnimationFrame(() => {
-        raf = null;
-        setScrollY(window.scrollY);
-      });
-    };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      if (raf !== null) cancelAnimationFrame(raf);
-    };
-  }, []);
-
-  const symbols = [
-    {
-      label: "BTC",
-      color: "var(--gold)",
-      depth: 0.18,
-      style: { top: "12%", left: "8%", animationDelay: "0s" },
-    },
-    {
-      label: "ETH",
-      color: "var(--electric)",
-      depth: 0.25,
-      style: { top: "22%", right: "10%", animationDelay: "-1.5s" },
-    },
-    {
-      label: "EUR/USD",
-      color: "var(--accent)",
-      depth: 0.12,
-      style: { top: "60%", left: "6%", animationDelay: "-3s" },
-    },
-    {
-      label: "SOL",
-      color: "var(--purple)",
-      depth: 0.32,
-      style: { top: "70%", right: "8%", animationDelay: "-2s" },
-    },
-    {
-      label: "AAPL",
-      color: "var(--green)",
-      depth: 0.22,
-      style: { top: "35%", left: "12%", animationDelay: "-4s" },
-    },
-    {
-      label: "M5",
-      color: "var(--gold)",
-      depth: 0.16,
-      style: { top: "82%", right: "16%", animationDelay: "-1s" },
-    },
-  ];
+// Painel de produto: o OrionMind registrando uma operação (o "momento produto").
+function ProductPanel() {
   return (
-    <div className="pointer-events-none absolute inset-0 hidden lg:block" aria-hidden>
-      {symbols.map((s) => (
-        <span
-          key={s.label}
-          className="float-xy absolute select-none font-mono text-[10px] font-bold uppercase tracking-widest"
-          style={{
-            ...s.style,
-            color: s.color,
-            opacity: Math.max(0, 0.32 - scrollY * 0.0005),
-            textShadow: `0 0 14px color-mix(in oklab, ${s.color} 40%, transparent)`,
-            transform: `translate3d(0, ${scrollY * s.depth}px, 0)`,
-            willChange: "transform, opacity",
-          }}
-        >
-          {s.label}
-        </span>
-      ))}
-    </div>
-  );
-}
-
-function FloatingChatTeaser() {
-  return (
-    <div
-      className="relative mx-auto overflow-hidden rounded-3xl border"
-      style={{
-        background: "color-mix(in oklab, var(--surface) 92%, transparent)",
-        borderColor: "var(--border-strong)",
-        boxShadow:
-          "0 60px 140px -30px rgba(0,0,0,.6), 0 0 100px -20px color-mix(in oklab, var(--accent) 25%, transparent)",
-      }}
-    >
-      {/* macOS-style chrome */}
+    <div className="relative mx-auto w-full max-w-md lg:max-w-none">
+      {/* glow base */}
       <div
-        className="flex items-center gap-2 border-b px-5 py-3"
-        style={{ background: "var(--surface-2)", borderColor: "var(--border)" }}
+        className="absolute -inset-6 -z-10"
+        style={{
+          background:
+            "radial-gradient(closest-side, color-mix(in oklab, var(--accent) 20%, transparent), transparent 75%)",
+        }}
+        aria-hidden
+      />
+      <div
+        className="overflow-hidden rounded-2xl border"
+        style={{
+          background: "color-mix(in oklab, var(--surface) 94%, transparent)",
+          borderColor: "var(--border-strong)",
+          boxShadow: "0 40px 100px -32px rgba(0,0,0,.7)",
+        }}
       >
-        <span className="h-3 w-3 rounded-full" style={{ background: "#ff5f57" }} />
-        <span className="h-3 w-3 rounded-full" style={{ background: "#febc2e" }} />
-        <span className="h-3 w-3 rounded-full" style={{ background: "#28c840" }} />
-        <span className="ml-3 inline-flex items-center gap-1.5 font-mono text-[10px] text-muted-foreground">
-          <BrainCircuit className="h-3 w-3" style={{ color: "var(--accent)" }} />
-          OrionMind · sessão #4912
-        </span>
-        <span
-          className="ml-auto inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider"
-          style={{ color: "var(--green)" }}
-        >
-          <span
-            className="h-1.5 w-1.5 rounded-full blink-dot"
-            style={{ background: "var(--green)" }}
-          />
-          online
-        </span>
-      </div>
-      <ChatPreviewBody />
-    </div>
-  );
-}
-
-function ChatPreviewBody() {
-  // Mensagens estáticas pra hero — sem animação JS pra não pesar
-  return (
-    <div className="grid gap-3 p-6 text-left sm:grid-cols-[1fr_280px] sm:p-7">
-      <div className="space-y-3">
-        <ChatBubble who="user">
-          Peguei win em BTC com 50 dol de entrada, payout 86%, foi compra.
-        </ChatBubble>
-        <ChatBubble who="ai">
-          Registrei a operação. Mantenha a disciplina — você tá com{" "}
-          <strong>4 wins em sequência</strong> hoje.
-        </ChatBubble>
         <div
-          className="rounded-2xl border p-4 chat-in"
-          style={{
-            background:
-              "linear-gradient(160deg, color-mix(in oklab, var(--green) 14%, var(--surface)), var(--surface))",
-            borderColor: "color-mix(in oklab, var(--green) 38%, transparent)",
-            animationDelay: "120ms",
-          }}
-        >
-          <div className="mb-2 flex items-center justify-between">
-            <span
-              className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest"
-              style={{ color: "var(--green)" }}
-            >
-              <CheckCircle2 className="h-3.5 w-3.5" />
-              Operação registrada
-            </span>
-            <span className="font-mono text-[11px] text-muted-foreground">BTC/USD</span>
-          </div>
-          <div className="grid grid-cols-3 gap-2">
-            {[
-              ["Direção", "COMPRA"],
-              ["Valor", "$50"],
-              ["Payout", "86%"],
-            ].map(([l, v]) => (
-              <div
-                key={l}
-                className="rounded-md border px-2 py-1.5 text-center"
-                style={{
-                  background: "color-mix(in oklab, var(--surface-2) 70%, transparent)",
-                  borderColor: "var(--border)",
-                }}
-              >
-                <div className="text-[8px] font-semibold uppercase tracking-widest text-muted-foreground">
-                  {l}
-                </div>
-                <div className="mt-0.5 text-[12px] font-bold tabular">{v}</div>
-              </div>
-            ))}
-          </div>
-          <div
-            className="mt-2.5 flex items-center justify-between rounded-md border px-3 py-2"
-            style={{
-              background: "color-mix(in oklab, var(--green) 12%, transparent)",
-              borderColor: "color-mix(in oklab, var(--green) 36%, transparent)",
-            }}
-          >
-            <span
-              className="text-[10px] font-bold uppercase tracking-widest"
-              style={{ color: "var(--green)" }}
-            >
-              WIN
-            </span>
-            <span
-              className="font-mono text-base font-black tabular"
-              style={{ color: "var(--green)" }}
-            >
-              +$43.00
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Sidebar: live stats */}
-      <div className="hidden flex-col gap-2 sm:flex">
-        <MiniStat label="Win-rate hoje" value="78%" tone="var(--green)" />
-        <MiniStat label="Lucro do dia" value="+$182" tone="var(--electric)" />
-        <MiniStat label="Sequência atual" value="4 wins" tone="var(--gold)" />
-        <div
-          className="mt-1 rounded-xl border p-3"
+          className="flex items-center gap-2 border-b px-4 py-3"
           style={{ background: "var(--surface-2)", borderColor: "var(--border)" }}
         >
-          <div className="mb-1 text-[9px] font-bold uppercase tracking-widest text-muted-foreground">
-            Próxima zona
+          <BrainCircuit className="h-4 w-4" style={{ color: "var(--accent)" }} />
+          <span className="font-mono text-[11px] text-muted-foreground">OrionMind</span>
+          <span
+            className="ml-auto inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider"
+            style={{ color: "var(--green)" }}
+          >
+            <span
+              className="h-1.5 w-1.5 rounded-full blink-dot"
+              style={{ background: "var(--green)" }}
+            />
+            online
+          </span>
+        </div>
+
+        <div className="space-y-3 p-4 sm:p-5">
+          <ChatBubble who="user">Win em BTC, $50 de entrada, payout 86%, compra.</ChatBubble>
+          <ChatBubble who="ai">
+            Registrado. Você está com <strong className="text-foreground">4 wins seguidos</strong>{" "}
+            hoje — mantenha a gestão.
+          </ChatBubble>
+
+          {/* Card de operação */}
+          <div
+            className="chat-in rounded-xl border p-3.5"
+            style={{
+              background:
+                "linear-gradient(160deg, color-mix(in oklab, var(--green) 12%, var(--surface)), var(--surface))",
+              borderColor: "color-mix(in oklab, var(--green) 34%, transparent)",
+              animationDelay: "140ms",
+            }}
+          >
+            <div className="mb-2.5 flex items-center justify-between">
+              <span
+                className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest"
+                style={{ color: "var(--green)" }}
+              >
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                Operação registrada
+              </span>
+              <span className="font-mono text-[11px] text-muted-foreground">BTC/USD</span>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                ["Direção", "COMPRA"],
+                ["Valor", "$50"],
+                ["Payout", "86%"],
+              ].map(([l, v]) => (
+                <div
+                  key={l}
+                  className="rounded-lg border px-2 py-1.5 text-center"
+                  style={{
+                    background: "color-mix(in oklab, var(--surface-2) 70%, transparent)",
+                    borderColor: "var(--border)",
+                  }}
+                >
+                  <div className="text-[8px] font-semibold uppercase tracking-widest text-muted-foreground">
+                    {l}
+                  </div>
+                  <div className="mt-0.5 font-mono text-[12px] font-bold tabular">{v}</div>
+                </div>
+              ))}
+            </div>
+            <div
+              className="mt-2.5 flex items-center justify-between rounded-lg border px-3 py-2"
+              style={{
+                background: "color-mix(in oklab, var(--green) 14%, transparent)",
+                borderColor: "color-mix(in oklab, var(--green) 36%, transparent)",
+              }}
+            >
+              <span
+                className="text-[10px] font-bold uppercase tracking-widest"
+                style={{ color: "var(--green)" }}
+              >
+                Win
+              </span>
+              <span
+                className="font-mono text-base font-black tabular"
+                style={{ color: "var(--green)" }}
+              >
+                +$43.00
+              </span>
+            </div>
           </div>
-          <div className="font-mono text-xs font-semibold">63.420 → 63.580</div>
-          <div className="mt-1 text-[10px] text-muted-foreground">Resistência principal · M5</div>
         </div>
       </div>
     </div>
@@ -597,35 +533,29 @@ function ChatPreviewBody() {
 function ChatBubble({ who, children }: { who: "user" | "ai"; children: React.ReactNode }) {
   const isUser = who === "user";
   return (
-    <div className={`flex chat-in items-end gap-2.5 ${isUser ? "flex-row-reverse" : ""}`}>
+    <div className={`flex items-end gap-2 ${isUser ? "flex-row-reverse" : ""}`}>
       <div
-        className="flex h-7 w-7 flex-none items-center justify-center rounded-md border text-[10px] font-bold"
+        className="flex h-7 w-7 flex-none items-center justify-center rounded-lg text-[10px] font-bold"
         style={
           isUser
-            ? {
-                background: "var(--surface-2)",
-                color: "var(--text-muted)",
-                borderColor: "var(--border-strong)",
-              }
+            ? { background: "var(--surface-2)", color: "var(--text-muted)" }
             : {
-                background: "color-mix(in oklab, var(--accent) 12%, transparent)",
+                background: "color-mix(in oklab, var(--accent) 14%, transparent)",
                 color: "var(--accent)",
-                borderColor: "color-mix(in oklab, var(--accent) 30%, transparent)",
               }
         }
       >
         {isUser ? "EU" : <BrainCircuit className="h-3.5 w-3.5" strokeWidth={2} />}
       </div>
       <div
-        className={`max-w-[80%] rounded-2xl border px-3 py-2 text-[13px] leading-relaxed ${isUser ? "rounded-br-sm" : "rounded-bl-sm"}`}
+        className={`max-w-[85%] rounded-2xl px-3 py-2 text-[13px] leading-relaxed ${isUser ? "rounded-br-sm" : "rounded-bl-sm"}`}
         style={
           isUser
             ? {
-                background: "color-mix(in oklab, var(--accent) 14%, transparent)",
-                borderColor: "color-mix(in oklab, var(--accent) 32%, transparent)",
+                background: "color-mix(in oklab, var(--accent) 16%, transparent)",
                 color: "var(--foreground)",
               }
-            : { background: "var(--surface-2)", borderColor: "var(--border)" }
+            : { background: "var(--surface-2)", color: "var(--text-muted)" }
         }
       >
         {children}
@@ -634,180 +564,100 @@ function ChatBubble({ who, children }: { who: "user" | "ai"; children: React.Rea
   );
 }
 
-function MiniStat({ label, value, tone }: { label: string; value: string; tone: string }) {
-  return (
-    <div
-      className="rounded-xl border p-3"
-      style={{ background: "var(--surface-2)", borderColor: "var(--border)" }}
-    >
-      <div className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">
-        {label}
-      </div>
-      <div className="mt-1 font-display text-xl font-black tabular" style={{ color: tone }}>
-        {value}
-      </div>
-    </div>
-  );
-}
+// ─── Logo marquee ───────────────────────────────────────────────────────────
 
-// ─── Broker Marquee ───────────────────────────────────────────────────────
-
-function BrokerMarquee() {
+function LogoMarquee() {
   const brokers = [
     "TradingView",
     "IQ Option",
     "Quotex",
-    "MT5",
-    "Avalon",
-    "Olymp Trade",
+    "MetaTrader 5",
     "Binance",
     "Bybit",
     "Pocket Option",
+    "Olymp Trade",
     "Exnova",
+    "Avalon",
   ];
-  // duplica pra fazer loop sem cortes
   const loop = [...brokers, ...brokers];
   return (
     <section
-      className="border-y py-6"
+      className="border-y py-7"
       style={{
-        borderColor: "var(--border)",
-        background: "color-mix(in oklab, var(--surface) 40%, transparent)",
+        borderColor: "color-mix(in oklab, var(--foreground) 7%, transparent)",
+        background: "color-mix(in oklab, var(--surface) 35%, transparent)",
       }}
     >
-      <div className="mx-auto max-w-7xl px-6">
-        <div className="mb-3 text-center text-[10px] font-bold uppercase tracking-[0.3em] text-muted-foreground">
-          Funciona com qualquer broker
-        </div>
-        <div className="marquee-container overflow-hidden">
-          <div className="marquee-track whitespace-nowrap">
-            {loop.map((b, i) => (
-              <span
-                key={`${b}-${i}`}
-                className="inline-flex items-center gap-2 font-display text-base font-bold smooth hover:text-foreground"
-                style={{ color: "var(--text-muted)" }}
-              >
-                <span className="h-1 w-1 rounded-full" style={{ background: "var(--text-dim)" }} />
-                {b}
-              </span>
-            ))}
-          </div>
+      <p className="mb-4 text-center text-[10px] font-semibold uppercase tracking-[0.3em] text-muted-foreground">
+        Funciona com o gráfico de qualquer broker
+      </p>
+      <div className="marquee-container overflow-hidden">
+        <div className="marquee-track whitespace-nowrap">
+          {loop.map((b, i) => (
+            <span
+              key={`${b}-${i}`}
+              className="font-display text-base font-semibold smooth"
+              style={{ color: "color-mix(in oklab, var(--text-muted) 80%, transparent)" }}
+            >
+              {b}
+            </span>
+          ))}
         </div>
       </div>
     </section>
   );
 }
 
-// ─── Live Demo (Mockup carousel) ──────────────────────────────────────────
+// ─── Scan showcase (flagship product moment) ────────────────────────────────
 
-const DEMO_TABS = [
-  { id: "scan", label: "OrionScan", Icon: LineChart, sub: "Análise de gráfico por IA" },
-  { id: "mind", label: "OrionMind", Icon: BrainCircuit, sub: "Mentor IA com cards de operação" },
-  { id: "gestao", label: "Planilha", Icon: ClipboardList, sub: "Stats em tempo real" },
-  { id: "noticias", label: "Notícias", Icon: Newspaper, sub: "Calendário econômico" },
-] as const;
-
-function LiveDemoSection() {
-  const [tab, setTab] = useState<(typeof DEMO_TABS)[number]["id"]>("scan");
-  // auto-rotate quando user não está interagindo
-  const [paused, setPaused] = useState(false);
-  useEffect(() => {
-    if (paused) return;
-    const id = setInterval(() => {
-      setTab((cur) => {
-        const idx = DEMO_TABS.findIndex((t) => t.id === cur);
-        return DEMO_TABS[(idx + 1) % DEMO_TABS.length].id;
-      });
-    }, 5500);
-    return () => clearInterval(id);
-  }, [paused]);
-
+function ScanShowcase() {
   return (
-    <section id="demo" className="mx-auto max-w-6xl px-6 py-24">
-      <SectionHeader
-        tag="DEMO AO VIVO"
-        title="Veja o OrionHub em ação"
-        sub="Navegue entre as ferramentas. Auto-rotação a cada 5 segundos — ou clique nas abas."
-      />
-
-      <div
-        onMouseEnter={() => setPaused(true)}
-        onMouseLeave={() => setPaused(false)}
-        className="mx-auto max-w-5xl"
-      >
-        {/* Tab strip */}
-        <div className="mb-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
-          {DEMO_TABS.map((t) => {
-            const active = tab === t.id;
-            return (
-              <button
-                key={t.id}
-                onClick={() => {
-                  setTab(t.id);
-                  setPaused(true);
-                }}
-                className="group relative overflow-hidden rounded-xl border p-3 text-left smooth press hover:-translate-y-px"
-                style={
-                  active
-                    ? {
-                        background: "color-mix(in oklab, var(--accent) 12%, var(--surface))",
-                        borderColor: "color-mix(in oklab, var(--accent) 40%, transparent)",
-                        boxShadow:
-                          "0 12px 32px -16px color-mix(in oklab, var(--accent) 55%, transparent)",
-                      }
-                    : { background: "var(--surface)", borderColor: "var(--border)" }
-                }
-              >
-                <div className="flex items-center gap-2">
-                  <t.Icon
-                    className="h-4 w-4 smooth"
-                    strokeWidth={1.75}
-                    style={{ color: active ? "var(--accent)" : "var(--text-dim)" }}
-                  />
-                  <span
-                    className="text-sm font-bold"
-                    style={{ color: active ? "var(--foreground)" : "var(--text-muted)" }}
-                  >
-                    {t.label}
-                  </span>
-                </div>
-                <div className="mt-0.5 text-[10px] text-muted-foreground">{t.sub}</div>
-                {active && (
-                  <span
-                    className="tab-indicator absolute inset-x-0 bottom-0 h-0.5"
-                    style={{ background: "var(--gradient-primary)" }}
-                  />
-                )}
-              </button>
-            );
-          })}
+    <section id="produto" className="mx-auto max-w-6xl px-5 py-20 sm:px-6 sm:py-28">
+      <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-14">
+        <div className="order-2 lg:order-1">
+          <Eyebrow>OrionScan</Eyebrow>
+          <h2 className="mt-4 font-display text-[clamp(26px,3.4vw,42px)] font-bold leading-[1.08] tracking-tight">
+            Do print ao sinal,
+            <br className="hidden sm:block" /> em menos de 2 segundos.
+          </h2>
+          <p className="mt-4 max-w-md text-[15px] leading-relaxed text-muted-foreground">
+            A IA lê o gráfico visualmente — identifica tendência, zonas de suporte e resistência,
+            padrões de candle e calcula o horário de entrada com as duas proteções da gestão Orion.
+          </p>
+          <ul className="mt-6 space-y-3">
+            {[
+              "Direção + nível de confiança",
+              "Suporte, resistência e padrões marcados",
+              "Entrada e proteções no horário certo",
+            ].map((t) => (
+              <li key={t} className="flex items-center gap-3 text-[15px]">
+                <span
+                  className="flex h-5 w-5 flex-none items-center justify-center rounded-full"
+                  style={{
+                    background: "color-mix(in oklab, var(--green) 18%, transparent)",
+                    color: "var(--green)",
+                  }}
+                >
+                  <Check className="h-3 w-3" strokeWidth={3} />
+                </span>
+                {t}
+              </li>
+            ))}
+          </ul>
+          <Link
+            to="/signup"
+            viewTransition
+            preload="intent"
+            className="group mt-8 inline-flex items-center gap-2 text-[15px] font-semibold smooth"
+            style={{ color: "var(--electric)" }}
+          >
+            Analisar meu primeiro gráfico
+            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+          </Link>
         </div>
 
-        {/* Mockup body */}
-        <div
-          className="relative overflow-hidden rounded-3xl border"
-          style={{
-            background: "var(--surface)",
-            borderColor: "var(--border-strong)",
-            boxShadow:
-              "0 60px 140px -30px rgba(0,0,0,.55), 0 0 80px -20px color-mix(in oklab, var(--accent) 25%, transparent)",
-          }}
-        >
-          <div
-            className="flex items-center gap-2 border-b px-5 py-3"
-            style={{ background: "var(--surface-2)", borderColor: "var(--border)" }}
-          >
-            <span className="h-3 w-3 rounded-full" style={{ background: "#ff5f57" }} />
-            <span className="h-3 w-3 rounded-full" style={{ background: "#febc2e" }} />
-            <span className="h-3 w-3 rounded-full" style={{ background: "#28c840" }} />
-            <span className="ml-3 font-mono text-[10px] text-muted-foreground">
-              orionmindhub.app · {DEMO_TABS.find((t) => t.id === tab)?.label.toLowerCase()}
-            </span>
-          </div>
-          {tab === "scan" && <ScanMockup />}
-          {tab === "mind" && <MindMockup />}
-          {tab === "gestao" && <GestaoMockup />}
-          {tab === "noticias" && <NoticiasMockup />}
+        <div className="order-1 lg:order-2">
+          <ScanMockup />
         </div>
       </div>
     </section>
@@ -816,94 +666,83 @@ function LiveDemoSection() {
 
 function ScanMockup() {
   return (
-    <div className="grid gap-5 p-5 fade-in sm:p-7 md:grid-cols-[1fr_300px]">
+    <div
+      className="overflow-hidden rounded-2xl border"
+      style={{
+        background: "var(--surface)",
+        borderColor: "var(--border-strong)",
+        boxShadow: "0 40px 100px -36px rgba(0,0,0,.65)",
+      }}
+    >
       <div
-        className="relative flex h-[280px] items-center justify-center overflow-hidden rounded-2xl border md:h-[340px]"
+        className="flex items-center gap-2 border-b px-4 py-3"
         style={{ background: "var(--surface-2)", borderColor: "var(--border)" }}
       >
-        {/* Fake candle chart */}
-        <CandleChartMock />
-        <div
-          className="absolute bottom-3 left-3 inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[10px] font-mono"
+        <LineChart className="h-4 w-4" style={{ color: "var(--accent)" }} />
+        <span className="font-mono text-[11px] text-muted-foreground">BTC/USD · M5</span>
+        <span
+          className="ml-auto inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider"
           style={{
-            background: "color-mix(in oklab, var(--surface) 80%, transparent)",
-            borderColor: "var(--border)",
-          }}
-        >
-          BTC/USD · M5
-        </div>
-        <div
-          className="absolute right-3 top-3 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider"
-          style={{
-            background: "color-mix(in oklab, var(--accent) 14%, transparent)",
+            background: "color-mix(in oklab, var(--accent) 16%, transparent)",
             color: "var(--accent)",
           }}
         >
-          <Sparkles className="h-3 w-3" /> IA analisando
-        </div>
+          IA
+        </span>
       </div>
-      <div className="space-y-3">
+      <div className="grid gap-3 p-4 sm:grid-cols-[1fr_180px] sm:p-5">
         <div
-          className="rounded-xl border p-4"
-          style={{
-            background: "color-mix(in oklab, var(--green) 10%, transparent)",
-            borderColor: "color-mix(in oklab, var(--green) 30%, transparent)",
-          }}
+          className="relative overflow-hidden rounded-xl border"
+          style={{ background: "var(--surface-2)", borderColor: "var(--border)", minHeight: 180 }}
         >
-          <div className="mb-2 flex items-center gap-2">
-            <span
-              className="rounded-full px-2 py-0.5 text-[10px] font-extrabold"
-              style={{
-                background: "color-mix(in oklab, var(--green) 22%, transparent)",
-                color: "var(--green)",
-              }}
-            >
-              ▲ CALL
-            </span>
-            <span className="text-[11px] text-muted-foreground">expiração M1</span>
-            <span
-              className="ml-auto font-mono text-sm font-extrabold"
-              style={{ color: "var(--electric)" }}
-            >
-              87%
-            </span>
-          </div>
-          <div className="grid grid-cols-3 gap-1.5">
-            {[
-              ["Entrada", "14:35"],
-              ["Proteção 1", "14:40"],
-              ["Proteção 2", "14:45"],
-            ].map(([l, v]) => (
-              <div
-                key={l}
-                className="rounded-lg p-2 text-center"
-                style={{ background: "rgba(255,255,255,.04)" }}
-              >
-                <div className="text-[8px] font-semibold uppercase tracking-widest text-muted-foreground">
-                  {l}
-                </div>
-                <div className="mt-0.5 font-mono text-[11px] font-bold">{v}</div>
-              </div>
-            ))}
-          </div>
+          <CandleChart />
         </div>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="space-y-2.5">
+          <div
+            className="rounded-xl border p-3"
+            style={{
+              background: "color-mix(in oklab, var(--green) 10%, transparent)",
+              borderColor: "color-mix(in oklab, var(--green) 30%, transparent)",
+            }}
+          >
+            <div className="flex items-center justify-between">
+              <span
+                className="rounded-full px-2 py-0.5 text-[10px] font-extrabold"
+                style={{
+                  background: "color-mix(in oklab, var(--green) 22%, transparent)",
+                  color: "var(--green)",
+                }}
+              >
+                ▲ CALL
+              </span>
+              <span
+                className="font-mono text-sm font-extrabold"
+                style={{ color: "var(--electric)" }}
+              >
+                87%
+              </span>
+            </div>
+          </div>
           {[
             ["Tendência", "Alta", "var(--green)"],
-            ["Viés", "Bullish", "var(--electric)"],
             ["Suporte", "63.180", "var(--gold)"],
             ["Resistência", "63.580", "var(--gold)"],
+            ["Entrada", "14:35", "var(--foreground)"],
           ].map(([l, v, c]) => (
-            <div key={l} className="rounded-lg p-2.5" style={{ background: "var(--surface-2)" }}>
-              <div className="text-[8px] font-semibold uppercase tracking-widest text-muted-foreground">
+            <div
+              key={l}
+              className="flex items-center justify-between rounded-lg border px-2.5 py-1.5"
+              style={{ background: "var(--surface-2)", borderColor: "var(--border)" }}
+            >
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                 {l}
-              </div>
-              <div
-                className="mt-0.5 font-mono text-[12px] font-bold"
+              </span>
+              <span
+                className="font-mono text-[12px] font-bold tabular"
                 style={{ color: c as string }}
               >
                 {v}
-              </div>
+              </span>
             </div>
           ))}
         </div>
@@ -912,68 +751,56 @@ function ScanMockup() {
   );
 }
 
-function CandleChartMock() {
-  // Renderiza candles fake usando SVG path
-  const candles = Array.from({ length: 24 }).map((_, i) => {
+function CandleChart() {
+  const candles = Array.from({ length: 22 }).map((_, i) => {
     const seed = (i * 9301 + 49297) % 233280;
     const r1 = (seed % 100) / 100;
     const r2 = ((seed * 7) % 100) / 100;
-    const trend = i * 1.2;
-    const mid = 140 - trend + (r1 - 0.5) * 20;
-    const open = mid - 8 + (r2 - 0.5) * 6;
-    const close = mid + 8 + (r1 - 0.5) * 6;
-    const isGreen = close < open; // SVG y-axis is inverted
+    const trend = i * 1.1;
+    const mid = 132 - trend + (r1 - 0.5) * 18;
+    const open = mid - 7 + (r2 - 0.5) * 6;
+    const close = mid + 7 + (r1 - 0.5) * 6;
+    const isGreen = close < open;
     return {
-      x: 10 + i * 14,
+      x: 12 + i * 15,
       open,
       close,
-      high: Math.min(open, close) - 8,
-      low: Math.max(open, close) + 8,
+      high: Math.min(open, close) - 7,
+      low: Math.max(open, close) + 7,
       isGreen,
     };
   });
   return (
-    <svg viewBox="0 0 350 180" className="h-full w-full" preserveAspectRatio="none">
+    <svg viewBox="0 0 350 180" className="h-full w-full" preserveAspectRatio="none" aria-hidden>
       <defs>
-        <linearGradient id="grad-up" x1="0" y1="0" x2="0" y2="1">
+        <linearGradient id="cg-up" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="oklch(0.72 0.15 155)" />
           <stop offset="100%" stopColor="oklch(0.55 0.18 155)" />
         </linearGradient>
-        <linearGradient id="grad-down" x1="0" y1="0" x2="0" y2="1">
+        <linearGradient id="cg-dn" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="oklch(0.7 0.18 22)" />
           <stop offset="100%" stopColor="oklch(0.5 0.2 22)" />
         </linearGradient>
       </defs>
-      {/* grid */}
-      {[40, 80, 120, 160].map((y) => (
-        <line
-          key={y}
-          x1="0"
-          y1={y}
-          x2="350"
-          y2={y}
-          stroke="currentColor"
-          strokeOpacity="0.06"
-          strokeDasharray="2 4"
-        />
+      {[45, 90, 135].map((y) => (
+        <line key={y} x1="0" y1={y} x2="350" y2={y} stroke="currentColor" strokeOpacity="0.06" />
       ))}
-      {/* support/resistance */}
       <line
         x1="0"
-        y1="50"
+        y1="52"
         x2="350"
-        y2="50"
+        y2="52"
         stroke="oklch(0.78 0.13 80)"
-        strokeOpacity="0.5"
+        strokeOpacity="0.45"
         strokeDasharray="4 4"
       />
       <line
         x1="0"
-        y1="130"
+        y1="128"
         x2="350"
-        y2="130"
+        y2="128"
         stroke="oklch(0.78 0.13 80)"
-        strokeOpacity="0.5"
+        strokeOpacity="0.45"
         strokeDasharray="4 4"
       />
       {candles.map((c, i) => (
@@ -983,389 +810,67 @@ function CandleChartMock() {
             y1={c.high}
             x2={c.x + 5}
             y2={c.low}
-            stroke={c.isGreen ? "url(#grad-up)" : "url(#grad-down)"}
+            stroke={c.isGreen ? "url(#cg-up)" : "url(#cg-dn)"}
             strokeWidth="1.2"
           />
           <rect
             x={c.x}
             y={Math.min(c.open, c.close)}
             width="10"
-            height={Math.abs(c.close - c.open)}
-            fill={c.isGreen ? "url(#grad-up)" : "url(#grad-down)"}
+            height={Math.max(2, Math.abs(c.close - c.open))}
+            fill={c.isGreen ? "url(#cg-up)" : "url(#cg-dn)"}
             rx="1"
           />
         </g>
       ))}
-      {/* AI annotation arrow */}
-      <g style={{ animation: "pulseGlow 3s ease-in-out infinite" }}>
-        <circle cx="320" cy="60" r="6" fill="oklch(0.72 0.13 235)" opacity="0.3" />
-        <circle cx="320" cy="60" r="3" fill="oklch(0.72 0.13 235)" />
-      </g>
+      <circle cx="326" cy="58" r="5" fill="oklch(0.72 0.13 235)" opacity="0.35">
+        <animate attributeName="r" values="5;9;5" dur="2.4s" repeatCount="indefinite" />
+      </circle>
+      <circle cx="326" cy="58" r="2.5" fill="oklch(0.72 0.13 235)" />
     </svg>
   );
 }
 
-function MindMockup() {
-  return (
-    <div className="grid gap-3 p-5 fade-in sm:p-7 sm:grid-cols-[1fr_280px]">
-      <div className="space-y-3">
-        <ChatBubble who="user">Quantos wins tive essa semana?</ChatBubble>
-        <ChatBubble who="ai">
-          Você teve <strong>14 wins</strong> nos últimos 7 dias. Win-rate de <strong>72%</strong>.
-          Sequência atual: 4.
-        </ChatBubble>
-        <div
-          className="rounded-2xl border p-4"
-          style={{
-            background:
-              "linear-gradient(160deg, color-mix(in oklab, var(--gold) 12%, var(--surface)), var(--surface))",
-            borderColor: "color-mix(in oklab, var(--gold) 30%, transparent)",
-          }}
-        >
-          <div className="mb-2 flex items-center gap-2">
-            <Trophy className="h-4 w-4" style={{ color: "var(--gold)" }} />
-            <span
-              className="text-[10px] font-bold uppercase tracking-widest"
-              style={{ color: "var(--gold)" }}
-            >
-              Balanço de operações
-            </span>
-            <span className="ml-auto font-mono text-[10px] text-muted-foreground">
-              Últimos 7 dias
-            </span>
-          </div>
-          <div className="mb-3">
-            <div className="mb-1 flex items-center justify-between text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-              <span>Win-rate</span>
-              <span className="font-display text-base font-black" style={{ color: "var(--green)" }}>
-                72%
-              </span>
-            </div>
-            <div
-              className="relative h-2 overflow-hidden rounded-full"
-              style={{ background: "color-mix(in oklab, var(--surface-3) 80%, var(--red) 20%)" }}
-            >
-              <div
-                className="h-full rounded-full"
-                style={{
-                  width: "72%",
-                  background: "color-mix(in oklab, var(--green) 85%, transparent)",
-                  boxShadow: "0 0 10px color-mix(in oklab, var(--green) 55%, transparent)",
-                }}
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <div
-              className="rounded-lg border p-2"
-              style={{
-                background: "color-mix(in oklab, var(--surface-2) 70%, transparent)",
-                borderColor: "var(--border)",
-              }}
-            >
-              <div className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">
-                Wins
-              </div>
-              <div className="mt-0.5 font-mono text-sm font-bold" style={{ color: "var(--green)" }}>
-                14
-              </div>
-            </div>
-            <div
-              className="rounded-lg border p-2"
-              style={{
-                background: "color-mix(in oklab, var(--surface-2) 70%, transparent)",
-                borderColor: "var(--border)",
-              }}
-            >
-              <div className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">
-                Lucro
-              </div>
-              <div className="mt-0.5 font-mono text-sm font-bold" style={{ color: "var(--green)" }}>
-                +$524
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div className="hidden flex-col gap-2 sm:flex">
-        <MiniStat label="Sequência" value="4 wins" tone="var(--gold)" />
-        <MiniStat label="Melhor ativo" value="BTC/USD" tone="var(--accent)" />
-        <div
-          className="rounded-xl border p-3"
-          style={{ background: "var(--surface-2)", borderColor: "var(--border)" }}
-        >
-          <div className="mb-1.5 flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-widest text-muted-foreground">
-            <Mic className="h-3 w-3" style={{ color: "var(--accent)" }} /> Voz suportada
-          </div>
-          <div className="text-[11px] text-muted-foreground">
-            Registre operações falando, sem digitar.
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+// ─── Features bento ─────────────────────────────────────────────────────────
 
-function GestaoMockup() {
+function FeaturesBento() {
   return (
-    <div className="grid gap-4 p-5 fade-in sm:p-7 md:grid-cols-[1fr_280px]">
-      <div>
-        <div className="mb-3 grid grid-cols-3 gap-2">
-          {[
-            ["Banca", "$2.840", "var(--electric)"],
-            ["Win-rate", "68%", "var(--green)"],
-            ["Resultado", "+$340", "var(--green)"],
-          ].map(([l, v, c]) => (
-            <div
-              key={l}
-              className="rounded-xl border p-3"
-              style={{ background: "var(--surface-2)", borderColor: "var(--border)" }}
-            >
-              <div className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">
-                {l}
-              </div>
-              <div
-                className="mt-1 font-display text-lg font-black tabular"
-                style={{ color: c as string }}
-              >
-                {v}
-              </div>
-            </div>
-          ))}
-        </div>
-        <div
-          className="rounded-xl border p-4"
-          style={{ background: "var(--surface-2)", borderColor: "var(--border)" }}
-        >
-          <div className="mb-2 flex items-center justify-between">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-              Evolução da banca
-            </span>
-            <span className="font-mono text-[10px] text-muted-foreground">últimos 30 dias</span>
-          </div>
-          <BankLineMock />
-        </div>
+    <section id="recursos" className="mx-auto max-w-6xl px-5 py-20 sm:px-6 sm:py-28">
+      <div className="mb-12 text-center">
+        <Eyebrow center>Plataforma completa</Eyebrow>
+        <h2 className="mx-auto mt-4 max-w-2xl font-display text-[clamp(26px,3.4vw,42px)] font-bold leading-[1.1] tracking-tight">
+          Seis ferramentas integradas. Uma assinatura.
+        </h2>
       </div>
-      <div className="space-y-2">
-        <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-          Últimos trades
-        </div>
-        {[
-          { ativo: "BTC/USD", dir: "COMPRA", res: "WIN", v: "+$43" },
-          { ativo: "EUR/USD", dir: "VENDA", res: "WIN", v: "+$25" },
-          { ativo: "ETH/USD", dir: "COMPRA", res: "LOSS", v: "−$30" },
-          { ativo: "SOL/USD", dir: "COMPRA", res: "WIN", v: "+$38" },
-        ].map((t, i) => (
-          <div
-            key={i}
-            className="flex items-center gap-2 rounded-md border px-3 py-2 text-xs"
-            style={{ background: "var(--surface-2)", borderColor: "var(--border)" }}
-          >
-            <span className="font-mono">{t.ativo}</span>
-            <span
-              className="rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider"
-              style={{
-                background:
-                  t.dir === "COMPRA"
-                    ? "color-mix(in oklab, var(--green) 18%, transparent)"
-                    : "color-mix(in oklab, var(--red) 18%, transparent)",
-                color: t.dir === "COMPRA" ? "var(--green)" : "var(--red)",
-              }}
-            >
-              {t.dir}
-            </span>
-            <span
-              className="ml-auto font-mono font-bold"
-              style={{ color: t.res === "WIN" ? "var(--green)" : "var(--red)" }}
-            >
-              {t.v}
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function BankLineMock() {
-  const pts = Array.from({ length: 30 }).map((_, i) => {
-    const trend = (i / 29) * 70;
-    const noise = Math.sin(i * 0.6) * 8 + Math.cos(i * 0.3) * 5;
-    return [i * (300 / 29), 100 - trend + noise] as const;
-  });
-  const d = pts.map((p, i) => `${i === 0 ? "M" : "L"}${p[0]},${p[1]}`).join(" ");
-  const area = `${d} L300,140 L0,140 Z`;
-  return (
-    <svg viewBox="0 0 300 140" className="h-[140px] w-full">
-      <defs>
-        <linearGradient id="bank-grad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="oklch(0.72 0.13 235)" stopOpacity="0.45" />
-          <stop offset="100%" stopColor="oklch(0.72 0.13 235)" stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      {[35, 70, 105].map((y) => (
-        <line
-          key={y}
-          x1="0"
-          y1={y}
-          x2="300"
-          y2={y}
-          stroke="currentColor"
-          strokeOpacity="0.06"
-          strokeDasharray="2 4"
-        />
-      ))}
-      <path d={area} fill="url(#bank-grad)" />
-      <path
-        d={d}
-        stroke="oklch(0.72 0.13 235)"
-        strokeWidth="2"
-        fill="none"
-        strokeLinejoin="round"
-        strokeLinecap="round"
-      />
-      {pts
-        .filter((_, i) => i === pts.length - 1)
-        .map(([x, y], i) => (
-          <circle
-            key={i}
-            cx={x}
-            cy={y}
-            r="4"
-            fill="oklch(0.72 0.13 235)"
-            stroke="var(--surface)"
-            strokeWidth="2"
-          />
-        ))}
-    </svg>
-  );
-}
-
-function NoticiasMockup() {
-  const events = [
-    {
-      time: "08:30",
-      country: "US",
-      impact: "High",
-      title: "Non-Farm Payrolls",
-      actual: "256K",
-      forecast: "180K",
-    },
-    {
-      time: "10:00",
-      country: "EU",
-      impact: "Medium",
-      title: "ECB Interest Rate Decision",
-      actual: "—",
-      forecast: "4.25%",
-    },
-    {
-      time: "14:30",
-      country: "US",
-      impact: "High",
-      title: "CPI YoY",
-      actual: "—",
-      forecast: "3.1%",
-    },
-    {
-      time: "21:00",
-      country: "JP",
-      impact: "Low",
-      title: "Tankan Manufacturing Index",
-      actual: "—",
-      forecast: "12",
-    },
-  ];
-  const impactStyle = (i: string) => {
-    if (i === "High")
-      return { bg: "color-mix(in oklab, var(--red) 14%, transparent)", color: "var(--red)" };
-    if (i === "Medium")
-      return { bg: "color-mix(in oklab, var(--gold) 14%, transparent)", color: "var(--gold)" };
-    return { bg: "color-mix(in oklab, var(--green) 12%, transparent)", color: "var(--green)" };
-  };
-  return (
-    <div className="p-5 fade-in sm:p-7">
-      <div className="mb-2 px-1 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
-        Hoje · Quinta-feira, 28 de maio
-      </div>
-      <div
-        className="overflow-hidden rounded-xl border"
-        style={{ background: "var(--surface-2)", borderColor: "var(--border)" }}
-      >
-        {events.map((ev, i) => {
-          const s = impactStyle(ev.impact);
-          return (
-            <div
-              key={i}
-              className="flex items-center gap-3 border-b px-4 py-3 last:border-b-0"
-              style={{ borderColor: "var(--border)" }}
-            >
-              <div className="w-12 flex-none font-mono text-xs tabular text-muted-foreground">
-                {ev.time}
-              </div>
-              <span
-                className="inline-flex h-6 min-w-16 items-center justify-center rounded-md px-2 text-[10px] font-bold uppercase tracking-wider"
-                style={{ background: s.bg, color: s.color, border: `1px solid ${s.color}` }}
-              >
-                {ev.impact === "High" ? "Alto" : ev.impact === "Medium" ? "Médio" : "Baixo"}
-              </span>
-              <div className="w-10 flex-none font-mono text-[10px] uppercase text-muted-foreground">
-                {ev.country}
-              </div>
-              <div className="min-w-0 flex-1 truncate text-sm font-medium">{ev.title}</div>
-              <div className="hidden gap-3 font-mono text-[10px] text-muted-foreground sm:flex">
-                <span>F: {ev.forecast}</span>
-                <span style={{ color: ev.actual !== "—" ? "var(--green)" : undefined }}>
-                  A: {ev.actual}
-                </span>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-// ─── Bento Features ───────────────────────────────────────────────────────
-
-function BentoFeatures() {
-  return (
-    <section id="tools" className="mx-auto max-w-6xl px-6 py-24">
-      <SectionHeader
-        tag="FERRAMENTAS"
-        title="6 módulos integrados. Uma assinatura."
-        sub="Cada ferramenta foi pensada pra acelerar uma decisão diferente do trader profissional."
-      />
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-3 md:grid-rows-[auto_auto_auto]">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
         <BentoCard
           Icon={LineChart}
           tone="var(--accent)"
           title="OrionScan"
-          desc="IA visual analisa qualquer gráfico em menos de 2 segundos. Identifica padrões, suporte e resistência, calcula horário de entrada e proteções."
-          tags={["Vision IA", "Qualquer broker", "Entrada + 2 proteções"]}
+          desc="IA visual analisa qualquer gráfico em menos de 2 segundos: padrões, S/R, entrada e proteções."
+          tags={["Vision IA", "Qualquer broker"]}
           className="md:col-span-2"
         />
         <BentoCard
           Icon={Calculator}
           tone="var(--gold)"
           title="Calculadora"
-          desc="Padrão Orion configurado: 1% por entrada, 2 proteções, stop diário."
-          tags={["Gestão %", "Martingale"]}
+          desc="Gestão padrão Orion: 1% por entrada, 2 proteções, stop diário."
+          tags={["Banca", "Martingale"]}
         />
         <BentoCard
           Icon={ClipboardList}
           tone="var(--green)"
           title="Planilha & Relatórios"
-          desc="Win-rate, lucro acumulado, melhor ativo, drawdown — calculados em tempo real. Exporte gráficos em PDF."
-          tags={["PDF", "CSV", "Filtros por período", "Cloud sync"]}
+          desc="Win-rate, lucro, melhor ativo e drawdown — em tempo real, com exportação em PDF."
+          tags={["PDF", "Cloud sync"]}
         />
         <BentoCard
           Icon={BrainCircuit}
           tone="var(--electric)"
-          title="OrionMind · Mentor IA"
-          desc="Conversa contextualizada sobre estratégia, gestão e psicologia. Registra operações por voz, gera relatórios e cards visuais."
-          tags={["Voz", "Cards visuais", "Memória do histórico"]}
+          title="OrionMind — Mentor IA"
+          desc="Conversa sobre estratégia, gestão e psicologia. Registra operações por voz e gera relatórios."
+          tags={["Voz", "Cards visuais", "Memória"]}
           className="md:col-span-2"
         />
         <BentoCard
@@ -1379,8 +884,8 @@ function BentoFeatures() {
           Icon={Bitcoin}
           tone="var(--purple)"
           title="CryptoBubbles"
-          desc="Radar visual do mercado cripto integrado."
-          tags={["Top 100", "Live"]}
+          desc="Radar visual do mercado cripto, integrado."
+          tags={["Live"]}
         />
       </div>
     </section>
@@ -1409,33 +914,32 @@ function BentoCard({
       onMouseMove={(e) => {
         const el = ref.current;
         if (!el) return;
-        const rect = el.getBoundingClientRect();
-        el.style.setProperty("--mx", `${e.clientX - rect.left}px`);
-        el.style.setProperty("--my", `${e.clientY - rect.top}px`);
+        const r = el.getBoundingClientRect();
+        el.style.setProperty("--mx", `${e.clientX - r.left}px`);
+        el.style.setProperty("--my", `${e.clientY - r.top}px`);
       }}
-      className={`bento-glow group relative overflow-hidden rounded-3xl border p-7 smooth hover-lift ${className}`}
+      className={`bento-glow group relative overflow-hidden rounded-2xl border p-6 smooth hover:-translate-y-0.5 ${className}`}
       style={{ background: "var(--surface)", borderColor: "var(--border)" }}
     >
       <div
-        className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl transition-transform group-hover:scale-110 group-hover:rotate-[-6deg]"
+        className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl transition-transform group-hover:scale-105"
         style={{
-          background: `color-mix(in oklab, ${tone} 10%, transparent)`,
-          border: `1px solid color-mix(in oklab, ${tone} 22%, transparent)`,
+          background: `color-mix(in oklab, ${tone} 12%, transparent)`,
+          border: `1px solid color-mix(in oklab, ${tone} 24%, transparent)`,
           color: tone,
         }}
       >
         <Icon className="h-5 w-5" strokeWidth={1.75} />
       </div>
-      <h3 className="mb-2 text-lg font-extrabold tracking-tight">{title}</h3>
-      <p className="mb-4 text-sm leading-relaxed text-muted-foreground">{desc}</p>
-      <div className="flex flex-wrap gap-1.5">
+      <h3 className="font-display text-lg font-bold tracking-tight">{title}</h3>
+      <p className="mt-1.5 text-[14px] leading-relaxed text-muted-foreground">{desc}</p>
+      <div className="mt-4 flex flex-wrap gap-1.5">
         {tags.map((t) => (
           <span
             key={t}
-            className="rounded-full border px-2 py-0.5 text-[10px] font-semibold"
+            className="rounded-full px-2 py-0.5 text-[10px] font-semibold"
             style={{
-              background: `color-mix(in oklab, ${tone} 7%, transparent)`,
-              borderColor: `color-mix(in oklab, ${tone} 22%, transparent)`,
+              background: `color-mix(in oklab, ${tone} 8%, transparent)`,
               color: tone,
             }}
           >
@@ -1447,22 +951,23 @@ function BentoCard({
   );
 }
 
-// ─── Stats Section (animated counters) ────────────────────────────────────
+// ─── Stats band (numbers-forward) ───────────────────────────────────────────
 
-function StatsSection() {
+function StatsBand() {
   return (
-    <section className="mx-auto max-w-6xl px-6 py-20">
+    <section className="mx-auto max-w-6xl px-5 py-12 sm:px-6">
       <div
-        className="grid grid-cols-2 gap-4 rounded-3xl border p-6 sm:grid-cols-4 sm:p-10"
-        style={{
-          background:
-            "linear-gradient(160deg, color-mix(in oklab, var(--accent) 7%, var(--surface)), var(--surface))",
-          borderColor: "color-mix(in oklab, var(--accent) 18%, transparent)",
-          boxShadow: "0 24px 80px -32px color-mix(in oklab, var(--accent) 35%, transparent)",
-        }}
+        className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border sm:grid-cols-4"
+        style={{ borderColor: "var(--border)", background: "var(--border)" }}
       >
         <AnimatedStat value={92} suffix="%" label="Precisão da IA" hint="em backtests internos" />
-        <AnimatedStat value={2} suffix="s" prefix="<" label="Tempo de análise" hint="por gráfico" />
+        <AnimatedStat
+          value={2}
+          prefix="<"
+          suffix="s"
+          label="Por análise"
+          hint="do print ao sinal"
+        />
         <AnimatedStat value={24} suffix="/7" label="Mentor IA" hint="sempre disponível" />
         <AnimatedStat value={10} suffix="+" label="Brokers" hint="qualquer plataforma" />
       </div>
@@ -1494,156 +999,123 @@ function AnimatedStat({
         for (const e of entries) {
           if (e.isIntersecting && !started.current) {
             started.current = true;
-            const duration = 900;
+            const dur = 900;
             const start = performance.now();
             const tick = (t: number) => {
-              const p = Math.min(1, (t - start) / duration);
-              const eased = 1 - Math.pow(1 - p, 3);
-              setShown(Math.round(value * eased));
+              const p = Math.min(1, (t - start) / dur);
+              setShown(Math.round(value * (1 - Math.pow(1 - p, 3))));
               if (p < 1) requestAnimationFrame(tick);
             };
             requestAnimationFrame(tick);
           }
         }
       },
-      { threshold: 0.3 },
+      { threshold: 0.4 },
     );
     obs.observe(el);
     return () => obs.disconnect();
   }, [value]);
   return (
-    <div ref={ref} className="text-center sm:text-left">
+    <div ref={ref} className="p-6 text-center sm:p-7" style={{ background: "var(--surface)" }}>
       <div
-        className="counter-pop font-display text-[clamp(36px,6vw,64px)] font-black leading-none tracking-tighter"
+        className="font-display text-[clamp(30px,4.5vw,46px)] font-black leading-none tracking-tight"
         style={{ color: "var(--electric)" }}
       >
         {prefix}
         {shown}
         {suffix}
       </div>
-      <div className="mt-2 text-sm font-bold">{label}</div>
+      <div className="mt-2 text-sm font-semibold">{label}</div>
       <div className="text-[11px] text-muted-foreground">{hint}</div>
     </div>
   );
 }
 
-// ─── Mentor Section ───────────────────────────────────────────────────────
+// ─── Mentor ───────────────────────────────────────────────────────────────
 
 function MentorSection() {
   return (
-    <section className="mx-auto max-w-5xl px-6 py-24">
-      <div className="grid items-center gap-8 md:grid-cols-[1fr_1.2fr] md:gap-12">
-        <div className="relative mx-auto md:mx-0">
+    <section className="mx-auto max-w-5xl px-5 py-20 sm:px-6 sm:py-28">
+      <div
+        className="grid items-center gap-8 rounded-3xl border p-7 sm:p-10 md:grid-cols-[auto_1fr] md:gap-10"
+        style={{
+          background:
+            "linear-gradient(150deg, color-mix(in oklab, var(--accent) 7%, var(--surface)), var(--surface))",
+          borderColor: "var(--border-strong)",
+        }}
+      >
+        <div className="flex flex-col items-center text-center md:items-start md:text-left">
           <div
-            className="relative flex h-44 w-44 items-center justify-center rounded-3xl border transition-transform hover:scale-[1.02] md:h-56 md:w-56"
+            className="flex h-28 w-28 items-center justify-center rounded-3xl"
             style={{
               background:
-                "linear-gradient(160deg, color-mix(in oklab, var(--accent) 16%, var(--surface)), color-mix(in oklab, var(--electric) 10%, var(--surface)))",
-              borderColor: "color-mix(in oklab, var(--accent) 38%, transparent)",
-              boxShadow: "0 30px 80px -20px color-mix(in oklab, var(--accent) 45%, transparent)",
+                "linear-gradient(150deg, color-mix(in oklab, var(--accent) 20%, var(--surface)), color-mix(in oklab, var(--electric) 12%, var(--surface)))",
+              border: "1px solid color-mix(in oklab, var(--accent) 38%, transparent)",
+              boxShadow: "0 24px 60px -24px color-mix(in oklab, var(--accent) 50%, transparent)",
             }}
           >
-            <span className="font-display text-6xl font-black gradient-text">GD</span>
-            <span
-              className="absolute -bottom-2 -right-2 flex h-9 w-9 items-center justify-center rounded-2xl border text-[10px] font-black"
-              style={{
-                background: "var(--surface)",
-                borderColor: "color-mix(in oklab, var(--accent) 40%, transparent)",
-                color: "var(--accent)",
-              }}
-            >
-              ✓
-            </span>
+            <span className="font-display text-4xl font-black gradient-text">GD</span>
           </div>
-          <div className="mt-4 text-center md:text-left">
-            <div className="font-display text-lg font-extrabold">Gabriel Dutra</div>
+          <div className="mt-3">
+            <div className="font-display text-base font-bold">Gabriel Dutra</div>
             <div className="text-xs text-muted-foreground">Trader oficial · Orion Capital</div>
           </div>
         </div>
-
         <div>
-          <div
-            className="mb-3 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-widest"
-            style={{
-              background: "color-mix(in oklab, var(--accent) 10%, transparent)",
-              borderColor: "color-mix(in oklab, var(--accent) 25%, transparent)",
-              color: "var(--electric)",
-            }}
-          >
-            O Mentor
-          </div>
-          <h2 className="font-display text-3xl font-black tracking-tight md:text-4xl">
-            Construído com a metodologia de quem{" "}
-            <span className="gradient-text">opera de verdade</span>.
-          </h2>
-          <p className="mt-4 text-[15px] leading-relaxed text-muted-foreground">
-            Gabriel Dutra é o trader oficial e mentor responsável pela{" "}
-            <strong className="text-foreground">Orion Capital</strong> — referência em price action,
-            gestão profissional de banca e disciplina operacional. Cada regra, indicador e fluxo do
-            OrionHub traduz a metodologia que ele ensina diariamente aos alunos.
-          </p>
-          <blockquote
-            className="mt-6 rounded-2xl border p-5 text-sm italic leading-relaxed text-muted-foreground"
-            style={{ background: "var(--surface)", borderColor: "var(--border)" }}
-          >
-            “O OrionHub é a tradução prática do que ensino dentro da Orion Capital — agora com IA
+          <Eyebrow>O mentor por trás</Eyebrow>
+          <blockquote className="mt-4 font-display text-[clamp(19px,2.4vw,28px)] font-semibold leading-snug tracking-tight">
+            “O OrionHub é a tradução prática do método que ensino na Orion Capital — agora com IA
             pra acelerar a leitura do gráfico e a gestão da banca.”
-            <div
-              className="mt-3 not-italic text-[11px] font-bold uppercase tracking-wider"
-              style={{ color: "var(--accent)" }}
-            >
-              — Gabriel Dutra
-            </div>
           </blockquote>
+          <p className="mt-4 text-[14px] leading-relaxed text-muted-foreground">
+            Cada regra, indicador e fluxo da plataforma traduz a metodologia de price action, gestão
+            profissional de banca e disciplina que o Gabriel ensina aos alunos diariamente.
+          </p>
         </div>
       </div>
     </section>
   );
 }
 
-// ─── How Section ──────────────────────────────────────────────────────────
+// ─── How ──────────────────────────────────────────────────────────────────
 
 function HowSection() {
   const steps = [
-    ["01", "Adquira seu acesso", "R$ 2.500 · 12 meses · garantia de 7 dias."],
-    ["02", "Carregue seu gráfico", "Print, drag&drop ou Ctrl+V. Qualquer broker."],
-    ["03", "IA analisa", "Padrões, indicadores e contexto, em segundos."],
-    ["04", "Opere com clareza", "Sinal + horários + gestão recomendada."],
+    ["01", "Adquira seu acesso", "Pagamento único, 12 meses, garantia de 7 dias."],
+    ["02", "Carregue o gráfico", "Print, arrastar ou Ctrl+V. Qualquer broker."],
+    ["03", "A IA analisa", "Padrões, contexto e horário — em segundos."],
+    ["04", "Opere com clareza", "Sinal, proteções e gestão recomendada."],
   ];
   return (
-    <section id="how" className="mx-auto max-w-6xl px-6 py-24">
-      <SectionHeader
-        tag="COMO FUNCIONA"
-        title="Em 4 passos simples"
-        sub="Da imagem ao sinal em menos de 2 segundos."
-      />
-      <div className="relative grid grid-cols-1 gap-6 stagger sm:grid-cols-2 md:grid-cols-4">
+    <section id="como" className="mx-auto max-w-6xl px-5 py-20 sm:px-6 sm:py-28">
+      <div className="mb-12 text-center">
+        <Eyebrow center>Como funciona</Eyebrow>
+        <h2 className="mt-4 font-display text-[clamp(26px,3.4vw,42px)] font-bold tracking-tight">
+          Da imagem ao sinal em 4 passos
+        </h2>
+      </div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {steps.map(([n, t, d], i) => (
-          <div key={n} className="relative text-center">
+          <div
+            key={n}
+            className="relative rounded-2xl border p-6 smooth hover:-translate-y-0.5"
+            style={{ background: "var(--surface)", borderColor: "var(--border)" }}
+          >
             <div
-              className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full border text-xl font-black transition-transform hover:scale-110 hover:rotate-[-6deg]"
-              style={{
-                background: "var(--surface-2)",
-                borderColor: "color-mix(in oklab, var(--electric) 30%, transparent)",
-                color: "var(--electric)",
-                boxShadow: "0 8px 24px -12px color-mix(in oklab, var(--electric) 45%, transparent)",
-              }}
+              className="font-display text-3xl font-black tabular"
+              style={{ color: "color-mix(in oklab, var(--electric) 55%, transparent)" }}
             >
               {n}
             </div>
+            <div className="mt-3 text-[15px] font-bold">{t}</div>
+            <div className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">{d}</div>
             {i < steps.length - 1 && (
-              <div
+              <ArrowRight
+                className="absolute -right-3 top-1/2 hidden h-5 w-5 -translate-y-1/2 lg:block"
+                style={{ color: "var(--border-strong)" }}
                 aria-hidden
-                className="absolute left-[calc(50%+28px)] top-7 hidden h-px md:block"
-                style={{
-                  width: "calc(100% - 56px)",
-                  background:
-                    "linear-gradient(90deg, color-mix(in oklab, var(--electric) 50%, transparent), transparent)",
-                }}
               />
             )}
-            <div className="text-[15px] font-bold">{t}</div>
-            <div className="mt-1.5 text-[13px] leading-snug text-muted-foreground">{d}</div>
           </div>
         ))}
       </div>
@@ -1651,53 +1123,50 @@ function HowSection() {
   );
 }
 
-// ─── Testimonials ─────────────────────────────────────────────────────────
+// ─── Testimonials ───────────────────────────────────────────────────────────
 
 function TestimonialsSection() {
   const items = [
     {
       name: "Rafael M.",
-      role: "Trader 2 anos · Forex",
+      role: "Trader · Forex",
       quote:
-        "Antes eu perdia tempo abrindo TradingView pra checar S/R. Hoje colo o print no OrionScan e em 2s tô com o setup pronto.",
-      rating: 5,
+        "Colo o print no OrionScan e em 2s tenho o setup pronto. Parei de perder tempo abrindo 3 plataformas pra checar suporte e resistência.",
     },
     {
       name: "Camila S.",
-      role: "Iniciante · Opções binárias",
+      role: "Iniciante · Opções",
       quote:
-        "O OrionMind me explica os erros da semana e sugere o que ajustar. É como ter um mentor à disposição 24h.",
-      rating: 5,
+        "O OrionMind me explica os erros da semana e o que ajustar. É como ter um mentor à disposição 24h sem julgamento.",
     },
     {
       name: "João P.",
-      role: "Trader 5 anos · Cripto",
+      role: "Trader · Cripto",
       quote:
-        "A planilha automatizada e os relatórios mensais me deram clareza que eu nunca tive operando solo. Vale cada centavo.",
-      rating: 5,
+        "A planilha automática e os relatórios mensais me deram uma clareza que eu nunca tive operando sozinho.",
     },
   ];
   return (
-    <section className="mx-auto max-w-6xl px-6 py-24">
-      <SectionHeader
-        tag="DEPOIMENTOS"
-        title="Quem usa, opera com mais clareza"
-        sub="Traders reais usando o OrionHub no dia a dia."
-      />
-      <div className="grid grid-cols-1 gap-4 stagger md:grid-cols-3">
+    <section className="mx-auto max-w-6xl px-5 py-20 sm:px-6 sm:py-28">
+      <div className="mb-12 text-center">
+        <Eyebrow center>Quem usa</Eyebrow>
+        <h2 className="mt-4 font-display text-[clamp(26px,3.4vw,42px)] font-bold tracking-tight">
+          Traders operando com mais clareza
+        </h2>
+      </div>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         {items.map((it) => (
-          <div
+          <figure
             key={it.name}
-            className="group relative rounded-2xl border p-6 hover-lift"
+            className="relative flex flex-col rounded-2xl border p-6 smooth hover:-translate-y-0.5"
             style={{ background: "var(--surface)", borderColor: "var(--border)" }}
           >
             <Quote
-              className="absolute right-5 top-5 h-8 w-8 opacity-10"
+              className="absolute right-5 top-5 h-7 w-7 opacity-[0.08]"
               style={{ color: "var(--accent)" }}
-              strokeWidth={1.5}
             />
-            <div className="mb-3 flex items-center gap-1">
-              {Array.from({ length: it.rating }).map((_, i) => (
+            <div className="mb-3 flex gap-0.5">
+              {Array.from({ length: 5 }).map((_, i) => (
                 <Star
                   key={i}
                   className="h-3.5 w-3.5"
@@ -1705,14 +1174,14 @@ function TestimonialsSection() {
                 />
               ))}
             </div>
-            <p className="mb-5 text-[14px] italic leading-relaxed text-muted-foreground">
-              "{it.quote}"
-            </p>
-            <div
-              className="flex items-center gap-3 border-t pt-3"
+            <blockquote className="flex-1 text-[14px] leading-relaxed text-muted-foreground">
+              “{it.quote}”
+            </blockquote>
+            <figcaption
+              className="mt-5 flex items-center gap-3 border-t pt-4"
               style={{ borderColor: "var(--border)" }}
             >
-              <div
+              <span
                 className="flex h-9 w-9 items-center justify-center rounded-full font-display text-xs font-black"
                 style={{
                   background: "color-mix(in oklab, var(--accent) 14%, transparent)",
@@ -1723,114 +1192,116 @@ function TestimonialsSection() {
                   .split(" ")
                   .map((p) => p[0])
                   .join("")}
-              </div>
-              <div>
-                <div className="text-sm font-bold">{it.name}</div>
-                <div className="text-[11px] text-muted-foreground">{it.role}</div>
-              </div>
-            </div>
-          </div>
+              </span>
+              <span>
+                <span className="block text-sm font-bold">{it.name}</span>
+                <span className="block text-[11px] text-muted-foreground">{it.role}</span>
+              </span>
+            </figcaption>
+          </figure>
         ))}
       </div>
     </section>
   );
 }
 
-// ─── Pricing ──────────────────────────────────────────────────────────────
+// ─── Pricing (corrigido) ─────────────────────────────────────────────────────
 
-function PricingSection() {
+function PricingSection({ user }: { user: User | null }) {
   const features = [
     { label: "Análises com OrionScan", trial: "5 totais", anual: "Ilimitadas" },
     { label: "OrionMind (mentor IA)", trial: "Limitado", anual: "Ilimitado" },
-    { label: "Planilha + relatórios", trial: "Básico", anual: "Completo + PDF" },
-    { label: "Calculadora de banca", trial: "✓", anual: "✓" },
-    { label: "Notícias & Calendário", trial: "—", anual: "✓" },
-    { label: "CryptoBubbles", trial: "—", anual: "✓" },
-    { label: "Voz no OrionMind", trial: "—", anual: "✓" },
-    { label: "Suporte prioritário", trial: "—", anual: "✓" },
-  ];
-  const guarantees = [
-    { Icon: ShieldCheck, label: "Garantia 7 dias", desc: "Devolução de 100%" },
-    { Icon: Zap, label: "Acesso imediato", desc: "Liberado em minutos" },
-    { Icon: Target, label: "Pagamento único", desc: "Sem renovação automática" },
+    { label: "Planilha + relatórios PDF", trial: "Básico", anual: "Completo" },
+    { label: "Calculadora de banca", trial: true, anual: true },
+    { label: "Notícias & Calendário", trial: false, anual: true },
+    { label: "CryptoBubbles", trial: false, anual: true },
+    { label: "Voz no OrionMind", trial: false, anual: true },
+    { label: "Suporte prioritário", trial: false, anual: true },
   ];
   return (
-    <section id="pricing" className="mx-auto max-w-6xl px-6 py-24">
-      <SectionHeader
-        tag="ACESSO ANUAL"
-        title="Um pagamento único. 12 meses completos."
-        sub="Sem mensalidade, sem renovação automática. Garantia de 7 dias com devolução total."
-      />
+    <section id="planos" className="mx-auto max-w-6xl px-5 py-20 sm:px-6 sm:py-28">
+      <div className="mb-12 text-center">
+        <Eyebrow center>Acesso anual</Eyebrow>
+        <h2 className="mt-4 font-display text-[clamp(26px,3.4vw,42px)] font-bold tracking-tight">
+          Um pagamento. 12 meses completos.
+        </h2>
+        <p className="mx-auto mt-4 max-w-md text-[15px] leading-relaxed text-muted-foreground">
+          Sem mensalidade, sem renovação automática. Garantia de 7 dias com devolução total.
+        </p>
+      </div>
 
-      <div className="grid items-start gap-5 md:grid-cols-[1fr_1.1fr]">
-        {/* Pricing card */}
+      <div className="grid items-stretch gap-5 lg:grid-cols-[1fr_1.15fr]">
+        {/* Price card */}
         <div
-          className="ring-gradient relative rounded-3xl border p-8"
+          className="relative flex flex-col rounded-3xl border p-8"
           style={{
             background:
-              "linear-gradient(180deg, color-mix(in oklab, var(--accent) 8%, var(--surface)), var(--surface))",
+              "linear-gradient(160deg, color-mix(in oklab, var(--accent) 10%, var(--surface)), var(--surface))",
             borderColor: "color-mix(in oklab, var(--accent) 38%, transparent)",
-            boxShadow: "0 40px 100px -30px color-mix(in oklab, var(--accent) 45%, transparent)",
+            boxShadow: "0 40px 90px -36px color-mix(in oklab, var(--accent) 50%, transparent)",
           }}
         >
           <div
-            className="mb-4 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-white"
+            className="inline-flex w-fit items-center gap-1.5 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-white"
             style={{ background: "var(--accent)" }}
           >
             <Crown className="h-3 w-3" /> Acesso Anual
           </div>
-          <div className="flex items-end gap-3">
-            <div className="font-display text-5xl font-black tracking-tight gradient-text">
-              <sup
-                className="mr-0.5 align-top text-base font-bold"
-                style={{ color: "var(--electric)" }}
-              >
-                12× R$
-              </sup>
-              208
+
+          {/* Preço: parcelado em destaque, à vista como referência */}
+          <div className="mt-6">
+            <div className="flex items-baseline gap-1.5">
+              <span className="font-display text-2xl font-bold text-muted-foreground">12×</span>
+              <span className="font-display text-6xl font-black tracking-tight gradient-text">
+                R$&nbsp;208
+              </span>
             </div>
-            <div className="pb-1 text-[11px] text-muted-foreground">
-              no cartão · ou R$ 2.500 à vista
-            </div>
-            <div className="pb-2 text-[11px] text-muted-foreground">
-              12 meses de acesso completo
+            <div className="mt-2 text-sm text-muted-foreground">
+              no cartão · ou <span className="font-semibold text-foreground">R$ 2.500</span> à vista
             </div>
           </div>
+
           <Link
-            to="/signup"
+            to={user ? "/dashboard" : "/signup"}
             viewTransition
             preload="intent"
-            className="mt-6 group flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 text-sm font-bold text-white smooth press hover:-translate-y-0.5 pulse-glow"
+            className="group mt-7 flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-[15px] font-semibold text-white smooth press hover:-translate-y-0.5"
             style={{
               background: "var(--accent)",
-              boxShadow: "0 0 50px color-mix(in oklab, var(--accent) 35%, transparent)",
+              boxShadow: "0 16px 44px -16px color-mix(in oklab, var(--accent) 80%, transparent)",
             }}
           >
-            Comprar acesso anual
+            {user ? "Abrir app" : "Garantir meu acesso"}
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
           </Link>
-          <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
-            {guarantees.map(({ Icon, label, desc }) => (
-              <div
-                key={label}
-                className="flex items-center gap-2 rounded-xl border px-3 py-2"
-                style={{ background: "var(--surface-2)", borderColor: "var(--border)" }}
-              >
-                <div
-                  className="flex h-7 w-7 flex-none items-center justify-center rounded-md"
-                  style={{
-                    background: "color-mix(in oklab, var(--green) 14%, transparent)",
-                    color: "var(--green)",
-                  }}
-                >
-                  <Icon className="h-3.5 w-3.5" strokeWidth={1.75} />
+
+          <div className="mt-6 space-y-3 border-t pt-6" style={{ borderColor: "var(--border)" }}>
+            {[
+              [ShieldCheck, "Garantia de 7 dias", "Devolução de 100% do valor"],
+              [Zap, "Acesso imediato", "Liberado em poucos minutos"],
+              [Target, "Pagamento único", "Sem renovação automática"],
+            ].map(([Icon, label, desc]) => {
+              const I = Icon as LucideIcon;
+              return (
+                <div key={label as string} className="flex items-center gap-3">
+                  <span
+                    className="flex h-8 w-8 flex-none items-center justify-center rounded-lg"
+                    style={{
+                      background: "color-mix(in oklab, var(--green) 14%, transparent)",
+                      color: "var(--green)",
+                    }}
+                  >
+                    <I className="h-4 w-4" strokeWidth={1.75} />
+                  </span>
+                  <span>
+                    <span className="block text-[13px] font-semibold">{label as string}</span>
+                    <span className="block text-[11px] text-muted-foreground">
+                      {desc as string}
+                    </span>
+                  </span>
                 </div>
-                <div>
-                  <div className="text-[11px] font-bold leading-tight">{label}</div>
-                  <div className="text-[9px] leading-tight text-muted-foreground">{desc}</div>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
@@ -1840,26 +1311,47 @@ function PricingSection() {
           style={{ background: "var(--surface)", borderColor: "var(--border)" }}
         >
           <div
-            className="grid grid-cols-[1fr_90px_90px] gap-2 border-b px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground sm:grid-cols-[1fr_120px_120px]"
+            className="grid grid-cols-[1fr_72px_72px] items-center gap-2 border-b px-5 py-4 text-[10px] font-bold uppercase tracking-widest text-muted-foreground sm:grid-cols-[1fr_110px_110px]"
             style={{ borderColor: "var(--border)" }}
           >
-            <div>Recurso</div>
-            <div className="text-center">Trial</div>
-            <div className="text-center" style={{ color: "var(--accent)" }}>
+            <span>Recurso</span>
+            <span className="text-center">Trial</span>
+            <span className="text-center" style={{ color: "var(--accent)" }}>
               Anual
-            </div>
+            </span>
           </div>
-          {features.map((f, i) => (
+          {features.map((f) => (
             <div
               key={f.label}
-              className="grid grid-cols-[1fr_90px_90px] items-center gap-2 border-b px-5 py-2.5 text-sm transition-colors hover:bg-[color:var(--surface-2)] last:border-b-0 sm:grid-cols-[1fr_120px_120px]"
-              style={{ borderColor: "var(--border)", animationDelay: `${i * 30}ms` }}
+              className="grid grid-cols-[1fr_72px_72px] items-center gap-2 border-b px-5 py-3 text-sm transition-colors last:border-b-0 hover:bg-[color:var(--surface-2)] sm:grid-cols-[1fr_110px_110px]"
+              style={{ borderColor: "var(--border)" }}
             >
-              <div className="font-medium">{f.label}</div>
-              <div className="text-center text-xs text-muted-foreground">{f.trial}</div>
-              <div className="text-center text-xs font-bold" style={{ color: "var(--accent)" }}>
-                {f.anual === "✓" ? <Check className="mx-auto h-4 w-4" /> : f.anual}
-              </div>
+              <span className="min-w-0 font-medium">{f.label}</span>
+              <span className="text-center text-[12px] text-muted-foreground">
+                {typeof f.trial === "boolean" ? (
+                  f.trial ? (
+                    <Check className="mx-auto h-4 w-4" style={{ color: "var(--text-muted)" }} />
+                  ) : (
+                    <span style={{ color: "var(--text-dim)" }}>—</span>
+                  )
+                ) : (
+                  f.trial
+                )}
+              </span>
+              <span
+                className="text-center text-[12px] font-semibold"
+                style={{ color: "var(--accent)" }}
+              >
+                {typeof f.anual === "boolean" ? (
+                  f.anual ? (
+                    <Check className="mx-auto h-4 w-4" />
+                  ) : (
+                    "—"
+                  )
+                ) : (
+                  f.anual
+                )}
+              </span>
             </div>
           ))}
         </div>
@@ -1873,77 +1365,89 @@ function PricingSection() {
 function FaqSection() {
   const items: Array<[string, string]> = [
     [
-      "Quem é Gabriel Dutra?",
-      "Gabriel Dutra é o trader oficial e mentor da Orion Capital. Toda a metodologia (price action, gerenciamento padrão Orion, regras de proteção) embarcada no OrionHub foi construída a partir do que ele ensina aos alunos.",
+      "A IA funciona com qualquer broker?",
+      "Sim. A análise é feita visualmente sobre a imagem do gráfico — basta um print de qualquer plataforma (IQ Option, Quotex, MT5, TradingView, etc).",
     ],
     [
-      "A IA realmente funciona com qualquer broker?",
-      "Sim. Como a análise é feita visualmente sobre a imagem do gráfico, basta tirar um print de qualquer plataforma (IQ Option, Quotex, MT5, TradingView, etc).",
+      "Funciona em opções binárias e forex?",
+      "Sim. A análise é sobre o gráfico, então funciona para qualquer ativo: forex, índices, ações, cripto e commodities.",
     ],
     [
       "Vocês garantem lucros?",
       "Não. Nenhuma ferramenta séria garante lucros em trading. O OrionHub é um copiloto que entrega análise objetiva — a decisão e o gerenciamento são sempre seus.",
     ],
     [
-      "Meus dados ficam armazenados?",
-      "Suas operações e conversas com o OrionMind ficam guardadas com segurança na sua conta — sincronizadas entre dispositivos. As imagens enviadas para análise não são armazenadas após o processamento.",
-    ],
-    [
-      "Funciona em opções binárias e em forex?",
-      "Sim. A análise é sobre o gráfico — funciona para qualquer ativo: forex, índices, ações, cripto, commodities.",
-    ],
-    [
-      "Posso usar no celular?",
-      "Sim. O OrionHub é totalmente responsivo: você pode subir prints diretamente da galeria, conversar com o mentor por voz e visualizar os relatórios no mobile.",
+      "Tenho garantia se não gostar?",
+      "Sim. Você tem 7 dias após a compra como garantia de devolução. Se não gostou, devolvemos 100% do valor, sem perguntas.",
     ],
     [
       "O acesso renova automaticamente?",
-      "Não. É um pagamento único que libera 12 meses de acesso completo. Sem renovação automática — você decide se quer renovar depois desse período.",
+      "Não. É um pagamento único que libera 12 meses de acesso completo. Você decide se quer renovar depois desse período.",
     ],
     [
-      "Tenho garantia se não gostar?",
-      "Sim. Você tem 7 dias após a compra como garantia de devolução. Se não gostou, devolvemos 100% do valor pago, sem perguntas.",
+      "Posso usar no celular?",
+      "Sim. O OrionHub é totalmente responsivo: suba prints da galeria, converse com o mentor por voz e veja os relatórios no mobile.",
+    ],
+    [
+      "Quem é Gabriel Dutra?",
+      "Trader oficial e mentor da Orion Capital. Toda a metodologia embarcada no OrionHub (price action, gestão padrão Orion, regras de proteção) vem do que ele ensina aos alunos.",
     ],
     [
       "Como recebo o acesso após o pagamento?",
-      "Em poucos minutos após a confirmação, liberamos seu acesso anual no e-mail cadastrado. Em horário comercial, geralmente em até 30 minutos.",
+      "Em poucos minutos após a confirmação, liberamos o acesso no e-mail cadastrado. Em horário comercial, geralmente em até 30 minutos.",
     ],
   ];
   const [open, setOpen] = useState<number | null>(0);
   return (
-    <section id="faq" className="mx-auto max-w-3xl px-6 py-24">
-      <SectionHeader tag="FAQ" title="Perguntas frequentes" sub="" />
-      <div>
-        {items.map(([q, a], i) => (
-          <div key={q} className="border-b py-1" style={{ borderColor: "var(--border)" }}>
-            <button
-              onClick={() => setOpen(open === i ? null : i)}
-              className="group flex w-full items-center justify-between py-4 text-left text-[15px] font-semibold smooth hover:text-[color:var(--electric)]"
+    <section id="faq" className="mx-auto max-w-3xl px-5 py-20 sm:px-6 sm:py-28">
+      <div className="mb-10 text-center">
+        <Eyebrow center>FAQ</Eyebrow>
+        <h2 className="mt-4 font-display text-[clamp(26px,3.4vw,42px)] font-bold tracking-tight">
+          Perguntas frequentes
+        </h2>
+      </div>
+      <div
+        className="overflow-hidden rounded-2xl border"
+        style={{ background: "var(--surface)", borderColor: "var(--border)" }}
+      >
+        {items.map(([q, a], i) => {
+          const active = open === i;
+          return (
+            <div
+              key={q}
+              className="border-b last:border-b-0"
+              style={{ borderColor: "var(--border)" }}
             >
-              <span>{q}</span>
-              <span
-                className="flex h-7 w-7 flex-none items-center justify-center rounded-full border text-base smooth"
-                style={{
-                  borderColor:
-                    open === i
+              <button
+                onClick={() => setOpen(active ? null : i)}
+                aria-expanded={active}
+                className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left text-[15px] font-semibold smooth hover:text-[color:var(--electric)]"
+              >
+                <span>{q}</span>
+                <span
+                  className="flex h-6 w-6 flex-none items-center justify-center rounded-full border text-base smooth"
+                  style={{
+                    borderColor: active
                       ? "color-mix(in oklab, var(--electric) 40%, transparent)"
                       : "var(--border-strong)",
-                  background:
-                    open === i
+                    background: active
                       ? "color-mix(in oklab, var(--electric) 12%, transparent)"
                       : "transparent",
-                  color: open === i ? "var(--electric)" : "var(--text-muted)",
-                  transform: open === i ? "rotate(45deg)" : "none",
-                }}
-              >
-                +
-              </span>
-            </button>
-            {open === i && (
-              <div className="pb-4 text-sm leading-relaxed text-muted-foreground faq-open">{a}</div>
-            )}
-          </div>
-        ))}
+                    color: active ? "var(--electric)" : "var(--text-muted)",
+                    transform: active ? "rotate(45deg)" : "none",
+                  }}
+                >
+                  +
+                </span>
+              </button>
+              {active && (
+                <div className="faq-open px-5 pb-4 text-[14px] leading-relaxed text-muted-foreground">
+                  {a}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     </section>
   );
@@ -1951,68 +1455,70 @@ function FaqSection() {
 
 // ─── CTA ──────────────────────────────────────────────────────────────────
 
-function CtaSection() {
+function CtaSection({ user }: { user: User | null }) {
   return (
-    <section className="relative overflow-hidden px-6 py-32 text-center">
+    <section className="px-5 pb-24 pt-4 sm:px-6">
       <div
-        className="absolute inset-0"
+        className="relative mx-auto max-w-5xl overflow-hidden rounded-3xl border px-6 py-16 text-center sm:py-20"
         style={{
           background:
-            "radial-gradient(ellipse 70% 50% at 50% 50%, color-mix(in oklab, var(--accent) 12%, transparent) 0%, transparent 70%)",
-        }}
-      />
-      <div
-        className="absolute inset-0 opacity-40"
-        style={{
-          backgroundImage:
-            "linear-gradient(color-mix(in oklab, var(--accent) 5%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in oklab, var(--accent) 5%, transparent) 1px, transparent 1px)",
-          backgroundSize: "60px 60px",
-          maskImage: "radial-gradient(ellipse at center, black 30%, transparent 75%)",
-        }}
-      />
-      <div
-        className="relative z-10 mx-auto inline-flex items-center gap-1.5 rounded-full border px-4 py-2 text-xs font-semibold"
-        style={{
-          background: "color-mix(in oklab, var(--green) 8%, transparent)",
-          borderColor: "color-mix(in oklab, var(--green) 22%, transparent)",
-          color: "var(--green)",
+            "linear-gradient(160deg, color-mix(in oklab, var(--accent) 14%, var(--surface)), var(--surface))",
+          borderColor: "color-mix(in oklab, var(--accent) 30%, transparent)",
         }}
       >
-        <span
-          className="h-1.5 w-1.5 rounded-full blink-dot"
-          style={{ background: "var(--green)" }}
+        <div
+          className="pointer-events-none absolute inset-0 opacity-40"
+          style={{
+            backgroundImage:
+              "linear-gradient(color-mix(in oklab, var(--foreground) 5%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in oklab, var(--foreground) 5%, transparent) 1px, transparent 1px)",
+            backgroundSize: "48px 48px",
+            maskImage: "radial-gradient(ellipse at center, black 20%, transparent 75%)",
+          }}
+          aria-hidden
         />
-        Garantia de 7 dias · 100% do valor
-      </div>
-      <h2 className="relative z-10 mt-6 text-[clamp(32px,5.5vw,68px)] font-black leading-[0.98] tracking-tighter">
-        Comece a operar com
-        <br />
-        <span className="gradient-text">clareza</span> hoje.
-      </h2>
-      <p className="relative z-10 mx-auto mt-5 max-w-md text-base text-muted-foreground">
-        Acesso anual completo por R$ 2.500. Sem mensalidade. Sem renovação.
-      </p>
-      <Link
-        to="/signup"
-        viewTransition
-        preload="intent"
-        className="group relative z-10 mt-9 inline-flex items-center gap-2 rounded-full px-10 py-4 text-base font-bold text-white smooth press hover:-translate-y-0.5 pulse-glow ring-2 ring-[color:var(--accent)]/30"
-        style={{
-          background: "var(--accent)",
-          boxShadow: "0 0 80px color-mix(in oklab, var(--accent) 40%, transparent)",
-        }}
-      >
-        Quero meu acesso anual
-        <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-      </Link>
-      <div className="relative z-10 mt-6 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[11px] uppercase tracking-wider text-muted-foreground">
-        <span className="inline-flex items-center gap-1">
-          <Cloud className="h-3 w-3" /> Sincronização entre dispositivos
-        </span>
-        <span className="opacity-40">·</span>
-        <span className="inline-flex items-center gap-1">
-          <TrendingUp className="h-3 w-3" /> Atualizações constantes
-        </span>
+        <div className="relative z-10">
+          <div
+            className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium"
+            style={{
+              background: "color-mix(in oklab, var(--green) 10%, transparent)",
+              borderColor: "color-mix(in oklab, var(--green) 26%, transparent)",
+              color: "var(--green)",
+            }}
+          >
+            <span
+              className="h-1.5 w-1.5 rounded-full blink-dot"
+              style={{ background: "var(--green)" }}
+            />
+            Garantia de 7 dias · 100% do valor
+          </div>
+          <h2 className="mx-auto mt-6 max-w-2xl font-display text-[clamp(28px,4.5vw,56px)] font-bold leading-[1.04] tracking-tight">
+            Comece a operar com <span className="gradient-text">clareza</span> hoje.
+          </h2>
+          <p className="mx-auto mt-4 max-w-md text-[15px] leading-relaxed text-muted-foreground">
+            12× de R$ 208 no cartão, ou R$ 2.500 à vista. Sem mensalidade, sem renovação.
+          </p>
+          <Link
+            to={user ? "/dashboard" : "/signup"}
+            viewTransition
+            preload="intent"
+            className="group mt-8 inline-flex items-center gap-2 rounded-full px-9 py-4 text-[15px] font-semibold text-white smooth press hover:-translate-y-0.5"
+            style={{
+              background: "var(--accent)",
+              boxShadow: "0 18px 50px -16px color-mix(in oklab, var(--accent) 80%, transparent)",
+            }}
+          >
+            {user ? "Abrir app" : "Quero meu acesso"}
+            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+          </Link>
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-x-5 gap-y-1.5 text-[11px] text-muted-foreground">
+            <span className="inline-flex items-center gap-1.5">
+              <Cloud className="h-3.5 w-3.5" /> Sincroniza entre dispositivos
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <Mic className="h-3.5 w-3.5" /> Registro por voz
+            </span>
+          </div>
+        </div>
       </div>
     </section>
   );
@@ -2023,42 +1529,30 @@ function CtaSection() {
 function Footer() {
   return (
     <footer
-      className="border-t px-6 py-12"
+      className="border-t px-5 py-12 sm:px-6"
       style={{
         borderColor: "var(--border)",
         background: "color-mix(in oklab, var(--surface) 30%, transparent)",
       }}
     >
-      <div className="mx-auto flex max-w-5xl flex-col items-center gap-5 text-center">
-        <Link
-          to="/"
-          className="inline-flex items-center gap-2 text-[22px] font-black tracking-tight"
-        >
-          <span
-            className="inline-flex h-7 w-7 items-center justify-center rounded-lg"
-            style={{
-              background: "linear-gradient(135deg, var(--accent), var(--electric))",
-              boxShadow: "0 6px 16px -8px color-mix(in oklab, var(--accent) 60%, transparent)",
-            }}
-          >
-            <Activity className="h-3.5 w-3.5 text-white" strokeWidth={2.5} />
-          </span>
-          Orion<span style={{ color: "var(--electric)" }}>Hub</span>
+      <div className="mx-auto flex max-w-6xl flex-col items-center gap-5 text-center">
+        <Link to="/" className="smooth hover:opacity-90">
+          <Wordmark className="text-[20px]" />
         </Link>
         <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[13px] text-muted-foreground">
-          {["Termos", "Privacidade", "Contato"].map((l) => (
-            <a key={l} href="#" className="smooth hover:text-foreground">
-              {l}
-            </a>
-          ))}
-          <span className="opacity-30">·</span>
+          <a href="#" className="smooth hover:text-foreground">
+            Termos
+          </a>
+          <a href="#" className="smooth hover:text-foreground">
+            Privacidade
+          </a>
           <a
             href="https://t.me/suporte_orioncapital"
             target="_blank"
             rel="noreferrer"
-            className="smooth hover:text-foreground"
+            className="inline-flex items-center gap-1 smooth hover:text-foreground"
           >
-            Suporte Telegram
+            Suporte <ArrowUpRight className="h-3 w-3" />
           </a>
         </div>
         <p className="max-w-xl text-[11px] leading-relaxed text-muted-foreground/80">
@@ -2073,36 +1567,16 @@ function Footer() {
   );
 }
 
-// ─── Section header (compartilhado) ───────────────────────────────────────
+// ─── Shared eyebrow ─────────────────────────────────────────────────────────
 
-function SectionHeader({ tag, title, sub }: { tag: string; title: string; sub?: string }) {
+function Eyebrow({ children, center = false }: { children: React.ReactNode; center?: boolean }) {
   return (
-    <div className="mb-12 text-center">
-      <div
-        className="mb-3 inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.3em]"
-        style={{ color: "var(--electric)" }}
-      >
-        <span
-          className="h-px w-6"
-          style={{ background: "color-mix(in oklab, var(--electric) 40%, transparent)" }}
-        />
-        {tag}
-        <span
-          className="h-px w-6"
-          style={{ background: "color-mix(in oklab, var(--electric) 40%, transparent)" }}
-        />
-      </div>
-      <h2 className="text-[clamp(28px,4vw,48px)] font-black leading-tight tracking-tight">
-        {title}
-      </h2>
-      {sub && (
-        <p className="mx-auto mt-4 max-w-lg text-base leading-relaxed text-muted-foreground">
-          {sub}
-        </p>
-      )}
+    <div
+      className={`inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.2em] ${center ? "" : ""}`}
+      style={{ color: "var(--electric)" }}
+    >
+      <span className="h-1 w-1 rounded-full" style={{ background: "var(--electric)" }} />
+      {children}
     </div>
   );
 }
-
-// Re-export type for callers (compat with prior file)
-export type { CSSProperties };
