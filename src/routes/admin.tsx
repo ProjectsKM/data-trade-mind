@@ -320,7 +320,7 @@ function Panel({ onLogout }: { onLogout: () => void }) {
           ))}
         </div>
         <div
-          className="flex flex-1 min-w-[220px] items-center gap-2 rounded-lg border px-3"
+          className="flex flex-1 min-w-0 items-center gap-2 rounded-lg border px-3 sm:min-w-[220px]"
           style={{ background: "var(--surface)", borderColor: "var(--border)" }}
         >
           <Search className="h-4 w-4 text-muted-foreground" />

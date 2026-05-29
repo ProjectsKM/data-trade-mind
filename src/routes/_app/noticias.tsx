@@ -67,13 +67,30 @@ function NoticiasPage() {
     setLoading(true);
     setErr("");
     try {
-      const { data: sess } = await supabase.auth.getSession();
-      const token = sess.session?.access_token;
-      const r = await fetch("/api/calendar", {
-        cache: "no-store",
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-        signal: controller.signal,
-      });
+      // Refresh defensivo do token ANTES de chamar a API — o /api/calendar
+      // exige JWT válido. Sem isso, um token expirado (comum depois de
+      // tempo com a aba aberta) dava 401 "acesso não autorizado".
+      async function getFreshToken(): Promise<string | null> {
+        const { data: refreshed } = await supabase.auth.refreshSession();
+        if (refreshed.session?.access_token) return refreshed.session.access_token;
+        const { data: sess } = await supabase.auth.getSession();
+        return sess.session?.access_token ?? null;
+      }
+
+      const doFetch = (tk: string | null) =>
+        fetch("/api/calendar", {
+          cache: "no-store",
+          headers: tk ? { Authorization: `Bearer ${tk}` } : {},
+          signal: controller.signal,
+        });
+
+      let token = await getFreshToken();
+      let r = await doFetch(token);
+      // Retry uma vez em 401 — token pode ter expirado entre refresh e fetch.
+      if (r.status === 401) {
+        token = await getFreshToken();
+        r = await doFetch(token);
+      }
       let data: unknown;
       try {
         data = await r.json();
@@ -87,6 +104,12 @@ function NoticiasPage() {
       }
       // Erro estruturado: { ok: false, error: "..." } do backend.
       const errObj = data as { error?: string; ok?: boolean };
+      if (r.status === 401) {
+        throw new Error("Sessão expirada. Recarregue a página ou faça login novamente.");
+      }
+      if (r.status === 402) {
+        throw new Error("Notícias são exclusivas do Acesso Anual.");
+      }
       if (errObj?.error) throw new Error(errObj.error);
       throw new Error(
         r.status >= 500
