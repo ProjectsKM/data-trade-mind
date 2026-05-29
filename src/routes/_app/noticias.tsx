@@ -305,7 +305,19 @@ function NoticiasPage() {
                     <div className="w-12 flex-none font-mono text-[11px] uppercase text-muted-foreground">
                       {ev.country}
                     </div>
-                    <div className="min-w-0 flex-1 truncate text-sm font-medium">{ev.title}</div>
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm font-medium">{ev.title}</div>
+                      {/* Mobile: P/F/A numa segunda linha sob o título — são
+                          os números que o trader usa pra decidir, então não
+                          podem ficar escondidos no celular. */}
+                      <div className="mt-0.5 flex flex-wrap gap-x-3 font-mono text-[10px] text-muted-foreground sm:hidden">
+                        <span>P: {ev.previous || "—"}</span>
+                        <span>F: {ev.forecast || "—"}</span>
+                        <span style={{ color: ev.actual ? "var(--foreground)" : undefined }}>
+                          A: {ev.actual || "—"}
+                        </span>
+                      </div>
+                    </div>
                     <div className="hidden gap-3 font-mono text-[10px] text-muted-foreground sm:flex">
                       <span>P: {ev.previous || "—"}</span>
                       <span>F: {ev.forecast || "—"}</span>

@@ -54,7 +54,7 @@
   --border-strong: oklch(0.360 0.030 265);
   --foreground: oklch(0.97 0.008 250);
   --text-muted: oklch(0.70 0.020 250);
-  --text-dim:   oklch(0.52 0.020 250);
+  --text-dim:   oklch(0.62 0.020 250);
   --accent: oklch(0.64 0.16 245);
   --accent-foreground: oklch(0.99 0 0);
   --electric: oklch(0.72 0.13 235);

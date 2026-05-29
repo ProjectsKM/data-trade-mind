@@ -200,6 +200,7 @@ function AppLayout() {
                 to={to}
                 preload="intent"
                 viewTransition
+                aria-current={active ? "page" : undefined}
                 className="group relative flex items-center gap-3 overflow-hidden rounded-md px-3 py-2 text-sm smooth press hover:translate-x-0.5"
                 style={
                   active
@@ -268,6 +269,7 @@ function AppLayout() {
                   to={to}
                   preload="intent"
                   viewTransition
+                  aria-current={active ? "page" : undefined}
                   className="flex flex-1 flex-col items-center gap-0.5 px-1 py-2 text-[10px] font-medium smooth press"
                   style={{
                     color: active ? "var(--accent)" : "var(--text-dim)",
@@ -276,7 +278,7 @@ function AppLayout() {
                       : "none",
                   }}
                 >
-                  <Icon className="h-4 w-4" strokeWidth={1.75} />
+                  <Icon className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
                   <span>{label}</span>
                 </Link>
               );
@@ -387,7 +389,8 @@ function AppLayout() {
 
         <main
           id="main-content"
-          className={`relative min-h-0 flex-1 sm:!pb-0 ${isFullHeightRoute ? "overflow-hidden" : "overflow-y-auto"}`}
+          tabIndex={-1}
+          className={`relative min-h-0 flex-1 outline-none sm:!pb-0 ${isFullHeightRoute ? "overflow-hidden" : "overflow-y-auto"}`}
           style={{
             paddingBottom: kbOpen
               ? `${kbHeight}px`

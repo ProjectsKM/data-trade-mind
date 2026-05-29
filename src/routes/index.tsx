@@ -64,7 +64,7 @@ function Reveal({ children, className = "" }: { children: React.ReactNode; class
 function LandingPage() {
   const { user } = useUser();
   return (
-    <div id="main-content" className="min-h-screen bg-background text-foreground">
+    <div id="main-content" tabIndex={-1} className="min-h-screen bg-background text-foreground outline-none">
       <Nav user={user} />
       <Hero user={user} />
       <BrokerMarquee />

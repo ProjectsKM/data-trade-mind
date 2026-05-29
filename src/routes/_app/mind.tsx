@@ -587,15 +587,17 @@ function MindPage() {
             <button
               onClick={() => setCollapsed(true)}
               title="Recolher"
+              aria-label="Recolher painel de conversas"
               className="hidden sm:inline-flex text-muted-foreground hover:text-[color:var(--accent)]"
             >
-              <PanelLeftClose className="h-4 w-4" />
+              <PanelLeftClose className="h-4 w-4" aria-hidden="true" />
             </button>
             <button
               onClick={() => setOpenSidebar(false)}
+              aria-label="Fechar conversas"
               className="sm:hidden text-muted-foreground"
             >
-              <X className="h-4 w-4" />
+              <X className="h-4 w-4" aria-hidden="true" />
             </button>
           </div>
         </div>
@@ -666,8 +668,12 @@ function MindPage() {
           className="flex flex-none items-center gap-3 border-b px-5 py-3"
           style={{ borderColor: "var(--border)" }}
         >
-          <button onClick={() => setOpenSidebar(true)} className="sm:hidden text-muted-foreground">
-            <Menu className="h-5 w-5" />
+          <button
+            onClick={() => setOpenSidebar(true)}
+            aria-label="Abrir conversas"
+            className="sm:hidden text-muted-foreground"
+          >
+            <Menu className="h-5 w-5" aria-hidden="true" />
           </button>
           {collapsed && (
             <button
@@ -813,9 +819,10 @@ function MindPage() {
                 onClick={() => void send()}
                 disabled={busy || !input.trim()}
                 size="icon"
+                aria-label="Enviar mensagem"
                 className="h-9 w-9 flex-none"
               >
-                <Send className="h-4 w-4" strokeWidth={1.75} />
+                <Send className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
               </Button>
             </div>
           </div>
