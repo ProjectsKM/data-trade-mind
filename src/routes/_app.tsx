@@ -111,7 +111,10 @@ function AppLayout() {
     "/cryptobubbles": "cryptobubbles",
   };
   const gatedFeature = Object.keys(GATED).find((p) => loc.pathname.startsWith(p));
-  const isGated = !!gatedFeature && !state.isPro;
+  // Só decide o gate DEPOIS que o plano carregou (state.hydrated). Antes,
+  // isPro começava false e o PremiumGate "piscava" pra quem já é Anual.
+  const checkingPlan = !!gatedFeature && !state.hydrated;
+  const isGated = !!gatedFeature && state.hydrated && !state.isPro;
 
   return (
     <div
@@ -397,7 +400,11 @@ function AppLayout() {
               : "calc(4.5rem + env(safe-area-inset-bottom, 0px))",
           }}
         >
-          {isGated ? (
+          {checkingPlan ? (
+            <div className="flex h-full items-center justify-center">
+              <Loader2 className="h-5 w-5 animate-spin" style={{ color: "var(--accent)" }} />
+            </div>
+          ) : isGated ? (
             <PremiumGate feature={GATED[gatedFeature!]}>
               <Outlet />
             </PremiumGate>

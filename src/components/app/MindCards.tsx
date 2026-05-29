@@ -470,6 +470,58 @@ function WinReportCard({ report }: { report: WinReportData }) {
               {fmtUSD(report.lucroTotal, true)}
             </span>
           </div>
+
+          {/* Lista das operações do período */}
+          {report.trades && report.trades.length > 0 && (
+            <div className="mt-3">
+              <div className="mb-1.5 text-[9px] font-semibold uppercase tracking-widest text-muted-foreground">
+                Operações ({report.trades.length})
+              </div>
+              <div
+                className="max-h-56 space-y-1 overflow-y-auto rounded-xl border p-1.5"
+                style={{
+                  background: "color-mix(in oklab, var(--surface-2) 50%, transparent)",
+                  borderColor: "var(--border)",
+                }}
+              >
+                {report.trades.map((t, i) => {
+                  const win = t.res === "WIN";
+                  return (
+                    <div
+                      key={i}
+                      className="flex items-center gap-2 rounded-lg px-2 py-1.5"
+                      style={{ background: "color-mix(in oklab, var(--surface) 70%, transparent)" }}
+                    >
+                      <span className="min-w-0 flex-1 truncate font-mono text-[11px] font-semibold">
+                        {t.ativo}
+                      </span>
+                      <span
+                        className="flex-none rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider"
+                        style={{
+                          background:
+                            t.dir === "COMPRA"
+                              ? "color-mix(in oklab, var(--green) 16%, transparent)"
+                              : "color-mix(in oklab, var(--red) 16%, transparent)",
+                          color: t.dir === "COMPRA" ? "var(--green)" : "var(--red)",
+                        }}
+                      >
+                        {t.dir}
+                      </span>
+                      <span className="flex-none font-mono text-[10px] tabular text-muted-foreground">
+                        {fmtUSD(t.valor)}
+                      </span>
+                      <span
+                        className="w-16 flex-none text-right font-mono text-[11px] font-bold tabular"
+                        style={{ color: win ? "var(--green)" : "var(--red)" }}
+                      >
+                        {fmtUSD(t.lucro, true)}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </>
       )}
     </CardShell>

@@ -104,11 +104,11 @@ function MindPage() {
     if (typeof window === "undefined") return false;
     return window.localStorage.getItem("orion.mind.sidebarCollapsed") === "1";
   });
-  // Imagem anexada (print de gráfico) pra análise por visão.
-  const [attach, setAttach] = useState<{ b64: string; mediaType: string; preview: string } | null>(
-    null,
-  );
+  // Imagens anexadas (prints de gráfico) pra análise por visão. Até 5.
+  type Attachment = { id: string; b64: string; mediaType: string; preview: string };
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
+  const MAX_IMAGES = 5;
   const scrollRef = useRef<HTMLDivElement>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
   const autoFollowRef = useRef(true);
@@ -323,43 +323,73 @@ function MindPage() {
     toast.success("Conversa excluída.");
   }
 
-  function onPickImage(file: File | undefined) {
-    if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      toast.error("Envie um arquivo de imagem (print do gráfico).");
-      return;
-    }
-    if (file.size > 5_000_000) {
-      toast.error("Imagem muito grande (máx 5 MB).");
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => {
-      const dataUrl = String(reader.result || "");
-      const comma = dataUrl.indexOf(",");
-      const b64 = comma >= 0 ? dataUrl.slice(comma + 1) : "";
-      const mt = (dataUrl.match(/^data:(image\/[a-z+]+);/)?.[1] || file.type) as string;
-      const mediaType = ["image/png", "image/jpeg", "image/webp", "image/gif"].includes(mt)
-        ? mt
-        : "image/png";
-      if (!b64) {
-        toast.error("Não consegui ler a imagem.");
-        return;
+  const addImages = useCallback((files: File[]) => {
+    const imgs = files.filter((f) => f.type.startsWith("image/"));
+    if (imgs.length === 0) return;
+    setAttachments((cur) => {
+      const room = MAX_IMAGES - cur.length;
+      if (room <= 0) {
+        toast.error(`Máximo de ${MAX_IMAGES} imagens por mensagem.`);
+        return cur;
       }
-      setAttach({ b64, mediaType, preview: dataUrl });
-      setTimeout(() => taRef.current?.focus(), 50);
+      return cur; // a adição real acontece nos onload abaixo
+    });
+    let added = 0;
+    for (const file of imgs) {
+      if (file.size > 5_000_000) {
+        toast.error(`"${file.name}" é maior que 5 MB.`);
+        continue;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUrl = String(reader.result || "");
+        const comma = dataUrl.indexOf(",");
+        const b64 = comma >= 0 ? dataUrl.slice(comma + 1) : "";
+        const mt = dataUrl.match(/^data:(image\/[a-z+]+);/)?.[1] || file.type;
+        const mediaType = ["image/png", "image/jpeg", "image/webp", "image/gif"].includes(mt)
+          ? mt
+          : "image/png";
+        if (!b64) return;
+        setAttachments((cur) => {
+          if (cur.length >= MAX_IMAGES) return cur;
+          return [...cur, { id: crypto.randomUUID(), b64, mediaType, preview: dataUrl }];
+        });
+      };
+      reader.onerror = () => toast.error("Falha ao ler a imagem.");
+      reader.readAsDataURL(file);
+      added++;
+    }
+    if (added > 0) setTimeout(() => taRef.current?.focus(), 50);
+  }, []);
+
+  // Colar print (Ctrl+V) em qualquer lugar do /mind — cobre clipboardData
+  // .items (forma mais confiável) e .files, com várias imagens de uma vez.
+  useEffect(() => {
+    const onPaste = (e: ClipboardEvent) => {
+      const dt = e.clipboardData;
+      if (!dt) return;
+      const fromItems = Array.from(dt.items || [])
+        .filter((it) => it.kind === "file" && it.type.startsWith("image/"))
+        .map((it) => it.getAsFile())
+        .filter((f): f is File => !!f);
+      const fromFiles = Array.from(dt.files || []).filter((f) => f.type.startsWith("image/"));
+      const files = fromItems.length ? fromItems : fromFiles;
+      if (files.length > 0) {
+        e.preventDefault();
+        addImages(files);
+      }
     };
-    reader.onerror = () => toast.error("Falha ao ler a imagem.");
-    reader.readAsDataURL(file);
-  }
+    window.addEventListener("paste", onPaste);
+    return () => window.removeEventListener("paste", onPaste);
+  }, [addImages]);
 
   async function send(text?: string) {
     const t = (text ?? input).trim();
-    const img = attach;
+    const imgs = attachments;
     // Permite enviar só com imagem (sem texto).
-    if ((!t && !img) || busy || !user) return;
+    if ((!t && imgs.length === 0) || busy || !user) return;
     setInput("");
-    setAttach(null);
+    setAttachments([]);
     // Reset do buffer do throttle pra evitar stale text de envios anteriores.
     pendingReplyRef.current = "";
 
@@ -367,7 +397,7 @@ function MindPage() {
 
     // Create thread on first message
     if (!threadId) {
-      const title = (t || (img ? "Análise de gráfico" : "")).slice(0, 60);
+      const title = (t || (imgs.length ? "Análise de gráfico" : "")).slice(0, 60);
       const { data, error } = await supabase
         .from("mind_threads")
         .insert({ user_id: user.id, title })
@@ -385,13 +415,17 @@ function MindPage() {
 
     // Quando só há imagem (sem texto), usa um prompt padrão de análise — o
     // backend exige content >= 1 char e a IA precisa de instrução textual.
-    const effectiveText = t || "Analise este gráfico e explique o cenário de operação.";
+    const effectiveText =
+      t ||
+      (imgs.length > 1
+        ? "Analise cada gráfico e diga qual tem o melhor cenário pra operar."
+        : "Analise este gráfico e explique o cenário de operação.");
     const userMsg: ChatMsg = {
       id: crypto.randomUUID(),
       role: "user",
       content: effectiveText,
       ts: new Date().toISOString(),
-      image: img?.preview,
+      images: imgs.length ? imgs.map((a) => a.preview) : undefined,
     };
     setMessages((m) => [...m, userMsg]);
     await supabase.from("mind_messages").insert({
@@ -449,7 +483,10 @@ function MindPage() {
             messages: history,
             banca,
             recentTrades: recentRows ?? [],
-            image: img ? { imageBase64: img.b64, mediaType: img.mediaType } : undefined,
+            tzOffset: new Date().getTimezoneOffset(),
+            images: imgs.length
+              ? imgs.map((a) => ({ imageBase64: a.b64, mediaType: a.mediaType }))
+              : undefined,
           }),
           signal: controller.signal,
         });
@@ -853,9 +890,10 @@ function MindPage() {
               ref={fileRef}
               type="file"
               accept="image/png,image/jpeg,image/webp,image/gif"
+              multiple
               className="hidden"
               onChange={(e) => {
-                onPickImage(e.target.files?.[0]);
+                if (e.target.files) addImages(Array.from(e.target.files));
                 e.target.value = "";
               }}
             />
@@ -870,28 +908,34 @@ function MindPage() {
                 boxShadow: "0 8px 28px -18px rgba(0,0,0,.5)",
               }}
             >
-              {/* Preview da imagem anexada */}
-              {attach && (
-                <div className="mb-2 flex items-center gap-2 px-1.5 pt-1">
-                  <div className="relative">
-                    <img
-                      src={attach.preview}
-                      alt="Prévia do gráfico"
-                      className="h-14 w-14 rounded-lg border object-cover"
-                      style={{ borderColor: "var(--border-strong)" }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setAttach(null)}
-                      aria-label="Remover imagem"
-                      className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full border text-white smooth press"
-                      style={{ background: "var(--red)", borderColor: "var(--background)" }}
-                    >
-                      <X className="h-3 w-3" strokeWidth={2.5} />
-                    </button>
+              {/* Previews das imagens anexadas (até 5) */}
+              {attachments.length > 0 && (
+                <div className="mb-2 px-1.5 pt-1">
+                  <div className="flex flex-wrap gap-2">
+                    {attachments.map((a) => (
+                      <div key={a.id} className="relative">
+                        <img
+                          src={a.preview}
+                          alt="Prévia do gráfico"
+                          className="h-14 w-14 rounded-lg border object-cover"
+                          style={{ borderColor: "var(--border-strong)" }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setAttachments((cur) => cur.filter((x) => x.id !== a.id))}
+                          aria-label="Remover imagem"
+                          className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full border text-white smooth press"
+                          style={{ background: "var(--red)", borderColor: "var(--background)" }}
+                        >
+                          <X className="h-3 w-3" strokeWidth={2.5} />
+                        </button>
+                      </div>
+                    ))}
                   </div>
-                  <span className="text-xs text-muted-foreground">
-                    Gráfico anexado — descreva ou só envie pra eu analisar.
+                  <span className="mt-1.5 block text-xs text-muted-foreground">
+                    {attachments.length === 1
+                      ? "Gráfico anexado — descreva ou só envie pra eu analisar."
+                      : `${attachments.length} gráficos — vou analisar um por um e indicar o melhor.`}
                   </span>
                 </div>
               )}
@@ -920,16 +964,6 @@ function MindPage() {
                       void send();
                     }
                   }}
-                  onPaste={(e) => {
-                    // Colar print (Ctrl+V) anexa direto.
-                    const file = Array.from(e.clipboardData.files).find((f) =>
-                      f.type.startsWith("image/"),
-                    );
-                    if (file) {
-                      e.preventDefault();
-                      onPickImage(file);
-                    }
-                  }}
                   onFocus={() => {
                     if (typeof window === "undefined") return;
                     if (!window.matchMedia?.("(pointer: coarse)").matches) return;
@@ -951,7 +985,7 @@ function MindPage() {
                 <button
                   type="button"
                   onClick={() => void send()}
-                  disabled={busy || (!input.trim() && !attach)}
+                  disabled={busy || (!input.trim() && attachments.length === 0)}
                   aria-label="Enviar mensagem"
                   className="flex h-9 w-9 flex-none items-center justify-center rounded-full text-white smooth press hover:-translate-y-px disabled:translate-y-0 disabled:opacity-30"
                   style={{
@@ -1122,13 +1156,20 @@ const Bubble = memo(function Bubble({
       >
         {isUser ? (
           <span style={{ whiteSpace: "pre-wrap" }}>
-            {m.image && (
-              <img
-                src={m.image}
-                alt="Gráfico enviado"
-                className="mb-2 max-h-52 w-full rounded-lg border object-cover"
-                style={{ borderColor: "color-mix(in oklab, var(--accent) 30%, transparent)" }}
-              />
+            {m.images && m.images.length > 0 && (
+              <span
+                className={`mb-2 grid gap-1.5 ${m.images.length > 1 ? "grid-cols-2" : "grid-cols-1"}`}
+              >
+                {m.images.map((src, i) => (
+                  <img
+                    key={i}
+                    src={src}
+                    alt={`Gráfico enviado ${i + 1}`}
+                    className="max-h-52 w-full rounded-lg border object-cover"
+                    style={{ borderColor: "color-mix(in oklab, var(--accent) 30%, transparent)" }}
+                  />
+                ))}
+              </span>
             )}
             {m.content}
           </span>

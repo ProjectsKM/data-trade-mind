@@ -50,9 +50,9 @@ export type ChatMsg = {
   role: "user" | "assistant";
   content: string;
   ts?: string;
-  // Preview (data URL) de uma imagem anexada pelo usuário. Apenas local —
-  // não é persistido no banco (a análise é efêmera, o texto da resposta fica).
-  image?: string;
+  // Previews (data URLs) de imagens anexadas pelo usuário. Apenas local —
+  // não persistido no banco (a análise é efêmera, o texto da resposta fica).
+  images?: string[];
 };
 
 export type AppState = {
@@ -63,6 +63,9 @@ export type AppState = {
   tradeList: Trade[];
   history: ScanResult[];
   mindMessages: ChatMsg[];
+  // false até o plano do usuário carregar do Supabase. Evita o flash do
+  // PremiumGate pra quem já é Anual (isPro só é confiável após hydrated).
+  hydrated: boolean;
 };
 
 const defaultState = (): AppState => ({
@@ -73,6 +76,7 @@ const defaultState = (): AppState => ({
   tradeList: [],
   history: [],
   mindMessages: [],
+  hydrated: false,
 });
 
 function toUser(
@@ -251,6 +255,7 @@ export function useAppState() {
           content: m.content,
           ts: m.created_at,
         })),
+        hydrated: true,
       });
     })();
     return () => {

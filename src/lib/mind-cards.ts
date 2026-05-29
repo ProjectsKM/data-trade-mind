@@ -34,6 +34,15 @@ export type MonthlyReportData = {
 
 export type WinReportPeriod = "today" | "week" | "month" | "all";
 
+export type WinReportItem = {
+  ativo: string;
+  dir: "COMPRA" | "VENDA";
+  res: "WIN" | "LOSS";
+  valor: number;
+  lucro: number;
+  data: string;
+};
+
 export type WinReportData = {
   period: WinReportPeriod;
   label: string; // ex: "Últimos 7 dias"
@@ -44,6 +53,9 @@ export type WinReportData = {
   lucroTotal: number;
   bestStreak: number; // maior sequência de wins
   worstStreak: number; // maior sequência de losses
+  // Lista das operações do período (mais recentes primeiro), pra mostrar
+  // "as operações" no card e não só o agregado.
+  trades?: WinReportItem[];
 };
 
 export type MindCard =

@@ -125,6 +125,12 @@ Quando a mensagem contiver uma imagem de gráfico, analise-a como mentor e **exp
 - **Direção provável**: COMPRA ou VENDA, com o nível de confiança em palavras (alta/média/baixa) e o porquê.
 - **Gestão Orion**: lembre da entrada de 1%, no máximo 2 proteções e o stop diário.
 NUNCA prometa lucro. Sempre reforce que é leitura de contexto e que a decisão é do trader. Se a imagem não for um gráfico de trading, diga isso gentilmente e peça um print do gráfico. Mantenha tom de mentor, acolhedor e direto.
+
+### VÁRIOS GRÁFICOS DE UMA VEZ
+Se o usuário enviar MAIS DE UM gráfico, analise UM POR UM, em ordem (Gráfico 1, Gráfico 2, …), com o mesmo formato acima pra cada. Depois, feche com uma seção **"Melhor cenário"**: diga qual gráfico tem a oportunidade mais clara pra operar agora, qual a direção (COMPRA/VENDA) e por que ele é melhor que os outros (confluência, clareza de tendência, S/R, padrão). Seja decisivo mas honesto sobre o risco.
+
+### RELATÓRIOS — REGRA CRÍTICA
+Quando o usuário pedir pra VER, LISTAR ou MOSTRAR as operações de um período ("operações da semana", "o que fiz hoje", "minhas trades do mês", "balanço"), você DEVE chamar a ferramenta get_win_report com o period correto (today/week/month/all). NUNCA responda "você não tem operações" sem ter chamado a ferramenta — o card mostra a lista real. Se a ferramenta retornar 0 operações, aí sim informe que não há registros no período e sugira registrar.
 `;
 
 const Body = z.object({
@@ -149,13 +155,28 @@ const Body = z.object({
     )
     .max(50)
     .optional(),
-  // Imagem opcional (print de gráfico) pra análise por visão.
+  // Imagens opcionais (prints de gráfico) pra análise por visão. Aceita
+  // várias pra a IA comparar gráfico por gráfico.
+  images: z
+    .array(
+      z.object({
+        imageBase64: z.string().min(100).max(7_000_000),
+        mediaType: z.enum(["image/png", "image/jpeg", "image/webp", "image/gif"]),
+      }),
+    )
+    .max(5)
+    .optional(),
+  // Compat: imagem única (campo antigo).
   image: z
     .object({
       imageBase64: z.string().min(100).max(7_000_000),
       mediaType: z.enum(["image/png", "image/jpeg", "image/webp", "image/gif"]),
     })
     .optional(),
+  // Offset de fuso do cliente (minutos, getTimezoneOffset). Sem isso os
+  // relatórios "hoje"/"mês" usavam meia-noite UTC e excluíam operações de
+  // quem opera em BRT (UTC-3).
+  tzOffset: z.number().int().min(-840).max(840).optional(),
 });
 
 const TOOLS = [
@@ -485,10 +506,15 @@ function categoryGroupOf(ativo: string): ReportByCategory["categoria"] {
   return "OUTROS";
 }
 
-function resolveMonthRange(monthArg: string | undefined): { from: Date; to: Date; label: string } {
+function resolveMonthRange(
+  monthArg: string | undefined,
+  tzOffset = 0,
+): { from: Date; to: Date; label: string } {
   const now = new Date();
-  let year = now.getFullYear();
-  let month = now.getMonth(); // 0-indexed
+  // Data com campos UTC representando a hora-de-parede local do usuário.
+  const local = new Date(now.getTime() - tzOffset * 60000);
+  let year = local.getUTCFullYear();
+  let month = local.getUTCMonth(); // 0-indexed
   const normalized = (monthArg ?? "current").toLowerCase();
   if (normalized === "previous") {
     if (month === 0) {
@@ -502,8 +528,9 @@ function resolveMonthRange(monthArg: string | undefined): { from: Date; to: Date
     year = yy;
     month = mm - 1;
   }
-  const from = new Date(year, month, 1, 0, 0, 0, 0);
-  const to = new Date(year, month + 1, 1, 0, 0, 0, 0);
+  // Primeiro dia do mês à meia-noite LOCAL, convertido pro instante UTC real.
+  const from = new Date(Date.UTC(year, month, 1, 0, 0, 0, 0) + tzOffset * 60000);
+  const to = new Date(Date.UTC(year, month + 1, 1, 0, 0, 0, 0) + tzOffset * 60000);
   const monthNames = [
     "Janeiro",
     "Fevereiro",
@@ -526,10 +553,11 @@ async function executeMonthlyReport(
   supabase: any,
   userId: string,
   rawArgs: unknown,
+  tzOffset = 0,
 ): Promise<ToolResult> {
   const parsed = MonthlyReportArgs.safeParse(rawArgs);
   if (!parsed.success) return { ok: false, message: "Parâmetros inválidos." };
-  const { from, to, label } = resolveMonthRange(parsed.data.month);
+  const { from, to, label } = resolveMonthRange(parsed.data.month, tzOffset);
   const { data, error } = await supabase
     .from("trades")
     .select("ativo, res, lucro, data")
@@ -586,11 +614,13 @@ async function executeMonthlyReport(
   };
 }
 
-function resolveWinPeriod(period: WinReportPeriod): { from: Date; label: string } {
+function resolveWinPeriod(period: WinReportPeriod, tzOffset = 0): { from: Date; label: string } {
   const now = new Date();
   if (period === "today") {
-    const from = new Date(now);
-    from.setHours(0, 0, 0, 0);
+    // Meia-noite LOCAL do usuário (não UTC) convertida pro instante UTC real.
+    const local = new Date(now.getTime() - tzOffset * 60000);
+    local.setUTCHours(0, 0, 0, 0);
+    const from = new Date(local.getTime() + tzOffset * 60000);
     return { from, label: "Hoje" };
   }
   if (period === "week") {
@@ -609,19 +639,27 @@ async function executeWinReport(
   supabase: any,
   userId: string,
   rawArgs: unknown,
+  tzOffset = 0,
 ): Promise<ToolResult> {
   const parsed = WinReportArgs.safeParse(rawArgs);
   if (!parsed.success) return { ok: false, message: "Período inválido." };
-  const { from, label } = resolveWinPeriod(parsed.data.period);
+  const { from, label } = resolveWinPeriod(parsed.data.period, tzOffset);
   const { data, error } = await supabase
     .from("trades")
-    .select("res, lucro, data")
+    .select("ativo, dir, res, valor, lucro, data")
     .eq("user_id", userId)
     .gte("data", from.toISOString())
     .order("data", { ascending: true });
   if (error) return { ok: false, message: `Falha ao consultar trades: ${error.message}` };
 
-  type Row = { res: string; lucro: number; data: string };
+  type Row = {
+    ativo: string;
+    dir: string;
+    res: string;
+    valor: number;
+    lucro: number;
+    data: string;
+  };
   const rows = (data ?? []) as Row[];
   const wins = rows.filter((r) => r.res === "WIN").length;
   const losses = rows.filter((r) => r.res === "LOSS").length;
@@ -645,6 +683,20 @@ async function executeWinReport(
     }
   }
 
+  // Lista das operações (mais recentes primeiro, cap 30) pra mostrar no card.
+  const trades = rows
+    .slice()
+    .reverse()
+    .slice(0, 30)
+    .map((r) => ({
+      ativo: r.ativo,
+      dir: (r.dir === "VENDA" ? "VENDA" : "COMPRA") as "COMPRA" | "VENDA",
+      res: (r.res === "LOSS" ? "LOSS" : "WIN") as "WIN" | "LOSS",
+      valor: Number(r.valor || 0),
+      lucro: Number(r.lucro || 0),
+      data: r.data,
+    }));
+
   const report: WinReportData = {
     period: parsed.data.period,
     label,
@@ -655,6 +707,7 @@ async function executeWinReport(
     lucroTotal: +lucroTotal.toFixed(2),
     bestStreak,
     worstStreak,
+    trades,
   };
   return {
     ok: true,
@@ -747,25 +800,25 @@ export const Route = createFileRoute("/api/ai-mind")({
           ...body.messages.map((m) => ({ role: m.role, content: m.content })),
         ];
 
-        // Visão: se veio uma imagem (print de gráfico), transforma a ÚLTIMA
-        // mensagem do usuário num conteúdo multimodal (texto + imagem) pra
-        // o modelo analisar o gráfico. gpt-4o-mini suporta visão.
-        if (body.image) {
-          const dataUrl = `data:${body.image.mediaType};base64,${body.image.imageBase64}`;
+        // Visão: se vieram imagens (prints de gráfico), transforma a ÚLTIMA
+        // mensagem do usuário num conteúdo multimodal (texto + N imagens) pra
+        // o modelo analisar. gpt-4o-mini suporta visão e múltiplas imagens.
+        const imgs = body.images?.length ? body.images : body.image ? [body.image] : [];
+        if (imgs.length > 0) {
+          const multi = imgs.length > 1;
+          const defaultText = multi
+            ? `Analise cada um dos ${imgs.length} gráficos enviados, um por um (Gráfico 1, Gráfico 2, …): para cada um diga ativo/timeframe (se der), tendência, suporte/resistência, padrões e a direção provável com confiança. No fim, compare e indique qual gráfico tem o MELHOR cenário pra operar agora e por quê.`
+            : "Analise este gráfico e explique o cenário de operação: direção provável, suporte/resistência, padrões e o que observar.";
+          const imageParts = imgs.map((im) => ({
+            type: "image_url" as const,
+            image_url: { url: `data:${im.mediaType};base64,${im.imageBase64}`, detail: "high" },
+          }));
           for (let i = messages.length - 1; i >= 0; i--) {
             if (messages[i].role === "user") {
               const txt = String(messages[i].content ?? "");
               messages[i] = {
                 role: "user",
-                content: [
-                  { type: "image_url", image_url: { url: dataUrl, detail: "high" } },
-                  {
-                    type: "text",
-                    text:
-                      txt ||
-                      "Analise este gráfico e explique o cenário de operação: direção provável, suporte/resistência, padrões e o que observar.",
-                  },
-                ],
+                content: [...imageParts, { type: "text", text: txt || defaultText }],
               };
               break;
             }
@@ -909,9 +962,19 @@ export const Route = createFileRoute("/api/ai-mind")({
                     } else if (tc.function.name === "delete_trade") {
                       result = await executeDeleteTrade(supabaseAdmin, userId, args);
                     } else if (tc.function.name === "get_monthly_report") {
-                      result = await executeMonthlyReport(supabaseAdmin, userId, args);
+                      result = await executeMonthlyReport(
+                        supabaseAdmin,
+                        userId,
+                        args,
+                        body.tzOffset ?? 0,
+                      );
                     } else if (tc.function.name === "get_win_report") {
-                      result = await executeWinReport(supabaseAdmin, userId, args);
+                      result = await executeWinReport(
+                        supabaseAdmin,
+                        userId,
+                        args,
+                        body.tzOffset ?? 0,
+                      );
                     } else {
                       result = {
                         ok: false,
