@@ -431,10 +431,12 @@ function Pricing() {
             12 meses, pagamento único
           </h3>
           <div className="mt-5 flex items-end justify-center gap-3">
-            <span className="font-display text-6xl font-black gradient-text">R$ 2.500</span>
+            <span className="font-display text-6xl font-black gradient-text">
+              <span className="text-3xl">12× R$</span> 208
+            </span>
           </div>
-          <div className="mt-1 text-xs text-muted-foreground">
-            à vista · ou parcelado em até 12x no cartão
+          <div className="mt-1 text-sm text-muted-foreground">
+            no cartão · ou <span className="font-semibold text-foreground">R$ 2.500</span> à vista
           </div>
           <div
             className="mt-2 inline-flex items-center gap-1.5 rounded-full px-3 py-0.5 text-[11px] font-bold"

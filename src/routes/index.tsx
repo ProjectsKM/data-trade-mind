@@ -1782,16 +1782,17 @@ function PricingSection() {
           <div className="flex items-end gap-3">
             <div className="font-display text-5xl font-black tracking-tight gradient-text">
               <sup
-                className="mr-1 align-top text-base font-bold"
+                className="mr-0.5 align-top text-base font-bold"
                 style={{ color: "var(--electric)" }}
               >
-                R$
+                12× R$
               </sup>
-              2.500
+              208
+            </div>
+            <div className="pb-1 text-[11px] text-muted-foreground">
+              no cartão · ou R$ 2.500 à vista
             </div>
             <div className="pb-2 text-[11px] text-muted-foreground">
-              /ano · pagamento único
-              <br />
               12 meses de acesso completo
             </div>
           </div>
