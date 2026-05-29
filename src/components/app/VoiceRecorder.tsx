@@ -235,12 +235,13 @@ export function VoiceRecorder({ onTranscript, disabled }: Props) {
     try {
       const blob = new Blob(chunks, { type: mime });
       // Refresh defensivo — token expirado dava 401 silencioso na transcrição.
-      const { data: refreshed } = await supabase.auth.refreshSession();
-      let token = refreshed.session?.access_token;
-      if (!token) {
+      const getFreshToken = async (): Promise<string | null> => {
+        const { data: refreshed } = await supabase.auth.refreshSession();
+        if (refreshed.session?.access_token) return refreshed.session.access_token;
         const { data: sess } = await supabase.auth.getSession();
-        token = sess.session?.access_token;
-      }
+        return sess.session?.access_token ?? null;
+      };
+      const token = await getFreshToken();
       if (!token) {
         toast.error("Sessão expirada. Faça login novamente.");
         setPhase("idle");
@@ -249,11 +250,20 @@ export function VoiceRecorder({ onTranscript, disabled }: Props) {
       const form = new FormData();
       const ext = mime.includes("webm") ? "webm" : mime.includes("mp4") ? "mp4" : "ogg";
       form.append("audio", new File([blob], `voice.${ext}`, { type: mime }));
-      const r = await fetch("/api/transcribe", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-        body: form,
-      });
+      const post = (tk: string) =>
+        fetch("/api/transcribe", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${tk}` },
+          body: form,
+        });
+      let r = await post(token);
+      // Retry uma vez no 401: durante a gravação (que pode durar minutos) o
+      // supabase-js às vezes rotaciona o token em background, então o primeiro
+      // envio leva o token antigo e o servidor responde "Não autorizado".
+      if (r.status === 401) {
+        const t2 = await getFreshToken();
+        if (t2) r = await post(t2);
+      }
       const data = (await r.json()) as { ok: boolean; text?: string; error?: string };
       if (!data.ok) {
         toast.error(data.error || "Falha ao transcrever.");

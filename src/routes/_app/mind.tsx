@@ -1,5 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { lazy, memo, Suspense, useEffect, useMemo, useRef, useState, useCallback } from "react";
+import {
+  lazy,
+  memo,
+  Suspense,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useCallback,
+  type ReactNode,
+} from "react";
 import {
   Brain,
   Send,
@@ -1113,6 +1123,46 @@ function CardLoadingFallback({ card }: { card: MindCard }) {
   );
 }
 
+// Render leve de markdown inline durante o streaming: **negrito** e `código`.
+// Antes o texto saía cru e o usuário via os asteriscos ("**texto**") até o
+// stream terminar. Isto resolve sem pagar o custo do react-markdown a cada
+// chunk. Marcadores ainda não fechados (ex.: "**rom" no meio do stream) têm o
+// marcador escondido até o par chegar. (Sem lookbehind de propósito — quebra
+// no Safari/iOS < 16.4; o itálico fica pro render final via react-markdown.)
+function renderInlineLite(text: string): ReactNode[] {
+  const out: ReactNode[] = [];
+  const re = /\*\*([^*]+)\*\*|`([^`]+)`/g;
+  let last = 0;
+  let key = 0;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text)) !== null) {
+    if (m.index > last) out.push(text.slice(last, m.index));
+    if (m[1] !== undefined) {
+      out.push(
+        <strong key={key++} style={{ color: "var(--foreground)" }}>
+          {m[1]}
+        </strong>,
+      );
+    } else {
+      out.push(
+        <code
+          key={key++}
+          className="rounded px-1 py-0.5 font-mono text-[12px]"
+          style={{ background: "var(--surface)", color: "var(--accent)" }}
+        >
+          {m[2]}
+        </code>,
+      );
+    }
+    last = re.lastIndex;
+  }
+  // Cauda: remove marcador órfão de um par ainda não fechado no stream.
+  let tail = text.slice(last);
+  tail = tail.replace(/\*\*([^*]*)$/, "$1").replace(/`([^`]*)$/, "$1");
+  if (tail) out.push(tail);
+  return out;
+}
+
 const Bubble = memo(function Bubble({
   m,
   initials,
@@ -1143,15 +1193,20 @@ const Bubble = memo(function Bubble({
     <div className={`flex items-end gap-2.5 fade-in ${isUser ? "flex-row-reverse" : ""}`}>
       <Avatar isAssistant={!isUser} initials={initials} />
       <div
-        className={`max-w-[82%] rounded-xl border px-4 py-2.5 text-sm leading-relaxed ${isUser ? "rounded-br-sm" : "rounded-bl-sm"}`}
+        className={`max-w-[82%] rounded-2xl border px-4 py-3 text-[14.5px] leading-[1.65] ${isUser ? "rounded-br-md" : "rounded-bl-md"}`}
         style={
           isUser
             ? {
                 background: "color-mix(in oklab, var(--accent) 14%, transparent)",
                 borderColor: "color-mix(in oklab, var(--accent) 32%, transparent)",
                 color: "var(--foreground)",
+                boxShadow: "0 6px 20px -14px color-mix(in oklab, var(--accent) 60%, transparent)",
               }
-            : { background: "var(--surface-2)", borderColor: "var(--border)" }
+            : {
+                background: "var(--surface-2)",
+                borderColor: "var(--border)",
+                boxShadow: "0 6px 20px -16px rgba(0,0,0,.5)",
+              }
         }
       >
         {isUser ? (
@@ -1174,11 +1229,11 @@ const Bubble = memo(function Bubble({
             {m.content}
           </span>
         ) : isStreaming ? (
-          // Durante o stream, render texto puro (sem markdown) +
-          // cursor pulsante. Evita re-parse do markdown a cada frame
-          // (que era a maior causa de lag percebido).
+          // Durante o stream, render inline leve (negrito/itálico/código) +
+          // cursor pulsante. Evita o re-parse do react-markdown a cada frame
+          // (maior causa de lag) sem mostrar os asteriscos crus pro usuário.
           <span style={{ whiteSpace: "pre-wrap" }}>
-            {m.content}
+            {renderInlineLite(m.content)}
             <span className="stream-cursor" aria-hidden="true" />
           </span>
         ) : (
