@@ -4,7 +4,7 @@ import { Newspaper, RefreshCw, Loader2 } from "lucide-react";
 import { PageHeader } from "@/components/app/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { supabase } from "@/integrations/supabase/client";
+import { getAccessToken, refreshAccessToken } from "@/integrations/supabase/access-token";
 
 export const Route = createFileRoute("/_app/noticias")({
   head: () => ({ meta: [{ title: "Notícias — OrionHub" }] }),
@@ -67,16 +67,9 @@ function NoticiasPage() {
     setLoading(true);
     setErr("");
     try {
-      // Refresh defensivo do token ANTES de chamar a API — o /api/calendar
-      // exige JWT válido. Sem isso, um token expirado (comum depois de
-      // tempo com a aba aberta) dava 401 "acesso não autorizado".
-      async function getFreshToken(): Promise<string | null> {
-        const { data: refreshed } = await supabase.auth.refreshSession();
-        if (refreshed.session?.access_token) return refreshed.session.access_token;
-        const { data: sess } = await supabase.auth.getSession();
-        return sess.session?.access_token ?? null;
-      }
-
+      // Pega um token válido ANTES de chamar a API — o /api/calendar exige
+      // JWT válido. getAccessToken() renova só se estiver perto de expirar,
+      // sem forçar rotação a cada "Atualizar".
       const doFetch = (tk: string | null) =>
         fetch("/api/calendar", {
           cache: "no-store",
@@ -84,11 +77,12 @@ function NoticiasPage() {
           signal: controller.signal,
         });
 
-      let token = await getFreshToken();
+      let token = await getAccessToken();
       let r = await doFetch(token);
-      // Retry uma vez em 401 — token pode ter expirado entre refresh e fetch.
+      // Retry uma vez em 401: o servidor rejeitou o token — aqui SIM forçamos
+      // uma rotação (reação a um 401 real).
       if (r.status === 401) {
-        token = await getFreshToken();
+        token = await refreshAccessToken();
         r = await doFetch(token);
       }
       let data: unknown;

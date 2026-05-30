@@ -158,25 +158,21 @@ export function useUser() {
       }
       setReady(true);
     });
-    // Tenta refresh primeiro: estende a sessão se ainda houver refresh token
-    // válido, evitando logout em quem deixou a aba aberta por horas.
+    // Carrega a sessão atual. getSession() renova o token de forma transparente
+    // quando ele está expirado (desde que o refresh token ainda valha), então
+    // recupera quem deixou a aba aberta por horas — mas SEM forçar rotação
+    // quando o token ainda é válido. Antes isto era refreshSession(), que
+    // rotaciona sempre; com 3 instâncias de useUser() montando juntas, elas
+    // corriam pra rotacionar o mesmo refresh token e reutilizar um já gasto
+    // fora da janela de 10s do Supabase derrubava a sessão (logout a cada ~1h).
     supabase.auth
-      .refreshSession()
+      .getSession()
       .then(({ data, error }) => {
-        if (!error && data.session?.user) {
-          setUser(toUser(data.session.user));
-          setReady(true);
-          return;
-        }
-        // Refresh falhou (sem refresh token ou expirado) — fallback pra
-        // getSession (pode ter access token ainda válido).
-        return supabase.auth.getSession().then(({ data: s }) => {
-          setUser(s.session?.user ? toUser(s.session.user) : null);
-          setReady(true);
-        });
+        if (!error) setUser(data.session?.user ? toUser(data.session.user) : null);
+        setReady(true);
       })
       .catch(() => {
-        // Erro de rede no refresh — não derruba, deixa user atual e marca ready.
+        // Erro de rede — não derruba, deixa user atual e marca ready.
         setReady(true);
       });
     return () => sub.subscription.unsubscribe();

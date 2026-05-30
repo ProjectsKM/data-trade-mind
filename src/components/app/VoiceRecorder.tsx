@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Mic, Pause, Play, Send, Trash2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { getAccessToken, refreshAccessToken } from "@/integrations/supabase/access-token";
 
 type Props = {
   onTranscript: (text: string) => void;
@@ -234,14 +234,9 @@ export function VoiceRecorder({ onTranscript, disabled }: Props) {
     setPhase("transcribing");
     try {
       const blob = new Blob(chunks, { type: mime });
-      // Refresh defensivo — token expirado dava 401 silencioso na transcrição.
-      const getFreshToken = async (): Promise<string | null> => {
-        const { data: refreshed } = await supabase.auth.refreshSession();
-        if (refreshed.session?.access_token) return refreshed.session.access_token;
-        const { data: sess } = await supabase.auth.getSession();
-        return sess.session?.access_token ?? null;
-      };
-      const token = await getFreshToken();
+      // Pega um token válido (renova só se perto de expirar) — sem forçar
+      // rotação. O retry no 401 abaixo cobre o caso raro de token rejeitado.
+      const token = await getAccessToken();
       if (!token) {
         toast.error("Sessão expirada. Faça login novamente.");
         setPhase("idle");
@@ -260,8 +255,9 @@ export function VoiceRecorder({ onTranscript, disabled }: Props) {
       // Retry uma vez no 401: durante a gravação (que pode durar minutos) o
       // supabase-js às vezes rotaciona o token em background, então o primeiro
       // envio leva o token antigo e o servidor responde "Não autorizado".
+      // Aqui SIM forçamos uma rotação (reação a um 401 real).
       if (r.status === 401) {
-        const t2 = await getFreshToken();
+        const t2 = await refreshAccessToken();
         if (t2) r = await post(t2);
       }
       const data = (await r.json()) as { ok: boolean; text?: string; error?: string };

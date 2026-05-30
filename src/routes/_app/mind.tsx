@@ -27,6 +27,7 @@ import {
 import { toast } from "sonner";
 import { useUser, type ChatMsg } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";
+import { getAccessToken, refreshAccessToken } from "@/integrations/supabase/access-token";
 import { VoiceRecorder } from "@/components/app/VoiceRecorder";
 import { getBanca } from "@/lib/assets";
 import { CARD_PREFIX, parseCard, serializeCard, type MindCard } from "@/lib/mind-cards";
@@ -75,9 +76,10 @@ async function persistCardWithRetry(
   serialized: string,
 ): Promise<void> {
   const tryInsert = async () => {
-    // Refresh defensivo antes de inserir — se o JWT está perto de expirar,
-    // estende sessão pra evitar 401 na inserção.
-    await supabase.auth.refreshSession().catch(() => undefined);
+    // Garante um token válido antes de inserir (renova só se estiver perto de
+    // expirar). Não força rotação — antes era refreshSession(), que rotacionava
+    // o refresh token a cada card e ajudava a derrubar a sessão.
+    await getAccessToken().catch(() => undefined);
     return supabase.from("mind_messages").insert({
       user_id: userId,
       role: "assistant",
@@ -452,16 +454,10 @@ function MindPage() {
       const history = [...(messages.length ? messages : []), userMsg]
         .filter((m) => !m.content.startsWith(CARD_PREFIX))
         .map((m) => ({ role: m.role, content: m.content }));
-      // SEMPRE faz refresh antes de enviar — garante token fresh mesmo após
-      // longo tempo na mesma sessão de chat (JWT expira em ~1h).
-      async function getFreshToken(): Promise<string | null> {
-        const { data: refreshed } = await supabase.auth.refreshSession();
-        if (refreshed.session?.access_token) return refreshed.session.access_token;
-        const { data: sess } = await supabase.auth.getSession();
-        return sess.session?.access_token ?? null;
-      }
-
-      let token = await getFreshToken();
+      // Pega um token válido (renova só se estiver perto de expirar). Não
+      // força rotação a cada mensagem — isso causava reuse do refresh token e
+      // derrubava a sessão. O retry abaixo cobre o 401 raro.
+      let token = await getAccessToken();
       if (!token) {
         toast.error("Sessão expirada. Faça login novamente.");
         setBusy(false);
@@ -502,9 +498,10 @@ function MindPage() {
         });
 
       let r = await doFetch(token);
-      // Retry uma vez se 401 (token pode ter expirado entre refresh e fetch)
+      // Retry uma vez se 401: o servidor rejeitou o token, então aqui SIM
+      // forçamos uma rotação (reação a um 401 real, não proativa).
       if (r.status === 401) {
-        token = await getFreshToken();
+        token = await refreshAccessToken();
         if (!token) {
           toast.error("Sessão expirada. Faça login novamente.");
           setBusy(false);

@@ -46,12 +46,13 @@ function AppLayout() {
   useEffect(() => {
     if (!ready || user) return;
     // Antes redirecionava direto pra /login quando user ficasse null.
-    // Agora tenta um refresh ativo primeiro — se o refresh token ainda for
-    // válido, recupera a sessão sem forçar o usuário a relogar.
+    // getSession() recupera a sessão (renovando o token se estiver expirado,
+    // desde que o refresh token ainda valha) sem forçar uma rotação à toa —
+    // só manda pro /login se realmente não há sessão recuperável.
     let cancelled = false;
     void (async () => {
       try {
-        const { data } = await supabase.auth.refreshSession();
+        const { data } = await supabase.auth.getSession();
         if (cancelled) return;
         if (!data.session?.user) nav({ to: "/login" });
         // Se houve sucesso, o onAuthStateChange atualiza o user no hook.
