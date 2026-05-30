@@ -10,56 +10,15 @@ import {
   Brain,
   LineChart,
   ClipboardList,
-  Zap,
-  Clock,
-  Layers,
   CheckCircle2,
   AlertTriangle,
+  type LucideIcon,
 } from "lucide-react";
 
-/* ───────────────────────── Cenário (background) ───────────────────────── */
-
-function AuthScene() {
-  return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
-      {/* aurora em camadas — dá cor e profundidade ao fundo */}
-      <div
-        className="absolute inset-0"
-        style={{
-          background:
-            "radial-gradient(ellipse 110% 80% at 50% -12%, color-mix(in oklab, var(--accent) 16%, transparent), transparent 58%)," +
-            "radial-gradient(ellipse 90% 70% at 102% 105%, color-mix(in oklab, var(--electric) 14%, transparent), transparent 55%)," +
-            "radial-gradient(ellipse 80% 65% at -5% 92%, color-mix(in oklab, var(--accent) 9%, transparent), transparent 60%)",
-        }}
-      />
-      {/* halos que flutuam suavemente */}
-      <div
-        className="absolute left-[6%] top-[10%] h-80 w-80 rounded-full opacity-30 blur-[120px] float-y"
-        style={{ background: "var(--accent)" }}
-      />
-      <div
-        className="absolute right-[4%] bottom-[8%] h-72 w-72 rounded-full opacity-25 blur-[120px]"
-        style={{ background: "var(--electric)", animation: "float 7s ease-in-out infinite 1.2s" }}
-      />
-      {/* grid sutil com máscara radial */}
-      <div className="absolute inset-0 auth-grid opacity-55" />
-      {/* vinheta — foca o centro */}
-      <div
-        className="absolute inset-0"
-        style={{
-          background:
-            "radial-gradient(ellipse 75% 65% at 50% 42%, transparent 38%, color-mix(in oklab, var(--background) 72%, transparent))",
-        }}
-      />
-    </div>
-  );
-}
-
-/* ──────────────────── Curva de capital (assinatura) ──────────────────── */
-
-// viewBox com a MESMA proporção (~3.6:1) do container renderizado: assim o
-// preserveAspectRatio="none" quase não distorce, o ponto fica redondo e a
-// linha não estica. A espessura é fixada via vector-effect (não escala).
+/* ───────────────────── Curva de capital (assinatura) ─────────────────────
+   viewBox com a MESMA proporção (~3.6:1) do container renderizado: assim o
+   preserveAspectRatio="none" quase não distorce, o ponto fica redondo e a
+   linha não estica. A espessura é fixada via vector-effect (não escala). */
 const CURVE =
   "M6,114 C54,108 82,110 122,99 C162,88 188,92 226,77 C264,62 292,70 330,57 C368,44 396,50 430,36 C444,30 452,32 460,26";
 
@@ -78,7 +37,7 @@ function EquityCurve({ className = "" }: { className?: string }) {
           <stop offset="100%" stopColor="var(--accent)" />
         </linearGradient>
         <linearGradient id="auth-fill" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="color-mix(in oklab, var(--accent) 32%, transparent)" />
+          <stop offset="0%" stopColor="color-mix(in oklab, var(--accent) 38%, transparent)" />
           <stop offset="100%" stopColor="transparent" />
         </linearGradient>
       </defs>
@@ -95,7 +54,7 @@ function EquityCurve({ className = "" }: { className?: string }) {
         strokeLinejoin="round"
         vectorEffect="non-scaling-stroke"
         style={{
-          filter: "drop-shadow(0 0 5px color-mix(in oklab, var(--accent) 55%, transparent))",
+          filter: "drop-shadow(0 0 7px color-mix(in oklab, var(--electric) 82%, transparent))",
         }}
       />
       {/* ponto líder pulsante */}
@@ -103,42 +62,78 @@ function EquityCurve({ className = "" }: { className?: string }) {
         cx={460}
         cy={26}
         r={6}
-        fill="color-mix(in oklab, var(--accent) 22%, transparent)"
+        fill="color-mix(in oklab, var(--electric) 36%, transparent)"
         className="auth-dot"
       />
-      <circle cx={460} cy={26} r={2.6} fill="var(--accent)" />
+      <circle cx={460} cy={26} r={2.6} fill="var(--electric)" />
     </svg>
   );
 }
 
-/* ───────────────────────── Painel de marca (aside) ───────────────────── */
+/* ───────────────────────── Cenário (background da página) ───────────────── */
 
-const LOGIN_FEATURES = [
-  { Icon: LineChart, t: "OrionScan", d: "Leitura de gráfico em segundos" },
-  { Icon: Brain, t: "OrionMind", d: "Mentor IA 24/7 com memória" },
-  { Icon: ClipboardList, t: "Gestão", d: "Banca e proteções calculadas" },
-] as const;
+function AuthScene() {
+  return (
+    <div className="pointer-events-none fixed inset-0 overflow-hidden" aria-hidden>
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(ellipse 90% 60% at 50% -8%, color-mix(in oklab, var(--accent) 14%, transparent), transparent 60%)," +
+            "radial-gradient(ellipse 70% 60% at 100% 100%, color-mix(in oklab, var(--electric) 10%, transparent), transparent 58%)",
+        }}
+      />
+      <div
+        className="absolute -left-24 top-1/4 h-96 w-96 rounded-full opacity-25 blur-[130px] float-y"
+        style={{ background: "var(--accent)" }}
+      />
+      <div
+        className="absolute -right-24 bottom-1/4 h-96 w-96 rounded-full opacity-[0.18] blur-[130px]"
+        style={{ background: "var(--electric)", animation: "float 8s ease-in-out infinite 1.4s" }}
+      />
+    </div>
+  );
+}
 
-const LOGIN_STATS = [
-  { Icon: Zap, v: "< 2s", l: "por análise" },
-  { Icon: Clock, v: "24/7", l: "mentor IA" },
-  { Icon: Layers, v: "7", l: "ferramentas" },
-] as const;
+/* ─────────────────────── Painel de marca (gradiente, esquerda) ─────────── */
 
-const SIGNUP_PERKS = [
-  "OrionScan: análise de gráficos por IA",
-  "OrionMind: mentor 24/7 com memória da sua banca",
-  "Gestão completa, notícias e CryptoBubbles",
-  "Garantia de 7 dias · 100% do valor de volta",
-] as const;
+const HIGHLIGHTS: { Icon: LucideIcon; t: string; d: string }[] = [
+  { Icon: LineChart, t: "OrionScan", d: "Leitura de gráfico por IA em segundos" },
+  { Icon: Brain, t: "OrionMind", d: "Mentor IA 24/7 com memória da sua banca" },
+  { Icon: ClipboardList, t: "Gestão & Notícias", d: "Banca, proteções e calendário num só lugar" },
+];
 
-function BrandAside({ mode }: { mode: AuthMode }) {
+function BrandPanel({ mode }: { mode: AuthMode }) {
   return (
     <div
-      className="relative hidden flex-1 flex-col justify-between overflow-hidden border-r p-12 xl:p-16 lg:flex"
-      style={{ borderColor: "var(--border)" }}
+      className="relative hidden flex-col justify-center gap-10 overflow-hidden p-9 lg:flex xl:p-11"
+      style={{
+        // bloom azul vívido sobre navy profundo (eco do exemplo, na paleta do site)
+        background:
+          "radial-gradient(120% 95% at 50% 4%, color-mix(in oklab, var(--electric) 74%, transparent), transparent 58%)," +
+          "radial-gradient(115% 85% at 50% 46%, color-mix(in oklab, var(--accent) 60%, transparent), transparent 62%)," +
+          "radial-gradient(100% 80% at 50% 108%, color-mix(in oklab, var(--accent) 26%, transparent), transparent 64%)," +
+          "oklch(0.115 0.035 265)",
+      }}
     >
-      <AuthScene />
+      {/* grid sutil */}
+      <div className="absolute inset-0 auth-grid opacity-[0.5]" />
+      {/* vinheta escurecendo as bordas — concentra o bloom no centro */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(135% 125% at 50% 36%, transparent 46%, color-mix(in oklab, #03050b 60%, transparent))",
+        }}
+      />
+      {/* highlight de vidro no topo */}
+      <div
+        className="pointer-events-none absolute inset-x-0 top-0 h-px"
+        style={{
+          background:
+            "linear-gradient(90deg, transparent, color-mix(in oklab, white 40%, transparent), transparent)",
+        }}
+      />
 
       {/* topo: logo */}
       <div className="relative z-10">
@@ -146,33 +141,73 @@ function BrandAside({ mode }: { mode: AuthMode }) {
           to="/"
           viewTransition
           preload="intent"
-          className="inline-flex items-center gap-2 font-display text-2xl font-black tracking-tight smooth hover:opacity-80"
+          className="inline-flex items-center gap-2.5 font-display text-2xl font-black tracking-tight text-white smooth hover:opacity-90"
         >
           <span
             className="grid h-9 w-9 place-items-center rounded-xl"
             style={{
               background: "var(--gradient-primary)",
-              boxShadow: "0 8px 24px -10px color-mix(in oklab, var(--accent) 70%, transparent)",
+              boxShadow: "0 10px 28px -10px color-mix(in oklab, var(--electric) 85%, transparent)",
             }}
           >
             <TrendingUp className="h-5 w-5 text-white" strokeWidth={2.5} />
           </span>
-          Orion<span style={{ color: "var(--electric)" }}>Hub</span>
+          Orion<span style={{ color: "color-mix(in oklab, var(--electric) 90%, white)" }}>Hub</span>
         </Link>
       </div>
 
-      {/* centro: curva + headline */}
-      <div className="relative z-10 max-w-md stagger">
+      {/* centro: badge + headline + curva */}
+      <div className="relative z-10 max-w-md">
+        {mode === "signup" && (
+          <div
+            className="mb-5 inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-white backdrop-blur-sm"
+            style={{
+              background: "color-mix(in oklab, white 14%, transparent)",
+              borderColor: "color-mix(in oklab, white 26%, transparent)",
+            }}
+          >
+            <Sparkles className="h-3 w-3" /> 12× R$ 208 · acesso anual
+          </div>
+        )}
+
+        <h1 className="font-display text-[2.4rem] font-black leading-[1.06] tracking-tight text-white">
+          {mode === "login" ? (
+            <>
+              Bem-vindo de volta
+              <br />
+              ao{" "}
+              <span style={{ color: "color-mix(in oklab, var(--electric) 70%, white)" }}>
+                OrionHub
+              </span>
+              .
+            </>
+          ) : (
+            <>
+              Sua mente de trader,
+              <br />
+              <span style={{ color: "color-mix(in oklab, var(--electric) 70%, white)" }}>
+                amplificada por IA
+              </span>
+              .
+            </>
+          )}
+        </h1>
+        <p className="mt-3 max-w-sm text-[13.5px] leading-relaxed text-white/80">
+          {mode === "login"
+            ? "Entre para continuar de onde parou — suas análises, banca e mentor IA esperam por você."
+            : "Crie sua conta e tenha um terminal completo de trading com inteligência artificial."}
+        </p>
+
+        {/* curva de capital — assinatura viva */}
         <div
-          className="relative mb-9 overflow-hidden rounded-2xl border p-5"
+          className="relative mt-7 overflow-hidden rounded-2xl border p-4 backdrop-blur-md"
           style={{
-            background: "color-mix(in oklab, var(--surface) 55%, transparent)",
-            borderColor: "color-mix(in oklab, var(--accent) 18%, var(--border))",
-            backdropFilter: "blur(8px)",
+            background: "color-mix(in oklab, #060912 42%, transparent)",
+            borderColor: "color-mix(in oklab, white 16%, transparent)",
           }}
         >
-          <div className="mb-3 flex items-center justify-between">
-            <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+          <div className="mb-2.5 flex items-center justify-between">
+            <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-white/75">
               <span
                 className="h-1.5 w-1.5 rounded-full blink-dot"
                 style={{ background: "var(--green)" }}
@@ -186,147 +221,88 @@ function BrandAside({ mode }: { mode: AuthMode }) {
               +18,4%
             </span>
           </div>
-          <EquityCurve className="h-28 w-full" />
+          <EquityCurve className="h-24 w-full" />
         </div>
-
-        {mode === "signup" && (
-          <div
-            className="mb-5 inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em]"
-            style={{
-              background: "color-mix(in oklab, var(--accent) 12%, transparent)",
-              borderColor: "color-mix(in oklab, var(--accent) 32%, transparent)",
-              color: "var(--accent)",
-            }}
-          >
-            <Sparkles className="h-3 w-3" /> 12× R$ 208 · acesso anual
-          </div>
-        )}
-
-        <h1 className="font-display text-[2.6rem] font-black leading-[1.05] tracking-tight">
-          {mode === "login" ? (
-            <>
-              Sua mente de trader,
-              <br />
-              <span className="gradient-text">amplificada por IA</span>.
-            </>
-          ) : (
-            <>
-              Opere com a clareza
-              <br />
-              de quem tem um <span className="gradient-text">mentor IA</span>.
-            </>
-          )}
-        </h1>
-
-        {mode === "login" ? (
-          <div className="mt-8 flex flex-col gap-2.5">
-            {LOGIN_FEATURES.map(({ Icon, t, d }) => (
-              <div
-                key={t}
-                className="flex items-center gap-3 rounded-xl border px-3.5 py-2.5 smooth hover-glow"
-                style={{
-                  background: "color-mix(in oklab, var(--surface) 50%, transparent)",
-                  borderColor: "var(--border)",
-                }}
-              >
-                <span
-                  className="grid h-9 w-9 flex-none place-items-center rounded-lg"
-                  style={{
-                    background: "color-mix(in oklab, var(--accent) 14%, transparent)",
-                    color: "var(--accent)",
-                    border: "1px solid color-mix(in oklab, var(--accent) 26%, transparent)",
-                  }}
-                >
-                  <Icon className="h-4 w-4" strokeWidth={1.9} />
-                </span>
-                <div className="leading-tight">
-                  <div className="text-sm font-semibold">{t}</div>
-                  <div className="text-[12px] text-muted-foreground">{d}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <ul className="mt-8 flex flex-col gap-2.5">
-            {SIGNUP_PERKS.map((p) => (
-              <li key={p} className="flex items-start gap-2.5 text-sm text-muted-foreground">
-                <CheckCircle2
-                  className="mt-0.5 h-4 w-4 flex-none"
-                  style={{ color: "var(--green)" }}
-                />
-                <span>{p}</span>
-              </li>
-            ))}
-          </ul>
-        )}
       </div>
 
-      {/* base: stats (login) ou citação (signup) */}
-      {mode === "login" ? (
-        <div className="relative z-10 grid max-w-md grid-cols-3 gap-3">
-          {LOGIN_STATS.map(({ Icon, v, l }) => (
+      {/* base: destaques do produto — o primeiro card vem em destaque (eco do exemplo) */}
+      <div className="relative z-10 flex flex-col gap-2.5">
+        {HIGHLIGHTS.map(({ Icon, t, d }, i) => {
+          const featured = i === 0;
+          return (
             <div
-              key={l}
-              className="rounded-xl border p-3.5"
-              style={{
-                background: "color-mix(in oklab, var(--surface) 50%, transparent)",
-                borderColor: "var(--border)",
-              }}
+              key={t}
+              className="flex items-center gap-3.5 rounded-xl border px-3.5 py-3 smooth"
+              style={
+                featured
+                  ? {
+                      background: "color-mix(in oklab, white 94%, transparent)",
+                      borderColor: "transparent",
+                      boxShadow: "0 20px 48px -18px rgba(0,0,0,.7)",
+                    }
+                  : {
+                      background: "color-mix(in oklab, white 11%, transparent)",
+                      borderColor: "color-mix(in oklab, white 17%, transparent)",
+                    }
+              }
             >
-              <Icon
-                className="mb-1.5 h-4 w-4"
-                style={{ color: "var(--accent)" }}
-                strokeWidth={1.9}
-              />
-              <div className="font-display text-xl font-black tracking-tight">{v}</div>
-              <div className="text-[11px] text-muted-foreground">{l}</div>
+              <span
+                className="grid h-9 w-9 flex-none place-items-center rounded-lg"
+                style={
+                  featured
+                    ? { background: "var(--gradient-primary)", color: "white" }
+                    : {
+                        background: "color-mix(in oklab, white 10%, transparent)",
+                        color: "color-mix(in oklab, var(--electric) 55%, white)",
+                      }
+                }
+              >
+                <Icon className="h-4 w-4" strokeWidth={2} />
+              </span>
+              <div className="leading-tight">
+                <div
+                  className="text-sm font-semibold"
+                  style={{ color: featured ? "oklch(0.2 0.03 265)" : "white" }}
+                >
+                  {t}
+                </div>
+                <div
+                  className="text-[12px]"
+                  style={{ color: featured ? "oklch(0.45 0.03 265)" : "rgba(255,255,255,0.66)" }}
+                >
+                  {d}
+                </div>
+              </div>
             </div>
-          ))}
-        </div>
-      ) : (
-        <blockquote
-          className="relative z-10 max-w-md rounded-2xl border p-5 text-sm italic leading-relaxed text-muted-foreground"
-          style={{
-            background: "color-mix(in oklab, var(--surface) 55%, transparent)",
-            borderColor: "var(--border)",
-          }}
-        >
-          "O OrionHub é a tradução prática da metodologia que ensino na Orion Capital."
-          <div
-            className="mt-2 not-italic text-[11px] font-bold uppercase tracking-wider"
-            style={{ color: "var(--accent)" }}
-          >
-            — Gabriel Dutra · Trader Orion Capital
-          </div>
-        </blockquote>
-      )}
+          );
+        })}
+      </div>
     </div>
   );
 }
 
-/* ──────────────────────────── Switch (Entrar/Criar) ──────────────────── */
+/* ──────────────────────────── Switch (Entrar/Criar) ──────────────────────── */
 
 function AuthSwitch({ mode }: { mode: AuthMode }) {
   const base = "relative z-10 flex-1 rounded-lg py-2 text-center text-[13px] font-bold smooth";
+  const activeStyle = {
+    background: "var(--gradient-primary)",
+    color: "var(--accent-foreground)",
+    boxShadow: "0 8px 22px -12px color-mix(in oklab, var(--accent) 75%, transparent)",
+  };
   return (
-    <div
-      className="mb-7 grid grid-cols-2 gap-1 rounded-xl border p-1"
-      style={{ background: "var(--surface-2)", borderColor: "var(--border)" }}
+    <nav
+      aria-label="Modo de autenticação"
+      className="grid grid-cols-2 gap-1 rounded-xl border p-1"
+      style={{ background: "var(--surface-2)", borderColor: "var(--border-strong)" }}
     >
       <Link
         to="/login"
         viewTransition
         preload="intent"
+        aria-current={mode === "login" ? "page" : undefined}
         className={base}
-        style={
-          mode === "login"
-            ? {
-                background: "var(--gradient-primary)",
-                color: "var(--accent-foreground)",
-                boxShadow: "0 8px 22px -12px color-mix(in oklab, var(--accent) 75%, transparent)",
-              }
-            : { color: "var(--text-muted)" }
-        }
+        style={mode === "login" ? activeStyle : { color: "var(--text-muted)" }}
       >
         Entrar
       </Link>
@@ -334,24 +310,17 @@ function AuthSwitch({ mode }: { mode: AuthMode }) {
         to="/signup"
         viewTransition
         preload="intent"
+        aria-current={mode === "signup" ? "page" : undefined}
         className={base}
-        style={
-          mode === "signup"
-            ? {
-                background: "var(--gradient-primary)",
-                color: "var(--accent-foreground)",
-                boxShadow: "0 8px 22px -12px color-mix(in oklab, var(--accent) 75%, transparent)",
-              }
-            : { color: "var(--text-muted)" }
-        }
+        style={mode === "signup" ? activeStyle : { color: "var(--text-muted)" }}
       >
         Criar conta
       </Link>
-    </div>
+    </nav>
   );
 }
 
-/* ─────────────────────────────── Campo ───────────────────────────────── */
+/* ─────────────────────────────── Campo ───────────────────────────────────── */
 
 export function Field({
   id,
@@ -403,12 +372,12 @@ export function Field({
           placeholder={placeholder}
           required={required}
           autoComplete={autoComplete}
-          className="peer h-[3.6rem] w-full rounded-xl border bg-[var(--surface-2)] pl-10 pr-10 pt-5 pb-1 text-base text-foreground outline-none transition-all placeholder:text-transparent focus:border-[color:var(--accent)] focus:shadow-[0_0_0_4px_color-mix(in_oklab,var(--accent)_14%,transparent)] sm:text-sm"
+          className="peer h-[3.4rem] w-full rounded-xl border bg-[var(--surface-2)] pl-10 pr-10 pt-5 pb-1 text-base text-foreground outline-none transition-all placeholder:text-transparent focus:border-[color:var(--accent)] focus:shadow-[0_0_0_4px_color-mix(in_oklab,var(--accent)_14%,transparent)] sm:text-sm"
           style={{ borderColor: "var(--border-strong)" }}
         />
         <label
           htmlFor={id}
-          className="pointer-events-none absolute left-10 top-1/2 -translate-y-1/2 text-[14px] text-muted-foreground transition-all duration-200 peer-focus:top-[0.95rem] peer-focus:translate-y-0 peer-focus:text-[10px] peer-focus:font-semibold peer-focus:uppercase peer-focus:tracking-wider peer-focus:text-[color:var(--accent)] peer-[:not(:placeholder-shown)]:top-[0.95rem] peer-[:not(:placeholder-shown)]:translate-y-0 peer-[:not(:placeholder-shown)]:text-[10px] peer-[:not(:placeholder-shown)]:font-semibold peer-[:not(:placeholder-shown)]:uppercase peer-[:not(:placeholder-shown)]:tracking-wider"
+          className="pointer-events-none absolute left-10 top-1/2 -translate-y-1/2 text-[14px] text-muted-foreground transition-all duration-200 peer-focus:top-[0.9rem] peer-focus:translate-y-0 peer-focus:text-[10px] peer-focus:font-semibold peer-focus:uppercase peer-focus:tracking-wider peer-focus:text-[color:var(--accent)] peer-[:not(:placeholder-shown)]:top-[0.9rem] peer-[:not(:placeholder-shown)]:translate-y-0 peer-[:not(:placeholder-shown)]:text-[10px] peer-[:not(:placeholder-shown)]:font-semibold peer-[:not(:placeholder-shown)]:uppercase peer-[:not(:placeholder-shown)]:tracking-wider"
         >
           {label}
         </label>
@@ -436,7 +405,7 @@ export function Field({
   );
 }
 
-/* ──────────────────────── Medidor de força de senha ──────────────────── */
+/* ──────────────────────── Medidor de força de senha ──────────────────────── */
 
 export function PasswordStrength({ value }: { value: string }) {
   const { score, label, color } = useMemo(() => {
@@ -477,14 +446,14 @@ export function PasswordStrength({ value }: { value: string }) {
   );
 }
 
-/* ────────────────────────────── Botão submit ─────────────────────────── */
+/* ────────────────────────────── Botão submit ─────────────────────────────── */
 
 export function SubmitButton({ loading, children }: { loading: boolean; children: ReactNode }) {
   return (
     <button
       type="submit"
       disabled={loading}
-      className="group relative mt-2 flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl py-3.5 text-sm font-bold smooth press disabled:opacity-60 hover:-translate-y-0.5"
+      className="group relative mt-1 flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl py-3.5 text-sm font-bold smooth press disabled:opacity-60 hover:-translate-y-0.5"
       style={{
         background: "var(--gradient-primary)",
         color: "var(--accent-foreground)",
@@ -504,7 +473,7 @@ export function SubmitButton({ loading, children }: { loading: boolean; children
   );
 }
 
-/* ────────────────────────────── Erro inline ──────────────────────────── */
+/* ────────────────────────────── Erro inline ──────────────────────────────── */
 
 export function AuthError({ message }: { message: string }) {
   if (!message) return null;
@@ -523,7 +492,7 @@ export function AuthError({ message }: { message: string }) {
   );
 }
 
-/* ─────────────────────────────── Layout ──────────────────────────────── */
+/* ─────────────────────────────── Layout ──────────────────────────────────── */
 
 export type AuthMode = "login" | "signup";
 
@@ -541,85 +510,74 @@ export function AuthLayout({
   children: ReactNode;
 }) {
   return (
-    <div className="relative flex min-h-dvh" style={{ background: "var(--background)" }}>
-      <BrandAside mode={mode} />
+    <div
+      className="relative flex min-h-dvh items-center justify-center px-4 py-8 sm:px-6"
+      style={{ background: "var(--background)" }}
+    >
+      <AuthScene />
 
-      {/* coluna do formulário */}
-      <div className="relative flex flex-1 items-start justify-center overflow-y-auto px-5 pt-10 pb-12 lg:w-[520px] lg:flex-none lg:items-center lg:pt-12">
-        {/* fundo só no mobile (no desktop o aside já tem o cenário) */}
-        <div className="lg:hidden">
-          <AuthScene />
-        </div>
-
-        <div className={`relative z-10 w-full max-w-[400px] fade-up ${shake ? "shake" : ""}`}>
-          {/* logo mobile */}
-          <div className="mb-7 flex flex-col items-center gap-3 lg:hidden">
-            <Link
-              to="/"
-              viewTransition
-              preload="intent"
-              className="inline-flex items-center gap-2 font-display text-2xl font-black tracking-tight"
-            >
-              <span
-                className="grid h-8 w-8 place-items-center rounded-lg"
-                style={{ background: "var(--gradient-primary)" }}
-              >
-                <TrendingUp className="h-4 w-4 text-white" strokeWidth={2.5} />
-              </span>
-              Orion<span style={{ color: "var(--electric)" }}>Hub</span>
-            </Link>
-            <div className="h-12 w-44 opacity-90">
-              <EquityCurve className="h-full w-full" />
-            </div>
-          </div>
-
-          {/* borda em gradiente ESTÁTICA (1px) — nada girando */}
+      <div className={`relative z-10 w-full max-w-[1040px] fade-up ${shake ? "shake" : ""}`}>
+        {/* borda em gradiente (1px) — moldura premium do card */}
+        <div
+          className="rounded-[28px] p-px"
+          style={{
+            background:
+              "linear-gradient(150deg, color-mix(in oklab, var(--electric) 55%, transparent), color-mix(in oklab, var(--border-strong) 60%, transparent) 32%, color-mix(in oklab, var(--border) 80%, transparent) 66%, color-mix(in oklab, var(--accent) 45%, transparent))",
+            boxShadow:
+              "0 50px 110px -42px rgba(0,0,0,.8), 0 0 90px -40px color-mix(in oklab, var(--accent) 45%, transparent)",
+          }}
+        >
           <div
-            className="rounded-[26px] p-px"
-            style={{
-              background:
-                "linear-gradient(155deg, color-mix(in oklab, var(--accent) 55%, transparent), color-mix(in oklab, var(--border-strong) 70%, transparent) 36%, color-mix(in oklab, var(--border) 80%, transparent) 64%, color-mix(in oklab, var(--electric) 38%, transparent))",
-              boxShadow:
-                "0 42px 90px -34px rgba(0,0,0,.75), 0 0 70px -28px color-mix(in oklab, var(--accent) 38%, transparent)",
-            }}
+            className="grid grid-cols-1 overflow-hidden rounded-[27px] lg:grid-cols-[1.04fr_1fr]"
+            style={{ background: "var(--surface)" }}
           >
-            <div
-              className="relative overflow-hidden rounded-[25px] p-7 backdrop-blur-2xl sm:p-8"
-              style={{ background: "color-mix(in oklab, var(--surface) 93%, transparent)" }}
-            >
-              {/* brilho superior interno (highlight de vidro) */}
-              <div
-                className="pointer-events-none absolute inset-x-8 top-0 h-px"
-                style={{
-                  background:
-                    "linear-gradient(90deg, transparent, color-mix(in oklab, var(--foreground) 45%, transparent), transparent)",
-                }}
-              />
-              {/* glow accent difuso no topo */}
-              <div
-                className="pointer-events-none absolute -top-20 left-1/2 h-40 w-3/4 -translate-x-1/2 rounded-full opacity-40 blur-[60px]"
-                style={{ background: "var(--accent)" }}
-              />
+            {/* metade esquerda: marca (some no mobile) */}
+            <BrandPanel mode={mode} />
 
-              <div className="relative">
+            {/* metade direita: formulário */}
+            <div className="relative flex flex-col justify-center px-6 py-9 sm:px-10 sm:py-11 lg:px-12">
+              {/* logo no mobile (o painel de marca some abaixo de lg) */}
+              <div className="mb-7 flex items-center justify-center gap-2.5 lg:hidden">
+                <Link
+                  to="/"
+                  viewTransition
+                  preload="intent"
+                  className="inline-flex items-center gap-2 font-display text-2xl font-black tracking-tight"
+                >
+                  <span
+                    className="grid h-8 w-8 place-items-center rounded-lg"
+                    style={{ background: "var(--gradient-primary)" }}
+                  >
+                    <TrendingUp className="h-4 w-4 text-white" strokeWidth={2.5} />
+                  </span>
+                  Orion<span style={{ color: "var(--electric)" }}>Hub</span>
+                </Link>
+              </div>
+
+              <div className="mx-auto w-full max-w-[380px] lg:max-w-[412px]">
                 <AuthSwitch mode={mode} />
 
-                <h2 className="font-display text-[1.6rem] font-black tracking-tight">{title}</h2>
-                <p className="mt-1 text-[13px] text-muted-foreground">{subtitle}</p>
+                <h2 className="mt-7 font-display text-[1.7rem] font-black tracking-tight">
+                  {title}
+                </h2>
+                <p className="mt-1.5 text-[13px] text-muted-foreground">{subtitle}</p>
 
                 {children}
+
+                {/* selos de confiança */}
+                <div className="mt-7 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[10px] uppercase tracking-[0.16em] text-muted-foreground/60">
+                  <span className="inline-flex items-center gap-1">
+                    <ShieldCheck className="h-3 w-3" style={{ color: "var(--green)" }} />
+                    Dados criptografados
+                  </span>
+                  <span className="opacity-30">·</span>
+                  <span className="inline-flex items-center gap-1">
+                    <CheckCircle2 className="h-3 w-3" style={{ color: "var(--green)" }} />
+                    {mode === "signup" ? "Garantia 7 dias" : "Suporte humano"}
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
-
-          {/* selos de confiança */}
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[10px] uppercase tracking-[0.18em] text-muted-foreground/60">
-            <span className="inline-flex items-center gap-1">
-              <ShieldCheck className="h-3 w-3" style={{ color: "var(--green)" }} />
-              Dados criptografados
-            </span>
-            <span className="opacity-30">·</span>
-            <span>{mode === "signup" ? "Garantia 7 dias" : "Suporte humano"}</span>
           </div>
         </div>
       </div>

@@ -50,7 +50,7 @@ function LoginPage() {
       subtitle="Entre com sua conta para continuar"
       shake={shake}
     >
-      <form onSubmit={submit} className="mt-7 space-y-4">
+      <form onSubmit={submit} className="mt-6 space-y-4">
         <Field
           id="login-email"
           icon={<Mail className="h-4 w-4" />}
@@ -87,7 +87,7 @@ function LoginPage() {
             className="font-semibold smooth hover:opacity-80"
             style={{ color: "var(--electric)" }}
           >
-            Criar conta
+            Criar conta grátis
           </Link>
         </p>
         <Link

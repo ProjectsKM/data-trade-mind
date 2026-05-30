@@ -59,7 +59,7 @@ function SignupPage() {
       subtitle="Garantia de 7 dias · 100% do valor de volta"
       shake={shake}
     >
-      <form onSubmit={submit} className="mt-7 space-y-4">
+      <form onSubmit={submit} className="mt-6 space-y-4">
         <Field
           id="signup-nome"
           icon={<User className="h-4 w-4" />}
@@ -99,7 +99,7 @@ function SignupPage() {
           </span>
           <label
             htmlFor="signup-pais"
-            className="pointer-events-none absolute left-10 top-[0.7rem] z-10 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"
+            className="pointer-events-none absolute left-10 top-[0.85rem] z-10 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"
           >
             País
           </label>
@@ -108,7 +108,7 @@ function SignupPage() {
             value={country}
             onChange={(e) => setCountry(e.target.value)}
             autoComplete="country-name"
-            className="h-[3.6rem] w-full appearance-none rounded-xl border bg-[var(--surface-2)] pl-10 pr-10 pb-1 pt-5 text-sm text-foreground outline-none transition-all focus:border-[color:var(--accent)] focus:shadow-[0_0_0_4px_color-mix(in_oklab,var(--accent)_14%,transparent)]"
+            className="h-[3.4rem] w-full appearance-none rounded-xl border bg-[var(--surface-2)] pl-10 pr-10 pb-1 pt-5 text-sm text-foreground outline-none transition-all focus:border-[color:var(--accent)] focus:shadow-[0_0_0_4px_color-mix(in_oklab,var(--accent)_14%,transparent)]"
             style={{ borderColor: "var(--border-strong)" }}
           >
             {["Brasil", "Portugal", "Angola", "Moçambique", "Outro"].map((c) => (
